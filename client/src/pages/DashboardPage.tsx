@@ -123,7 +123,8 @@ export function DashboardPage() {
           Authentication & Identity Module Ready
         </h3>
         <p className="text-xs text-gray-500 max-w-xl mx-auto">
-          User registration with preloaded roster verification, email confirmation tokens, and JWT access + hashed refresh token session management are fully operational.
+          User registration with preloaded roster verification, email confirmation tokens, and JWT
+          access + hashed refresh token session management are fully operational.
         </p>
       </div>
     </div>

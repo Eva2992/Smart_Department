@@ -78,14 +78,12 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post<ApiResponse<AuthTokens>>(
-          `${API_BASE_URL}/auth/refresh`,
-          { refreshToken }
-        );
+        const res = await axios.post<ApiResponse<AuthTokens>>(`${API_BASE_URL}/auth/refresh`, {
+          refreshToken,
+        });
 
         if (res.data.success && res.data.data) {
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-            res.data.data;
+          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = res.data.data;
 
           localStorage.setItem("accessToken", newAccessToken);
           localStorage.setItem("refreshToken", newRefreshToken);

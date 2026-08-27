@@ -1,8 +1,4 @@
-import {
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { AuthContext } from "./authContextDef.js";
 import { apiClient } from "../api/client.js";
 import type {
@@ -67,9 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (
     data: RegisterPayload
   ): Promise<{ verificationToken?: string; message?: string }> => {
-    const res = await apiClient.post<
-      ApiResponse<{ user: User; verificationToken: string }>
-    >("/auth/register", data);
+    const res = await apiClient.post<ApiResponse<{ user: User; verificationToken: string }>>(
+      "/auth/register",
+      data
+    );
 
     return {
       verificationToken: res.data.data?.verificationToken,
@@ -77,9 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const verifyEmail = async (
-    token: string
-  ): Promise<{ success: boolean; message: string }> => {
+  const verifyEmail = async (token: string): Promise<{ success: boolean; message: string }> => {
     const res = await apiClient.post<ApiResponse<User>>("/auth/verify-email", {
       token,
     });

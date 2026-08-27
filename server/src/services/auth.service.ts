@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { preloadedService } from "./preloaded.service.js";
+import { emailService } from "./email.service.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -58,7 +59,11 @@ export class AuthService {
     // 2. Preloaded verification per role
     if (role === "STUDENT" || role === "CR") {
       if (!universityId) {
-        throw new AppError("University ID is required for student registration", 400, "MISSING_UNIVERSITY_ID");
+        throw new AppError(
+          "University ID is required for student registration",
+          400,
+          "MISSING_UNIVERSITY_ID"
+        );
       }
 
       const rosterCheck = await preloadedService.verifyStudentRoster({
@@ -70,7 +75,8 @@ export class AuthService {
 
       if (!rosterCheck.valid || !rosterCheck.preloadedRecord) {
         throw new AppError(
-          rosterCheck.error || "Your information does not match our records. Please contact the department admin.",
+          rosterCheck.error ||
+            "Your information does not match our records. Please contact the department admin.",
           400,
           "PRELOADED_VERIFICATION_FAILED"
         );
@@ -81,7 +87,11 @@ export class AuthService {
       }
     } else if (role === "TEACHER") {
       if (!teacherUniqueId) {
-        throw new AppError("Teacher Unique ID is required for teacher registration", 400, "MISSING_TEACHER_ID");
+        throw new AppError(
+          "Teacher Unique ID is required for teacher registration",
+          400,
+          "MISSING_TEACHER_ID"
+        );
       }
 
       const rosterCheck = await preloadedService.verifyTeacherRoster({
@@ -107,7 +117,8 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // 4. Generate 24-hour verification token
-    const { token: verificationToken, expiresAt: verificationTokenExpiry } = generateVerificationToken();
+    const { token: verificationToken, expiresAt: verificationTokenExpiry } =
+      generateVerificationToken();
 
     // 5. Create user in inactive/unverified state
     const createdUser = await prisma.user.create({
@@ -128,6 +139,13 @@ export class AuthService {
       },
     });
 
+    // 6. Dispatch verification email (ADR-0005)
+    await emailService.sendVerificationEmail(
+      createdUser.email,
+      verificationToken,
+      createdUser.name
+    );
+
     return {
       user: toUserResponse(createdUser),
       verificationToken,
@@ -137,7 +155,9 @@ export class AuthService {
   /**
    * Confirms email verification via token (FR-02).
    */
-  async verifyEmail(token: string): Promise<{ success: boolean; message: string; user: UserResponse }> {
+  async verifyEmail(
+    token: string
+  ): Promise<{ success: boolean; message: string; user: UserResponse }> {
     if (!token) {
       throw new AppError("Verification token is required", 400, "INVALID_TOKEN");
     }
@@ -159,7 +179,11 @@ export class AuthService {
     }
 
     if (user.verificationTokenExpiry && user.verificationTokenExpiry < new Date()) {
-      throw new AppError("Verification token has expired. Please request a new one.", 400, "TOKEN_EXPIRED");
+      throw new AppError(
+        "Verification token has expired. Please request a new one.",
+        400,
+        "TOKEN_EXPIRED"
+      );
     }
 
     const updatedUser = await prisma.user.update({
@@ -181,7 +205,9 @@ export class AuthService {
   /**
    * Logs in user with JWT Access + Hashed Refresh Token session (FR-03, NFR-08).
    */
-  async login(dto: LoginDto): Promise<{ user: UserResponse; accessToken: string; refreshToken: string }> {
+  async login(
+    dto: LoginDto
+  ): Promise<{ user: UserResponse; accessToken: string; refreshToken: string }> {
     const { email, password } = dto;
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -233,7 +259,11 @@ export class AuthService {
 
     // Check email verification status
     if (!user.isVerified) {
-      throw new AppError("Please verify your email address before logging in.", 403, "EMAIL_NOT_VERIFIED");
+      throw new AppError(
+        "Please verify your email address before logging in.",
+        403,
+        "EMAIL_NOT_VERIFIED"
+      );
     }
 
     // Reset lockout and failed attempts upon successful login
@@ -370,7 +400,9 @@ export class AuthService {
   /**
    * Resends verification email with a fresh 24-hour token (FR-02).
    */
-  async resendVerificationEmail(email: string): Promise<{ success: boolean; message: string; verificationToken?: string }> {
+  async resendVerificationEmail(
+    email: string
+  ): Promise<{ success: boolean; message: string; verificationToken?: string }> {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -380,7 +412,8 @@ export class AuthService {
       // Return generic message to prevent email enumeration
       return {
         success: true,
-        message: "If an account with this email exists and is unverified, a verification link has been sent.",
+        message:
+          "If an account with this email exists and is unverified, a verification link has been sent.",
       };
     }
 
@@ -391,7 +424,8 @@ export class AuthService {
       };
     }
 
-    const { token: verificationToken, expiresAt: verificationTokenExpiry } = generateVerificationToken();
+    const { token: verificationToken, expiresAt: verificationTokenExpiry } =
+      generateVerificationToken();
 
     await prisma.user.update({
       where: { id: user.id },
@@ -400,6 +434,8 @@ export class AuthService {
         verificationTokenExpiry,
       },
     });
+
+    await emailService.sendVerificationEmail(user.email, verificationToken, user.name);
 
     return {
       success: true,

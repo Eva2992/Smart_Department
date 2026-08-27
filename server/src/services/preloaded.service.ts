@@ -23,7 +23,9 @@ export class PreloadedService {
   /**
    * Verifies if a student exists in the preloaded roster and is not yet registered.
    */
-  async verifyStudentRoster(params: VerifyStudentParams): Promise<VerificationResult<PreloadedStudent>> {
+  async verifyStudentRoster(
+    params: VerifyStudentParams
+  ): Promise<VerificationResult<PreloadedStudent>> {
     const { universityId, email, batchId, program } = params;
 
     const preloaded = await prisma.preloadedStudent.findUnique({
@@ -82,7 +84,9 @@ export class PreloadedService {
   /**
    * Verifies if a teacher exists in the preloaded roster and is not yet registered.
    */
-  async verifyTeacherRoster(params: VerifyTeacherParams): Promise<VerificationResult<PreloadedTeacher>> {
+  async verifyTeacherRoster(
+    params: VerifyTeacherParams
+  ): Promise<VerificationResult<PreloadedTeacher>> {
     const { teacherUniqueId, email } = params;
 
     const preloaded = await prisma.preloadedTeacher.findUnique({

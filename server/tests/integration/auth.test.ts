@@ -241,9 +241,7 @@ describe("Auth Integration Routes (/api/v1/auth)", () => {
         updatedAt: new Date(),
       } as any);
 
-      const res = await request(app)
-        .get("/api/v1/auth/me")
-        .set("Authorization", `Bearer ${token}`);
+      const res = await request(app).get("/api/v1/auth/me").set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    name: Client (Lint, Typecheck, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install client dependencies
+        run: npm ci --prefix client
+
+      - name: Run ESLint
+        run: npm run lint --prefix client
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck --prefix client
+
+      - name: Run Vitest frontend tests
+        run: npm run test --prefix client
+
+      - name: Run Vite production build
+        run: npm run build --prefix client
+
+  server:
+    name: Server (Prisma, Typecheck, Tests, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install server dependencies
+        run: npm ci --prefix server
+
+      - name: Validate Prisma Schema
+        run: npm run prisma:validate --prefix server
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate --prefix server
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck --prefix server
+
+      - name: Run Vitest unit & integration tests
+        run: npm run test --prefix server
+
+      - name: Run Tsup production build
+        run: npm run build --prefix server
+
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs: [client, server]
+    if: always()
+    steps:
+      - name: Evaluate CI Gate Status
+        run: |
+          CLIENT_RESULT="${{ needs.client.result }}"
+          SERVER_RESULT="${{ needs.server.result }}"
+
+          echo "========================================="
+          echo "           CI Pipeline Summary           "
+          echo "========================================="
+          echo "Client Checks: $CLIENT_RESULT"
+          echo "Server Checks: $SERVER_RESULT"
+          echo "========================================="
+
+          if [ "$CLIENT_RESULT" != "success" ] || [ "$SERVER_RESULT" != "success" ]; then
+            echo "❌ CI Quality Gate FAILED. One or more upstream jobs failed or were cancelled."
+            exit 1
+          fi
+
+          echo "✅ All CI checks passed successfully. Ready for merge."
+          exit 0

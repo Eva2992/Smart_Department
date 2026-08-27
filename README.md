@@ -13,6 +13,7 @@ npm run dev
 ```
 
 ### What `npm run dev` does automatically:
+
 - **Dependency & Artifact Verification**: Checks if `server` and `client` dependencies are installed and verifies that the Prisma client is generated. If missing, it installs dependencies and generates the Prisma client automatically.
 - **Parallel Startup**: Spawns the Express backend (`http://localhost:5000`) and the Vite React frontend (`http://localhost:5173`) concurrently.
 - **Unified & Colorized Logging**: Prefixes logs with `[server]` (cyan) and `[client]` (magenta) with timestamps for clear service attribution.
@@ -25,16 +26,16 @@ npm run dev
 
 From the repository root, you can run:
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start backend & frontend development servers together |
-| `npm run install:all` | Install all dependencies for both `server` and `client` |
-| `npm run build` | Build both `server` and `client` for production |
-| `npm run test` | Run test suites across `server` and `client` |
-| `npm run lint` | Run ESLint on the frontend codebase |
-| `npm run prisma:generate` | Generate Prisma client and types |
-| `npm run prisma:migrate` | Run Prisma database migrations |
-| `npm run prisma:seed` | Seed initial database records |
+| Command                   | Description                                             |
+| ------------------------- | ------------------------------------------------------- |
+| `npm run dev`             | Start backend & frontend development servers together   |
+| `npm run install:all`     | Install all dependencies for both `server` and `client` |
+| `npm run build`           | Build both `server` and `client` for production         |
+| `npm run test`            | Run test suites across `server` and `client`            |
+| `npm run lint`            | Run ESLint on the frontend codebase                     |
+| `npm run prisma:generate` | Generate Prisma client and types                        |
+| `npm run prisma:migrate`  | Run Prisma database migrations                          |
+| `npm run prisma:seed`     | Seed initial database records                           |
 
 ---
 

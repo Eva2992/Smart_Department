@@ -14,8 +14,7 @@ const serverDir = path.join(rootDir, "server");
 const clientDir = path.join(rootDir, "client");
 
 // Color detection
-const isColorSupported =
-  !process.env.NO_COLOR && (process.env.FORCE_COLOR || process.stdout.isTTY);
+const isColorSupported = !process.env.NO_COLOR && (process.env.FORCE_COLOR || process.stdout.isTTY);
 
 const c = isColorSupported
   ? {
@@ -59,9 +58,7 @@ function printHeader() {
   console.log(
     `\n${c.bold}${c.cyan}======================================================${c.reset}`
   );
-  console.log(
-    `${c.bold}${c.cyan}       Smart Scheduler Development Orchestrator       ${c.reset}`
-  );
+  console.log(`${c.bold}${c.cyan}       Smart Scheduler Development Orchestrator       ${c.reset}`);
   console.log(
     `${c.bold}${c.cyan}======================================================${c.reset}\n`
   );
@@ -77,20 +74,14 @@ function ensureDependencies() {
   for (const { name, dir } of checks) {
     const nodeModulesPath = path.join(dir, "node_modules");
     if (!fs.existsSync(nodeModulesPath)) {
-      logOrchestrator(
-        `Dependencies missing in '${name}'. Running 'npm install'...`,
-        "warn"
-      );
+      logOrchestrator(`Dependencies missing in '${name}'. Running 'npm install'...`, "warn");
       const installRes = spawnSync(npmCmd, ["install"], {
         cwd: dir,
         stdio: "inherit",
         shell: process.platform === "win32",
       });
       if (installRes.status !== 0) {
-        logOrchestrator(
-          `Failed to install dependencies for '${name}'.`,
-          "error"
-        );
+        logOrchestrator(`Failed to install dependencies for '${name}'.`, "error");
         process.exit(1);
       }
       logOrchestrator(`Dependencies installed successfully in '${name}'.`);
@@ -243,8 +234,7 @@ function startService({ name, dir, color, script = "dev" }) {
   child.on("exit", (code, signal) => {
     processes.delete(name);
     if (!isShuttingDown) {
-      const exitReason =
-        signal ? `terminated by signal ${signal}` : `exited with code ${code}`;
+      const exitReason = signal ? `terminated by signal ${signal}` : `exited with code ${code}`;
       logOrchestrator(`Service '${name}' ${exitReason}`, code === 0 ? "info" : "error");
       shutdownAll(code === 0 ? 0 : 1, `Service '${name}' stopped`);
     }

@@ -19,7 +19,11 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AppError("Authentication required. Please provide a valid Bearer token.", 401, "UNAUTHORIZED");
+    throw new AppError(
+      "Authentication required. Please provide a valid Bearer token.",
+      401,
+      "UNAUTHORIZED"
+    );
   }
 
   const token = authHeader.split(" ")[1];
