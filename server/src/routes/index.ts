@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { assessmentsRouter } from "./assessments.route.js";
 import { healthRouter } from "./health.route.js";
 import { authRouter } from "./auth.route.js";
 import { batchRouter } from "./batch.route.js";
@@ -14,5 +15,7 @@ apiV1Router.use("/batches", batchRouter);
 apiV1Router.use("/semesters", semesterRouter);
 apiV1Router.use("/promotions", promotionRouter);
 apiV1Router.use("/admin", adminRouter);
+apiV1Router.use("/assessments", assessmentsRouter);
 
 export { apiV1Router };
+
