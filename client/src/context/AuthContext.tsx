@@ -8,6 +8,8 @@ import type {
   LoginPayload,
   RegisterPayload,
   ApiResponse,
+  ChangePasswordPayload,
+  ResetPasswordPayload,
 } from "../types/auth.js";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -97,6 +99,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  const changePassword = async (data: ChangePasswordPayload): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<ApiResponse>("/auth/change-password", data);
+    if (res.data.success) {
+      await logout(); // automatically logout on success
+    }
+    return {
+      success: res.data.success,
+      message: res.data.message || "Password changed successfully",
+    };
+  };
+
+  const forgotPassword = async (email: string): Promise<{ success: boolean; message: string; resetToken?: string }> => {
+    const res = await apiClient.post<ApiResponse<{ resetToken?: string }>>("/auth/forgot-password", { email });
+    return {
+      success: res.data.success,
+      message: res.data.message || "Password reset link sent",
+      resetToken: res.data.data?.resetToken,
+    };
+  };
+
+  const resetPassword = async (data: ResetPasswordPayload): Promise<{ success: boolean; message: string }> => {
+    const res = await apiClient.post<ApiResponse>("/auth/reset-password", data);
+    return {
+      success: res.data.success,
+      message: res.data.message || "Password reset successfully",
+    };
+  };
+
   const logout = async (): Promise<void> => {
     const refreshToken = localStorage.getItem("refreshToken");
     try {
@@ -124,6 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifyEmail,
     resendVerification,
     logout,
+    changePassword,
+    forgotPassword,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

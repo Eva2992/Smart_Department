@@ -52,6 +52,15 @@ export function generateVerificationToken(): { token: string; expiresAt: Date } 
 }
 
 /**
+ * Generates a cryptographically secure random password-reset token with a 1-hour expiration.
+ */
+export function generateResetPasswordToken(): { token: string; expiresAt: Date } {
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  return { token, expiresAt };
+}
+
+/**
  * Generates a 6-digit numeric OTP.
  */
 export function generateOtp(): string {

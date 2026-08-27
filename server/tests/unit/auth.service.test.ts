@@ -263,4 +263,214 @@ describe("AuthService (Unit Seam)", () => {
       );
     });
   });
+
+  describe("changePassword", () => {
+    it("successfully changes password when current password is correct", async () => {
+      const hashed = await bcrypt.hash("OldPassword123!", 10);
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        passwordHash: hashed,
+        isVerified: true,
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.refreshToken.updateMany).mockResolvedValue({ count: 2 } as any);
+
+      const result = await authService.changePassword(
+        "user-1",
+        "OldPassword123!",
+        "NewSecurePass456!"
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Password changed successfully");
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-1" },
+          data: expect.objectContaining({
+            passwordHash: expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it("revokes all refresh tokens after password change (NFR-08)", async () => {
+      const hashed = await bcrypt.hash("OldPassword123!", 10);
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        passwordHash: hashed,
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.refreshToken.updateMany).mockResolvedValue({ count: 3 } as any);
+
+      await authService.changePassword("user-1", "OldPassword123!", "NewSecurePass456!");
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: "user-1", revoked: false },
+        data: { revoked: true },
+      });
+    });
+
+    it("throws INVALID_CURRENT_PASSWORD when old password is wrong", async () => {
+      const hashed = await bcrypt.hash("CorrectPassword123!", 10);
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        passwordHash: hashed,
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+
+      await expect(
+        authService.changePassword("user-1", "WrongOldPassword!", "NewSecurePass456!")
+      ).rejects.toThrow(/Current password is incorrect/);
+    });
+
+    it("throws USER_NOT_FOUND when user does not exist", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      await expect(
+        authService.changePassword("nonexistent-id", "OldPw123!", "NewPw456!")
+      ).rejects.toThrow(/User not found/);
+    });
+  });
+
+  describe("forgotPassword", () => {
+    it("generates reset token and dispatches email for existing user", async () => {
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        name: "Tahmid",
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
+
+      const result = await authService.forgotPassword("student52_1@juniv.edu");
+
+      expect(result.success).toBe(true);
+      expect(result.resetToken).toBeDefined();
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-1" },
+          data: expect.objectContaining({
+            resetPasswordToken: expect.any(String),
+            resetPasswordTokenExpiry: expect.any(Date),
+          }),
+        })
+      );
+    });
+
+    it("returns generic success message for non-existent email (anti-enumeration)", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      const result = await authService.forgotPassword("nonexistent@juniv.edu");
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("If an account with this email exists");
+      expect(result.resetToken).toBeUndefined();
+      // Should NOT call update
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resetPassword", () => {
+    it("successfully resets password with valid, non-expired token", async () => {
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        resetPasswordToken: "valid-reset-token",
+        resetPasswordTokenExpiry: new Date(Date.now() + 3600 * 1000), // 1 hour ahead
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.refreshToken.updateMany).mockResolvedValue({ count: 1 } as any);
+
+      const result = await authService.resetPassword(
+        "valid-reset-token",
+        "BrandNewPassword789!"
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("Password reset successfully");
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-1" },
+          data: expect.objectContaining({
+            passwordHash: expect.any(String),
+            resetPasswordToken: null,
+            resetPasswordTokenExpiry: null,
+          }),
+        })
+      );
+    });
+
+    it("revokes all refresh tokens after reset (NFR-08)", async () => {
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        resetPasswordToken: "valid-reset-token",
+        resetPasswordTokenExpiry: new Date(Date.now() + 3600 * 1000),
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.refreshToken.updateMany).mockResolvedValue({ count: 2 } as any);
+
+      await authService.resetPassword("valid-reset-token", "BrandNewPassword789!");
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: { userId: "user-1", revoked: false },
+        data: { revoked: true },
+      });
+    });
+
+    it("throws INVALID_RESET_TOKEN for unknown token", async () => {
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+
+      await expect(
+        authService.resetPassword("unknown-token", "NewPassword123!")
+      ).rejects.toThrow(/Invalid or expired reset token/);
+    });
+
+    it("throws TOKEN_EXPIRED for expired token", async () => {
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        resetPasswordToken: "expired-token",
+        resetPasswordTokenExpiry: new Date(Date.now() - 1000), // Already expired
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+
+      await expect(
+        authService.resetPassword("expired-token", "NewPassword123!")
+      ).rejects.toThrow(/expired/);
+    });
+
+    it("clears reset token fields after successful reset", async () => {
+      const mockUser = {
+        id: "user-1",
+        email: "student52_1@juniv.edu",
+        resetPasswordToken: "valid-token",
+        resetPasswordTokenExpiry: new Date(Date.now() + 3600 * 1000),
+      };
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
+      vi.mocked(prisma.refreshToken.updateMany).mockResolvedValue({ count: 0 } as any);
+
+      await authService.resetPassword("valid-token", "BrandNewPassword789!");
+
+      const updateCall = vi.mocked(prisma.user.update).mock.calls[0];
+      expect(updateCall[0].data).toHaveProperty("resetPasswordToken", null);
+      expect(updateCall[0].data).toHaveProperty("resetPasswordTokenExpiry", null);
+    });
+  });
 });

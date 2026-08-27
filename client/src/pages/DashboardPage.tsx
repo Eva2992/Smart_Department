@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useAuth } from "../context/useAuth.js";
+import { ChangePasswordModal } from "../components/ChangePasswordModal.js";
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   if (!user) return null;
 
@@ -114,6 +117,14 @@ export function DashboardPage() {
               <span className="font-semibold text-gray-900">Enabled on use</span>
             </div>
           </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setIsChangePasswordOpen(true)}
+              className="bg-[#DC143C] hover:bg-[#B01030] text-white font-semibold text-xs rounded-xl px-4 py-2 transition-colors cursor-pointer"
+            >
+              Change Password
+            </button>
+          </div>
         </div>
       </div>
 
@@ -127,6 +138,11 @@ export function DashboardPage() {
           access + hashed refresh token session management are fully operational.
         </p>
       </div>
+      
+      <ChangePasswordModal 
+        isOpen={isChangePasswordOpen} 
+        onClose={() => setIsChangePasswordOpen(false)} 
+      />
     </div>
   );
 }
