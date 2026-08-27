@@ -125,13 +125,21 @@ export function LoginPage() {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-semibold text-[#1F2937]">Password</label>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-xs text-[#DC143C] hover:text-[#B01030] font-medium cursor-pointer"
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs text-[#DC143C] hover:text-[#B01030] font-medium"
+                  >
+                    Forgot Password?
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-xs text-[#DC143C] hover:text-[#B01030] font-medium cursor-pointer"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
               </div>
               <input
                 type={showPassword ? "text" : "password"}

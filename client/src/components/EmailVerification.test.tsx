@@ -16,6 +16,9 @@ function renderVerifyEmailPage(authOverrides: Partial<AuthContextType> = {}) {
     verifyEmail: vi.fn(),
     resendVerification: vi.fn(),
     logout: vi.fn(),
+    changePassword: vi.fn(),
+    forgotPassword: vi.fn(),
+    resetPassword: vi.fn(),
     ...authOverrides,
   };
 

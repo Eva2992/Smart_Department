@@ -6,6 +6,9 @@ import {
   verifyEmailSchema,
   refreshTokenSchema,
   resendVerificationSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../validators/auth.validator.js";
 import { sendSuccess, sendCreated } from "../utils/response.js";
 import { AppError } from "../middleware/errorHandler.js";
@@ -71,6 +74,38 @@ export class AuthController {
 
     const user = await authService.getMe(req.user.userId);
     sendSuccess(res, user, "User profile retrieved successfully");
+  }
+
+  async changePassword(req: Request, res: Response): Promise<void> {
+    if (!req.user?.userId) {
+      throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+    }
+
+    const validatedData = changePasswordSchema.parse(req.body);
+    const result = await authService.changePassword(
+      req.user.userId,
+      validatedData.currentPassword,
+      validatedData.newPassword
+    );
+
+    sendSuccess(res, result, result.message);
+  }
+
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    const validatedData = forgotPasswordSchema.parse(req.body);
+    const result = await authService.forgotPassword(validatedData.email);
+
+    sendSuccess(res, result, result.message);
+  }
+
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    const validatedData = resetPasswordSchema.parse(req.body);
+    const result = await authService.resetPassword(
+      validatedData.token,
+      validatedData.newPassword
+    );
+
+    sendSuccess(res, result, result.message);
   }
 }
 

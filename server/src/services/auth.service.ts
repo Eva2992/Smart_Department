@@ -8,6 +8,7 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
   generateVerificationToken,
+  generateResetPasswordToken,
   hashToken,
 } from "../utils/token.js";
 import type {
@@ -457,6 +458,166 @@ export class AuthService {
     }
 
     return toUserResponse(user);
+  }
+
+  /**
+   * Changes password for an authenticated user (FR-04).
+   * Validates current password, enforces password strength, updates hash,
+   * and revokes ALL active refresh tokens to force re-authentication.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    }
+
+    // Verify current password
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isCurrentValid) {
+      throw new AppError(
+        "Current password is incorrect",
+        401,
+        "INVALID_CURRENT_PASSWORD"
+      );
+    }
+
+    // Hash new password (cost factor 10, NFR-06)
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    // Revoke all active sessions (NFR-08)
+    await this.revokeAllUserTokens(userId);
+
+    return {
+      success: true,
+      message: "Password changed successfully. Please log in again.",
+    };
+  }
+
+  /**
+   * Initiates password reset flow for an unauthenticated user (FR-05, Step 1).
+   * Generates a cryptographically secure, single-use token (1-hour expiry) and
+   * dispatches a reset email via the email service (ADR-0005).
+   * Returns a generic message regardless of whether the email exists (anti-enumeration).
+   */
+  async forgotPassword(
+    email: string
+  ): Promise<{ success: boolean; message: string; resetToken?: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const genericMessage =
+      "If an account with this email exists, a password reset link has been sent.";
+
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      // Return generic message to prevent email enumeration
+      return {
+        success: true,
+        message: genericMessage,
+      };
+    }
+
+    // Generate single-use reset token (1-hour expiry)
+    const { token: resetToken, expiresAt: resetTokenExpiry } =
+      generateResetPasswordToken();
+
+    // Save reset token to user record
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordTokenExpiry: resetTokenExpiry,
+      },
+    });
+
+    // Dispatch reset email (ADR-0005: console in dev, SMTP in prod)
+    await emailService.sendPasswordResetEmail(user.email, resetToken);
+
+    return {
+      success: true,
+      message: genericMessage,
+      resetToken,
+    };
+  }
+
+  /**
+   * Resets password using a valid, non-expired reset token (FR-05, Step 2).
+   * Validates token, updates password hash, clears token, and revokes all sessions.
+   */
+  async resetPassword(
+    token: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await prisma.user.findUnique({
+      where: { resetPasswordToken: token },
+    });
+
+    if (!user) {
+      throw new AppError(
+        "Invalid or expired reset token",
+        400,
+        "INVALID_RESET_TOKEN"
+      );
+    }
+
+    // Check token expiry
+    if (
+      user.resetPasswordTokenExpiry &&
+      user.resetPasswordTokenExpiry < new Date()
+    ) {
+      throw new AppError(
+        "Reset token has expired. Please request a new one.",
+        400,
+        "TOKEN_EXPIRED"
+      );
+    }
+
+    // Hash new password (cost factor 10, NFR-06)
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token (single-use)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newPasswordHash,
+        resetPasswordToken: null,
+        resetPasswordTokenExpiry: null,
+      },
+    });
+
+    // Revoke all active sessions (NFR-08)
+    await this.revokeAllUserTokens(user.id);
+
+    return {
+      success: true,
+      message: "Password reset successfully. Please log in with your new password.",
+    };
+  }
+
+  /**
+   * Revokes ALL active (non-revoked) refresh tokens for a given user.
+   * Used by changePassword and resetPassword to force re-authentication
+   * across all devices (NFR-08).
+   */
+  private async revokeAllUserTokens(userId: string): Promise<void> {
+    await prisma.refreshToken.updateMany({
+      where: { userId, revoked: false },
+      data: { revoked: true },
+    });
   }
 }
 

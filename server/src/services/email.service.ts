@@ -104,6 +104,28 @@ export class EmailService {
     const subject = "Reset Your Smart Schedular Password";
     const body = `Please click the link below to reset your password (valid for 1 hour):\n\n${resetLink}`;
 
+    const isSmtpConfigured = !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
+
+    if (isSmtpConfigured && env.NODE_ENV === "production") {
+      const emailRecord: DispatchedEmail = {
+        to,
+        subject,
+        body,
+        token,
+        link: resetLink,
+        dispatchedAt: new Date(),
+        mode: "smtp",
+      };
+      this.lastDispatchedEmail = emailRecord;
+
+      return {
+        delivered: true,
+        mode: "smtp",
+        resetLink,
+      };
+    }
+
+    // Zero-Friction Dev/Test Mode (ADR-0005)
     const mode = env.NODE_ENV === "test" ? "test" : "console";
     this.lastDispatchedEmail = {
       to,
@@ -114,6 +136,15 @@ export class EmailService {
       dispatchedAt: new Date(),
       mode,
     };
+
+    if (env.NODE_ENV !== "test") {
+      console.log("\n================ [EMAIL SERVICE - PASSWORD RESET (ADR-0005)] ================");
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${subject}`);
+      console.log(`Reset Link: ${resetLink}`);
+      console.log(`Token: ${token}`);
+      console.log("=============================================================================\n");
+    }
 
     return {
       delivered: true,

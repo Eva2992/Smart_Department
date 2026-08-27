@@ -36,4 +36,17 @@ authRouter.get("/me", authenticate, (req, res, next) => {
   authController.getMe(req, res).catch(next);
 });
 
+// Password Management (FR-04, FR-05)
+authRouter.post("/change-password", authenticate, (req, res, next) => {
+  authController.changePassword(req, res).catch(next);
+});
+
+authRouter.post("/forgot-password", (req, res, next) => {
+  authController.forgotPassword(req, res).catch(next);
+});
+
+authRouter.post("/reset-password", (req, res, next) => {
+  authController.resetPassword(req, res).catch(next);
+});
+
 export { authRouter };
