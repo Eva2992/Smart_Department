@@ -6,22 +6,22 @@ This document translates the SRS into a concrete backend design: stack decisions
 
 ## 1. Tech Stack
 
-| Layer | Technology | Status |
-|---|---|---|
-| Runtime | Node.js LTS + TypeScript (strict mode) | Decided |
-| Framework | Express.js | Decided |
-| Database | PostgreSQL, hosted on Neon | Decided |
-| ORM | Prisma | Decided |
-| DB Driver | `pg` (node-postgres), via Prisma driver adapter | Decided |
-| Auth | JWT (access + refresh) + bcrypt + RBAC middleware | Decided |
-| Architecture Pattern | MVC | Decided (previous doc) |
-| Testing | Vitest + Supertest | Decided (previous doc) |
-| Formatting | Prettier | Decided (previous doc) |
-| CI | GitHub Actions | Decided (previous doc) |
-| Documentation | TypeDoc (TSDoc comments → generated reference site) | Decided |
-| Scheduled jobs | `node-cron`, in-process | Suggested |
-| Input validation | Zod | Suggested |
-| Security headers / rate limiting | `helmet`, `express-rate-limit` | Suggested |
+| Layer                            | Technology                                          | Status                 |
+| -------------------------------- | --------------------------------------------------- | ---------------------- |
+| Runtime                          | Node.js LTS + TypeScript (strict mode)              | Decided                |
+| Framework                        | Express.js                                          | Decided                |
+| Database                         | PostgreSQL, hosted on Neon                          | Decided                |
+| ORM                              | Prisma                                              | Decided                |
+| DB Driver                        | `pg` (node-postgres), via Prisma driver adapter     | Decided                |
+| Auth                             | JWT (access + refresh) + bcrypt + RBAC middleware   | Decided                |
+| Architecture Pattern             | MVC                                                 | Decided (previous doc) |
+| Testing                          | Vitest + Supertest                                  | Decided (previous doc) |
+| Formatting                       | Prettier                                            | Decided (previous doc) |
+| CI                               | GitHub Actions                                      | Decided (previous doc) |
+| Documentation                    | TypeDoc (TSDoc comments → generated reference site) | Decided                |
+| Scheduled jobs                   | `node-cron`, in-process                             | Suggested              |
+| Input validation                 | Zod                                                 | Suggested              |
+| Security headers / rate limiting | `helmet`, `express-rate-limit`                      | Suggested              |
 
 Rows marked "Suggested" aren't locked in — flagging them here so they can be confirmed or swapped in review, same as the testing/CI docs.
 
@@ -29,18 +29,18 @@ Rows marked "Suggested" aren't locked in — flagging them here so they can be c
 
 This looks like three database tools doing one job, so it's worth spelling out how they fit.
 
-| Piece | Role |
-|---|---|
-| **Neon** | Where the Postgres database actually lives. Serverless Postgres — scales to zero when idle, gives you branching (useful for PR previews), and exposes both a pooled and a direct connection string. |
-| **Prisma** | The ORM layer — schema modeling, type-safe queries, and migrations (`prisma migrate`). This is what the app code talks to day-to-day. |
-| **`pg`** | The actual driver that opens the TCP connection to Neon, plugged into Prisma via `@prisma/adapter-pg`. |
+| Piece      | Role                                                                                                                                                                                                |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Neon**   | Where the Postgres database actually lives. Serverless Postgres — scales to zero when idle, gives you branching (useful for PR previews), and exposes both a pooled and a direct connection string. |
+| **Prisma** | The ORM layer — schema modeling, type-safe queries, and migrations (`prisma migrate`). This is what the app code talks to day-to-day.                                                               |
+| **`pg`**   | The actual driver that opens the TCP connection to Neon, plugged into Prisma via `@prisma/adapter-pg`.                                                                                              |
 
-The one decision worth explaining is *why `pg` and not Neon's own serverless driver* (`@neondatabase/serverless`, used via `@prisma/adapter-neon`):
+The one decision worth explaining is _why `pg` and not Neon's own serverless driver_ (`@neondatabase/serverless`, used via `@prisma/adapter-neon`):
 
-| Option | Fits when... | Fits Smart Department? |
-|---|---|---|
-| `@prisma/adapter-neon` (HTTP/WebSocket driver) | App runs on the edge or in short-lived serverless functions (Vercel Edge, Cloudflare Workers, Lambda) that can't hold a persistent TCP connection | No — Express runs as a normal long-lived Node process |
-| `@prisma/adapter-pg` (node-postgres) | App is a standard persistent server, connecting over TCP | Yes — this is the recommended setup for exactly this case |
+| Option                                         | Fits when...                                                                                                                                      | Fits Smart Department?                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `@prisma/adapter-neon` (HTTP/WebSocket driver) | App runs on the edge or in short-lived serverless functions (Vercel Edge, Cloudflare Workers, Lambda) that can't hold a persistent TCP connection | No — Express runs as a normal long-lived Node process     |
+| `@prisma/adapter-pg` (node-postgres)           | App is a standard persistent server, connecting over TCP                                                                                          | Yes — this is the recommended setup for exactly this case |
 
 So: **`@prisma/adapter-pg`**, backed by `pg`, connecting to Neon's pooled endpoint. Two connection strings are needed (both from the Neon console):
 
@@ -90,52 +90,52 @@ Grouped by SRS module rather than listed alphabetically, since that's closer to 
 
 ### 4.1 Identity & Access — FR-01 to FR-05, AN-01, AN-02
 
-| Entity | Key Fields | Notes |
-|---|---|---|
-| `User` | id, name, universityId, email, passwordHash, role (STUDENT/CR/TEACHER/ADMIN), isVerified, isChairman, batchId?, program?, teacherUniqueId? | One table for all four roles, discriminated by `role`. Keeps auth/RBAC logic in one place instead of four parallel user tables. |
-| `RefreshToken` | id, userId, tokenHash, expiresAt, revoked | Refresh tokens are stored hashed and revocable, per NFR-08. |
-| `PreloadedStudent` | universityId, name, email, batchId, program | Admin-entered verification source for registration (AN-01). |
-| `PreloadedTeacher` | uniqueId, name, email, designation, isChairman | Admin-entered verification source for registration (AN-02). |
+| Entity             | Key Fields                                                                                                                                 | Notes                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `User`             | id, name, universityId, email, passwordHash, role (STUDENT/CR/TEACHER/ADMIN), isVerified, isChairman, batchId?, program?, teacherUniqueId? | One table for all four roles, discriminated by `role`. Keeps auth/RBAC logic in one place instead of four parallel user tables. |
+| `RefreshToken`     | id, userId, tokenHash, expiresAt, revoked                                                                                                  | Refresh tokens are stored hashed and revocable, per NFR-08.                                                                     |
+| `PreloadedStudent` | universityId, name, email, batchId, program                                                                                                | Admin-entered verification source for registration (AN-01).                                                                     |
+| `PreloadedTeacher` | uniqueId, name, email, designation, isChairman                                                                                             | Admin-entered verification source for registration (AN-02).                                                                     |
 
 ### 4.2 Academic Structure — FR-06, AN-03
 
-| Entity | Key Fields |
-|---|---|
-| `Batch` | id, name (e.g. "52nd"), program (HONOURS/MASTERS), currentSemesterId, status (ACTIVE/COMPLETED) |
-| `Semester` | id, name, batchId, startDate, endDate, status (ACTIVE/ARCHIVED), archivedAt |
-| `Course` | id, name, code, creditHours, semesterId, teacherId |
+| Entity     | Key Fields                                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| `Batch`    | id, name (e.g. "52nd"), program (HONOURS/MASTERS), currentSemesterId, status (ACTIVE/COMPLETED) |
+| `Semester` | id, name, batchId, startDate, endDate, status (ACTIVE/ARCHIVED), archivedAt                     |
+| `Course`   | id, name, code, creditHours, semesterId, teacherId                                              |
 
 ### 4.3 Scheduling — FR-10 to FR-19, FR-22, R-01
 
-| Entity | Key Fields | Notes |
-|---|---|---|
-| `Room` | id, roomNumber (unique), type (CLASSROOM/COMPUTER_LAB/ELECTRICAL_LAB/MULTIPURPOSE), description | Seeded once from the fixed 8-room list in the SRS (C-02) — not user-creatable in v1. |
-| `ScheduleEntry` | id, type (CLASS/CT/EXAM/SEMINAR), status (SCHEDULED/CANCELLED/RESCHEDULED/HOLIDAY), courseId?, batchId, teacherId, roomId, date, startTime, endTime, topic?, createdBy | One unified table for classes, CTs, exams, and seminars, distinguished by `type`. |
-| `Holiday` | id, date, reason, scope (ALL/BATCH), batchId? | Declaring a holiday flips overlapping `ScheduleEntry` rows to status HOLIDAY (FR-18). |
+| Entity          | Key Fields                                                                                                                                                             | Notes                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `Room`          | id, roomNumber (unique), type (CLASSROOM/COMPUTER_LAB/ELECTRICAL_LAB/MULTIPURPOSE), description                                                                        | Seeded once from the fixed 8-room list in the SRS (C-02) — not user-creatable in v1.  |
+| `ScheduleEntry` | id, type (CLASS/CT/EXAM/SEMINAR), status (SCHEDULED/CANCELLED/RESCHEDULED/HOLIDAY), courseId?, batchId, teacherId, roomId, date, startTime, endTime, topic?, createdBy | One unified table for classes, CTs, exams, and seminars, distinguished by `type`.     |
+| `Holiday`       | id, date, reason, scope (ALL/BATCH), batchId?                                                                                                                          | Declaring a holiday flips overlapping `ScheduleEntry` rows to status HOLIDAY (FR-18). |
 
-Using one `ScheduleEntry` table instead of separate `Class`, `CT`, `Exam`, `Seminar` tables is the one non-obvious modeling call here — worth a quick justification since FR-19 literally describes a class slot being *converted* into a CT ("The class for that slot is automatically converted to a CT session"). A single table with a `type` column makes that a one-field update. It also means the conflict-detection engine (§7) only ever queries one table regardless of what kind of event is being checked, instead of running the same overlap check four times against four tables.
+Using one `ScheduleEntry` table instead of separate `Class`, `CT`, `Exam`, `Seminar` tables is the one non-obvious modeling call here — worth a quick justification since FR-19 literally describes a class slot being _converted_ into a CT ("The class for that slot is automatically converted to a CT session"). A single table with a `type` column makes that a one-field update. It also means the conflict-detection engine (§7) only ever queries one table regardless of what kind of event is being checked, instead of running the same overlap check four times against four tables.
 
 ### 4.4 Assessment — FR-20, FR-21, FR-27
 
-| Entity | Key Fields |
-|---|---|
-| `CTMark` | id, scheduleEntryId (the CT), studentId, marksObtained, maxMarks, uploadedAt |
-| `Assignment` | id, courseId, batchId, teacherId, title, description, dueDate |
+| Entity       | Key Fields                                                                   |
+| ------------ | ---------------------------------------------------------------------------- |
+| `CTMark`     | id, scheduleEntryId (the CT), studentId, marksObtained, maxMarks, uploadedAt |
+| `Assignment` | id, courseId, batchId, teacherId, title, description, dueDate                |
 
 ### 4.5 Resources & Results — FR-23 to FR-26
 
-| Entity | Key Fields |
-|---|---|
+| Entity     | Key Fields                                                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `Resource` | id, title, courseName, semesterLabel, year, type (NOTES/SLIDES/PAST_PAPER/OTHER), fileUrl, fileSizeBytes, uploaderId, downloadCount |
-| `Result` | id, batchId, semesterId, studentId, universityId, courseMarks (JSON), gpa?, cgpa?, uploadedBy, publishedAt |
+| `Result`   | id, batchId, semesterId, studentId, universityId, courseMarks (JSON), gpa?, cgpa?, uploadedBy, publishedAt                          |
 
 ### 4.6 Operations
 
-| Entity | Key Fields | Maps to |
-|---|---|---|
-| `PromotionRequest` | id, batchId, semesterId, requestedBy, status (PENDING/APPROVED/REJECTED), reason?, reviewedBy?, reviewedAt? | FR-07, FR-08 |
-| `Notification` | id, userId, type, message, relatedEntityType?, relatedEntityId?, isRead, createdAt | FR-31 |
-| `AuditLog` | id, userId, action, entityType, entityId, ipAddress, details (JSON), createdAt | R-02, R-06, NFR-12 |
+| Entity             | Key Fields                                                                                                  | Maps to            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- | ------------------ |
+| `PromotionRequest` | id, batchId, semesterId, requestedBy, status (PENDING/APPROVED/REJECTED), reason?, reviewedBy?, reviewedAt? | FR-07, FR-08       |
+| `Notification`     | id, userId, type, message, relatedEntityType?, relatedEntityId?, isRead, createdAt                          | FR-31              |
+| `AuditLog`         | id, userId, action, entityType, entityId, ipAddress, details (JSON), createdAt                              | R-02, R-06, NFR-12 |
 
 R-03 (data loss on premature promotion) is handled at the `Semester` level: promotion doesn't delete rows, it sets `status = ARCHIVED` and `archivedAt = now()`. A scheduled job (§6) permanently deletes archived semesters past the retention window instead of the promotion endpoint doing it inline.
 
@@ -548,15 +548,15 @@ model AuditLog {
 
 The schema above already has these baked in as `@@index`; listed here separately because each one maps to a specific requirement, not just "seems reasonable":
 
-| Index | Table | Why |
-|---|---|---|
-| `(roomId, date)` | ScheduleEntry | Room conflict check — FR-14, target ≤200ms (NFR-04) |
-| `(teacherId, date)` | ScheduleEntry | Teacher conflict check — same requirement |
-| `(batchId, date)` | ScheduleEntry | Batch conflict check, plus every "my schedule" query (FR-11, FR-12) |
-| `(batchId, status)` | Semester | Finding a batch's active semester without a table scan |
-| `(userId, isRead)` | Notification | Unread badge count, checked on most page loads (FR-31) |
-| `(entityType, entityId)` | AuditLog | Pulling audit history for one record (NFR-12) |
-| `@@unique([scheduleEntryId, studentId])` | CTMark | Not a performance index — a correctness constraint. Makes "one mark per student per CT" (FR-20) impossible to violate even if a service-layer check is missed. |
+| Index                                    | Table         | Why                                                                                                                                                            |
+| ---------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `(roomId, date)`                         | ScheduleEntry | Room conflict check — FR-14, target ≤200ms (NFR-04)                                                                                                            |
+| `(teacherId, date)`                      | ScheduleEntry | Teacher conflict check — same requirement                                                                                                                      |
+| `(batchId, date)`                        | ScheduleEntry | Batch conflict check, plus every "my schedule" query (FR-11, FR-12)                                                                                            |
+| `(batchId, status)`                      | Semester      | Finding a batch's active semester without a table scan                                                                                                         |
+| `(userId, isRead)`                       | Notification  | Unread badge count, checked on most page loads (FR-31)                                                                                                         |
+| `(entityType, entityId)`                 | AuditLog      | Pulling audit history for one record (NFR-12)                                                                                                                  |
+| `@@unique([scheduleEntryId, studentId])` | CTMark        | Not a performance index — a correctness constraint. Makes "one mark per student per CT" (FR-20) impossible to violate even if a service-layer check is missed. |
 
 ## 5. Authentication & Authorization
 
@@ -566,25 +566,25 @@ Middleware pipeline, in order, for any protected route:
 requestId → rateLimiter (auth routes only) → authenticate (verify JWT) → authorize(...roles) → ownershipCheck? → controller
 ```
 
-| Requirement | Implementation |
-|---|---|
-| Password hashing (NFR-06) | bcrypt, cost factor ≥ 10 |
-| JWT (NFR-08) | Access token, 24h expiry, 256-bit secret. Refresh token stored hashed in `RefreshToken`, revocable, rotated on use. |
-| Account lockout (FR-03) | 5 failed logins → 15-minute lock, tracked via a `failedAttempts` / `lockedUntil` pair on `User`. |
-| RBAC (NFR-07) | `authorize('ADMIN')`, `authorize('TEACHER', 'ADMIN')` etc. as route-level middleware, checked against `User.role`. |
-| Ownership checks (R-02) | Separate middleware for routes like "cancel my class" — confirms `ScheduleEntry.teacherId === req.user.id` before the controller runs, independent of the role check. |
-| Chairman-only actions (C-07) | Same pattern as ownership checks — `requireChairman` middleware for seminar/workshop allocation, checked in addition to `authorize('TEACHER')`. |
-| Email verification (FR-02) | Account created `isVerified: false`; verification link token stored with 24h expiry. Unverified accounts older than 7 days are purged by a scheduled job, not on request. |
-| Password change/reset (FR-04, FR-05) | Both invalidate all existing refresh tokens for the user, forcing re-login everywhere. |
+| Requirement                          | Implementation                                                                                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Password hashing (NFR-06)            | bcrypt, cost factor ≥ 10                                                                                                                                                  |
+| JWT (NFR-08)                         | Access token, 24h expiry, 256-bit secret. Refresh token stored hashed in `RefreshToken`, revocable, rotated on use.                                                       |
+| Account lockout (FR-03)              | 5 failed logins → 15-minute lock, tracked via a `failedAttempts` / `lockedUntil` pair on `User`.                                                                          |
+| RBAC (NFR-07)                        | `authorize('ADMIN')`, `authorize('TEACHER', 'ADMIN')` etc. as route-level middleware, checked against `User.role`.                                                        |
+| Ownership checks (R-02)              | Separate middleware for routes like "cancel my class" — confirms `ScheduleEntry.teacherId === req.user.id` before the controller runs, independent of the role check.     |
+| Chairman-only actions (C-07)         | Same pattern as ownership checks — `requireChairman` middleware for seminar/workshop allocation, checked in addition to `authorize('TEACHER')`.                           |
+| Email verification (FR-02)           | Account created `isVerified: false`; verification link token stored with 24h expiry. Unverified accounts older than 7 days are purged by a scheduled job, not on request. |
+| Password change/reset (FR-04, FR-05) | Both invalidate all existing refresh tokens for the user, forcing re-login everywhere.                                                                                    |
 
 ## 6. Background Jobs
 
 Kept in-process with `node-cron` rather than a separate worker/queue service — at ~500 students + 31 teachers, there's no throughput case for a message broker yet, and it avoids standing up infrastructure the project doesn't need (Redis, a queue, a worker deployment). If usage ever outgrows a single process, these are small enough to lift into a real job runner later without redesigning them.
 
-| Job | Schedule | Does |
-|---|---|---|
-| Purge unverified accounts | Hourly | Deletes `User` rows unverified for >7 days (FR-02) |
-| Archive cleanup | Daily | Permanently deletes `Semester` rows (and cascaded schedule data) archived >30 days ago (R-03) |
+| Job                          | Schedule           | Does                                                                                            |
+| ---------------------------- | ------------------ | ----------------------------------------------------------------------------------------------- |
+| Purge unverified accounts    | Hourly             | Deletes `User` rows unverified for >7 days (FR-02)                                              |
+| Archive cleanup              | Daily              | Permanently deletes `Semester` rows (and cascaded schedule data) archived >30 days ago (R-03)   |
 | Past-due assignment flagging | On read, not a job | "Past Due" (FR-21) is a computed status (`dueDate < now()`), not a stored field — no job needed |
 
 ## 7. Conflict Detection Engine (FR-14, R-01, NFR-04)
@@ -608,18 +608,18 @@ It runs three overlap checks — room, teacher, batch — against `ScheduleEntry
 
 ## 8. Notification System (FR-31)
 
-Kept simple on purpose: a `Notification` row is written synchronously in the same service call that causes the event (e.g. `classService.cancelClass()` writes the cancellation *and* inserts notifications for the batch's students in one transaction). No message queue — at this scale, a queue adds failure modes (retry logic, dead-letter handling) without a throughput problem to justify it.
+Kept simple on purpose: a `Notification` row is written synchronously in the same service call that causes the event (e.g. `classService.cancelClass()` writes the cancellation _and_ inserts notifications for the batch's students in one transaction). No message queue — at this scale, a queue adds failure modes (retry logic, dead-letter handling) without a throughput problem to justify it.
 
-| Event | Recipients |
-|---|---|
-| Class cancelled / rescheduled | Students of the batch |
-| CT scheduled / marks uploaded | Students of the batch |
-| Assignment created | Students of the batch |
-| Promotion request submitted | Admin |
-| Batch promoted | Students + CR of the batch |
-| Holiday declared | All users |
-| Resource uploaded | Students of the relevant semester |
-| Result published | Students of the batch |
+| Event                         | Recipients                        |
+| ----------------------------- | --------------------------------- |
+| Class cancelled / rescheduled | Students of the batch             |
+| CT scheduled / marks uploaded | Students of the batch             |
+| Assignment created            | Students of the batch             |
+| Promotion request submitted   | Admin                             |
+| Batch promoted                | Students + CR of the batch        |
+| Holiday declared              | All users                         |
+| Resource uploaded             | Students of the relevant semester |
+| Result published              | Students of the batch             |
 
 ## 9. API Surface
 
@@ -627,85 +627,85 @@ Grouped by module; role column shows who can call it (Student = any authenticate
 
 **Auth**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/auth/register | Public |
-| GET | /api/auth/verify-email/:token | Public |
-| POST | /api/auth/login | Public |
-| POST | /api/auth/refresh | Authenticated |
-| POST | /api/auth/change-password | Authenticated |
-| POST | /api/auth/forgot-password | Public |
-| POST | /api/auth/reset-password/:token | Public |
+| Method | Path                            | Role          |
+| ------ | ------------------------------- | ------------- |
+| POST   | /api/auth/register              | Public        |
+| GET    | /api/auth/verify-email/:token   | Public        |
+| POST   | /api/auth/login                 | Public        |
+| POST   | /api/auth/refresh               | Authenticated |
+| POST   | /api/auth/change-password       | Authenticated |
+| POST   | /api/auth/forgot-password       | Public        |
+| POST   | /api/auth/reset-password/:token | Public        |
 
 **Batch & Semester**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/semesters | Admin |
-| GET | /api/semesters | Admin |
-| POST | /api/promotions/request | CR |
-| GET | /api/promotions | Admin |
-| PATCH | /api/promotions/:id | Admin |
-| PATCH | /api/students/:id/semester | Admin |
+| Method | Path                       | Role  |
+| ------ | -------------------------- | ----- |
+| POST   | /api/semesters             | Admin |
+| GET    | /api/semesters             | Admin |
+| POST   | /api/promotions/request    | CR    |
+| GET    | /api/promotions            | Admin |
+| PATCH  | /api/promotions/:id        | Admin |
+| PATCH  | /api/students/:id/semester | Admin |
 
 **Routine & Rooms**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/routines/generate | Admin |
-| GET | /api/routines/me | Student, Teacher |
-| GET | /api/rooms/availability?date=&roomId= | Admin, Teacher |
-| POST | /api/schedule-entries/:id/cancel | Teacher (own class) |
-| PATCH | /api/schedule-entries/:id/time | Teacher (own class) |
-| PATCH | /api/schedule-entries/:id/reschedule | Teacher (own class) |
+| Method | Path                                  | Role                |
+| ------ | ------------------------------------- | ------------------- |
+| POST   | /api/routines/generate                | Admin               |
+| GET    | /api/routines/me                      | Student, Teacher    |
+| GET    | /api/rooms/availability?date=&roomId= | Admin, Teacher      |
+| POST   | /api/schedule-entries/:id/cancel      | Teacher (own class) |
+| PATCH  | /api/schedule-entries/:id/time        | Teacher (own class) |
+| PATCH  | /api/schedule-entries/:id/reschedule  | Teacher (own class) |
 
 **Holidays**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/holidays | Admin |
-| DELETE | /api/holidays/:id | Admin |
-| GET | /api/holidays | Public (authenticated) |
+| Method | Path              | Role                   |
+| ------ | ----------------- | ---------------------- |
+| POST   | /api/holidays     | Admin                  |
+| DELETE | /api/holidays/:id | Admin                  |
+| GET    | /api/holidays     | Public (authenticated) |
 
 **CT & Assignments**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/schedule-entries/:id/convert-to-ct | Teacher (own class) |
-| POST | /api/ct/:id/marks | Teacher |
-| GET | /api/ct/marks/me | Student |
-| POST | /api/assignments | Teacher |
-| GET | /api/assignments | Student, Teacher |
-| PATCH, DELETE | /api/assignments/:id | Teacher (owner) |
+| Method        | Path                                    | Role                |
+| ------------- | --------------------------------------- | ------------------- |
+| POST          | /api/schedule-entries/:id/convert-to-ct | Teacher (own class) |
+| POST          | /api/ct/:id/marks                       | Teacher             |
+| GET           | /api/ct/marks/me                        | Student             |
+| POST          | /api/assignments                        | Teacher             |
+| GET           | /api/assignments                        | Student, Teacher    |
+| PATCH, DELETE | /api/assignments/:id                    | Teacher (owner)     |
 
 **Exams**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/exams/routine | Admin |
-| PATCH | /api/exams/routine/:id | Admin |
-| GET | /api/exams/routine | Student, Teacher |
+| Method | Path                   | Role             |
+| ------ | ---------------------- | ---------------- |
+| POST   | /api/exams/routine     | Admin            |
+| PATCH  | /api/exams/routine/:id | Admin            |
+| GET    | /api/exams/routine     | Student, Teacher |
 
 **Resources & Results**
 
-| Method | Path | Role |
-|---|---|---|
-| POST | /api/resources | CR |
-| GET | /api/resources | Public |
-| DELETE | /api/resources/:id | CR (owner), Admin |
-| POST | /api/results | CR |
-| GET | /api/results | Public |
-| PATCH, DELETE | /api/results/:id | Admin |
+| Method        | Path               | Role              |
+| ------------- | ------------------ | ----------------- |
+| POST          | /api/resources     | CR                |
+| GET           | /api/resources     | Public            |
+| DELETE        | /api/resources/:id | CR (owner), Admin |
+| POST          | /api/results       | CR                |
+| GET           | /api/results       | Public            |
+| PATCH, DELETE | /api/results/:id   | Admin             |
 
 **Dashboards & Notifications**
 
-| Method | Path | Role |
-|---|---|---|
-| GET | /api/dashboard/student | Student |
-| GET | /api/dashboard/teacher | Teacher |
-| GET | /api/dashboard/admin | Admin |
-| GET | /api/notifications | Authenticated |
-| PATCH | /api/notifications/:id/read | Authenticated |
+| Method | Path                        | Role          |
+| ------ | --------------------------- | ------------- |
+| GET    | /api/dashboard/student      | Student       |
+| GET    | /api/dashboard/teacher      | Teacher       |
+| GET    | /api/dashboard/admin        | Admin         |
+| GET    | /api/notifications          | Authenticated |
+| PATCH  | /api/notifications/:id/read | Authenticated |
 
 ## 10. Error Handling & Validation
 
@@ -717,28 +717,28 @@ Grouped by module; role column shows who can call it (Student = any authenticate
 
 Already decided; noting how it maps onto this structure specifically:
 
-| Layer | Tool | What's covered |
-|---|---|---|
-| `services/` | Vitest (unit) | Conflict detection, promotion rules, notification fan-out — pure logic, no HTTP |
-| `routes/` | Vitest + Supertest (integration) | Full request/response cycle against a real Postgres service container in CI |
-| Concurrency | Vitest (integration) | Two simultaneous conflicting booking requests — confirms the row-locking in §7 actually prevents double-booking, not just the happy path |
+| Layer       | Tool                             | What's covered                                                                                                                           |
+| ----------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/` | Vitest (unit)                    | Conflict detection, promotion rules, notification fan-out — pure logic, no HTTP                                                          |
+| `routes/`   | Vitest + Supertest (integration) | Full request/response cycle against a real Postgres service container in CI                                                              |
+| Concurrency | Vitest (integration)             | Two simultaneous conflicting booking requests — confirms the row-locking in §7 actually prevents double-booking, not just the happy path |
 
 CI continues to use a Postgres service container (already decided) rather than a real Neon branch — faster, free, and fully isolated per run. Neon is a production/staging concern, not a CI one.
 
 ## 12. Documentation (TypeDoc)
 
-TSDoc comments on services, controllers, and shared types generate a static reference site (`docs/`) via `typedoc.json` pointed at `src/`. This is a scope call worth being explicit about: TypeDoc documents the *codebase* (functions, types, modules) — it's not an OpenAPI/Swagger contract for the REST API itself. Given there's a single frontend consuming this backend (not third-party API consumers), skipping a separate OpenAPI spec and relying on TypeDoc + the API table in §9 keeps documentation to one tool instead of two. If external API consumers ever become a real need, Swagger/OpenAPI generation is a clean addition later, not a rework.
+TSDoc comments on services, controllers, and shared types generate a static reference site (`docs/`) via `typedoc.json` pointed at `src/`. This is a scope call worth being explicit about: TypeDoc documents the _codebase_ (functions, types, modules) — it's not an OpenAPI/Swagger contract for the REST API itself. Given there's a single frontend consuming this backend (not third-party API consumers), skipping a separate OpenAPI spec and relying on TypeDoc + the API table in §9 keeps documentation to one tool instead of two. If external API consumers ever become a real need, Swagger/OpenAPI generation is a clean addition later, not a rework.
 
 ## 13. Environment & Configuration
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | Neon pooled connection string (app runtime) |
-| `DIRECT_URL` | Neon direct connection string (`prisma migrate`) |
-| `JWT_SECRET` / `JWT_REFRESH_SECRET` | ≥256-bit signing secrets |
-| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Verification & notification emails |
-| `PORT` | Server port |
-| `NODE_ENV` | development / test / production |
+| Variable                                | Purpose                                          |
+| --------------------------------------- | ------------------------------------------------ |
+| `DATABASE_URL`                          | Neon pooled connection string (app runtime)      |
+| `DIRECT_URL`                            | Neon direct connection string (`prisma migrate`) |
+| `JWT_SECRET` / `JWT_REFRESH_SECRET`     | ≥256-bit signing secrets                         |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Verification & notification emails               |
+| `PORT`                                  | Server port                                      |
+| `NODE_ENV`                              | development / test / production                  |
 
 ## 14. Open Items
 
