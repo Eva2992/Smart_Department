@@ -330,8 +330,10 @@ model Result {
   uploadedBy   User     @relation("ResultUploader", fields: [uploadedById], references: [id])
   publishedAt  DateTime @default(now())
 
+  @@unique([semesterId, studentId])
   @@index([batchId, semesterId])
   @@index([studentId])
+  @@index([universityId])
 }
 
 // ==========================================

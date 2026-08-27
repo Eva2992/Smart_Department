@@ -1,14 +1,19 @@
 import { useAuth } from "../context/useAuth.js";
+import { StudentResultCard } from "../components/StudentResultCard.js";
+import { Link } from "react-router-dom";
 
 export function DashboardPage() {
   const { user } = useAuth();
 
   if (!user) return null;
 
+  const isStudentOrCr = user.role === "STUDENT" || user.role === "CR";
+  const canUploadResults = user.role === "CR" || user.role === "ADMIN";
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-blue-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden mb-8">
+      <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-blue-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none flex items-center pr-10">
           <svg className="w-96 h-96" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -28,11 +33,31 @@ export function DashboardPage() {
             {user.batchId ? ` • Batch ${user.batchId}` : ""}
             {user.isChairman ? " • Department Chairman" : ""}
           </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              to="/results"
+              className="px-4 py-2 text-xs font-bold text-gray-900 bg-white hover:bg-gray-100 rounded-xl transition-all shadow-sm font-['Poppins']"
+            >
+              View Examination Results →
+            </Link>
+            {canUploadResults && (
+              <Link
+                to="/results"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#DA532C] hover:bg-[#b83e1c] rounded-xl transition-all shadow-sm font-['Poppins']"
+              >
+                {user.role === "CR" ? "Upload Batch Grade Sheet" : "Publish Results"}
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Student Result Widget for Student / CR */}
+      {isStudentOrCr && <StudentResultCard />}
+
       {/* Profile & Metadata Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Account Details Card */}
         <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80">
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -120,11 +145,11 @@ export function DashboardPage() {
       {/* Module Navigation Preview */}
       <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-center">
         <h3 className="text-base font-bold text-gray-900 mb-1">
-          Authentication & Identity Module Ready
+          Result Generation & Examination Management Active
         </h3>
         <p className="text-xs text-gray-500 max-w-xl mx-auto">
-          User registration with preloaded roster verification, email confirmation tokens, and JWT
-          access + hashed refresh token session management are fully operational.
+          Dual-hybrid result publishing, JU CSE GPA calculation engine, public result querying, and
+          personalized student grade dashboards are fully connected and operational.
         </p>
       </div>
     </div>
