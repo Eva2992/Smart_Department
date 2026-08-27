@@ -52,6 +52,14 @@ export function Navbar() {
                 >
                   Dashboard
                 </Link>
+                {user.role === "ADMIN" && (
+                  <Link
+                    to="/admin/batches"
+                    className="text-sm font-medium text-[#1F2937] hover:text-[#DC143C] transition-colors hidden sm:block"
+                  >
+                    Batch & Semesters
+                  </Link>
+                )}
                 <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
                   <div className="text-right hidden sm:block">
                     <p className="text-xs font-semibold text-[#1F2937] leading-tight font-[Poppins]">

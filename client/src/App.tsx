@@ -6,6 +6,7 @@ import { VerifyEmailPage } from "./pages/VerifyEmailPage.js";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.js";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
+import { AdminBatchManagementPage } from "./pages/AdminBatchManagementPage.js";
 import { ProtectedRoute } from "./components/ProtectedRoute.js";
 import { useAuth } from "./context/useAuth.js";
 
@@ -32,6 +33,22 @@ export function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/batches"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminBatchManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/semesters"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminBatchManagementPage />
               </ProtectedRoute>
             }
           />
