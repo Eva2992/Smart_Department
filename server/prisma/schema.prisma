@@ -1,29 +1,384 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Prisma Schema for Smart_Schedular (JU CSE Academic Management System)
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  STUDENT
+  CR
+  TEACHER
+  ADMIN
 }
 
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User    @relation(fields: [authorId], references: [id])
-  authorId  Int
+enum Program {
+  HONOURS
+  MASTERS
+  PMSCS
+  MPHIL
+  PHD
+}
+
+enum BatchStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum SemesterStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum RoomType {
+  CLASSROOM
+  COMPUTER_LAB
+  ELECTRICAL_LAB
+  MULTIPURPOSE
+}
+
+enum ScheduleEntryType {
+  CLASS
+  CT
+  EXAM
+  SEMINAR
+}
+
+enum ScheduleEntryStatus {
+  SCHEDULED
+  CANCELLED
+  RESCHEDULED
+  HOLIDAY
+}
+
+enum HolidayScope {
+  ALL
+  BATCH
+}
+
+enum ResourceType {
+  NOTES
+  SLIDES
+  PAST_PAPER
+  OTHER
+}
+
+enum PromotionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==========================================
+// IDENTITY & ACCESS MANAGEMENT
+// ==========================================
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  universityId    String?   @unique // For students / CRs
+  teacherUniqueId String?   @unique // For teachers
+  passwordHash    String
+  role            Role
+  program         Program?  // For students / CRs
+  batchId         String?
+  batch           Batch?    @relation("BatchStudents", fields: [batchId], references: [id])
+  isChairman      Boolean   @default(false)
+  isVerified      Boolean   @default(false)
+  failedAttempts  Int       @default(0)
+  lockedUntil     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  refreshTokens      RefreshToken[]
+  coursesTaught      Course[]           @relation("CourseTeacher")
+  taughtEntries      ScheduleEntry[]    @relation("EntryTeacher")
+  createdEntries     ScheduleEntry[]    @relation("EntryCreatedBy")
+  assignments        Assignment[]       @relation("AssignmentTeacher")
+  ctMarks            CTMark[]           @relation("StudentCTMarks")
+  uploadedResources  Resource[]         @relation("ResourceUploader")
+  studentResults     Result[]           @relation("StudentResults")
+  uploadedResults    Result[]           @relation("ResultUploader")
+  promotionRequests  PromotionRequest[] @relation("PromotionRequestedBy")
+  reviewedPromotions PromotionRequest[] @relation("PromotionReviewedBy")
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+
+  @@index([batchId])
+  @@index([role])
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PreloadedStudent {
+  universityId String  @id
+  name         String
+  email        String
+  batchId      String
+  batch        Batch   @relation(fields: [batchId], references: [id])
+  program      Program
+
+  @@index([batchId])
+}
+
+model PreloadedTeacher {
+  uniqueId    String  @id
+  name        String
+  email       String
+  designation String
+  isChairman  Boolean @default(false)
+}
+
+// ==========================================
+// ACADEMIC STRUCTURE & CATALOG
+// ==========================================
+
+model Batch {
+  id                String      @id @default(uuid())
+  name              String      @unique // e.g., "52nd"
+  program           Program
+  status            BatchStatus @default(ACTIVE)
+  currentSemesterId String?     @unique
+  currentSemester   Semester?   @relation("CurrentSemester", fields: [currentSemesterId], references: [id])
+
+  students          User[]             @relation("BatchStudents")
+  semesters         Semester[]         @relation("BatchSemesters")
+  scheduleEntries   ScheduleEntry[]
+  assignments       Assignment[]
+  holidays          Holiday[]
+  results           Result[]
+  promotionRequests PromotionRequest[]
+  preloadedStudents PreloadedStudent[]
+}
+
+model Semester {
+  id         String         @id @default(uuid())
+  name       String         // e.g., "4th Year 2nd Semester"
+  batchId    String
+  batch      Batch          @relation("BatchSemesters", fields: [batchId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  status     SemesterStatus @default(ACTIVE)
+  archivedAt DateTime?
+
+  courses           Course[]
+  results           Result[]
+  promotionRequests PromotionRequest[]
+  currentForBatch   Batch?             @relation("CurrentSemester")
+
+  @@index([batchId, status])
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   // e.g., "CSE 404"
+  creditHours Float
+  semesterId  String
+  semester    Semester @relation(fields: [semesterId], references: [id])
+  teacherId   String
+  teacher     User     @relation("CourseTeacher", fields: [teacherId], references: [id])
+
+  scheduleEntries ScheduleEntry[]
+  assignments     Assignment[]
+
+  @@index([semesterId])
+  @@index([teacherId])
+}
+
+// ==========================================
+// SCHEDULING & ROUTINE ENGINE
+// ==========================================
+
+model Room {
+  id          String   @id @default(uuid())
+  roomNumber  String   @unique // R-101 ... R-202
+  type        RoomType
+  description String?
+
+  scheduleEntries ScheduleEntry[]
+}
+
+model ScheduleEntry {
+  id          String              @id @default(uuid())
+  type        ScheduleEntryType
+  status      ScheduleEntryStatus @default(SCHEDULED)
+  courseId    String?
+  course      Course?             @relation(fields: [courseId], references: [id])
+  batchId     String
+  batch       Batch               @relation(fields: [batchId], references: [id])
+  teacherId   String
+  teacher     User                @relation("EntryTeacher", fields: [teacherId], references: [id])
+  roomId      String
+  room        Room                @relation(fields: [roomId], references: [id])
+  date        DateTime            @db.Date
+  startTime   DateTime
+  endTime     DateTime
+  topic       String?
+  createdById String
+  createdBy   User                @relation("EntryCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  ctMarks CTMark[]
+
+  @@index([roomId, date])
+  @@index([teacherId, date])
+  @@index([batchId, date])
+}
+
+model Holiday {
+  id      String       @id @default(uuid())
+  date    DateTime     @db.Date
+  reason  String
+  scope   HolidayScope
+  batchId String?
+  batch   Batch?       @relation(fields: [batchId], references: [id])
+
+  @@index([date])
+}
+
+// ==========================================
+// ASSESSMENT & MARKS
+// ==========================================
+
+model CTMark {
+  id              String        @id @default(uuid())
+  scheduleEntryId String
+  scheduleEntry   ScheduleEntry @relation(fields: [scheduleEntryId], references: [id])
+  studentId       String
+  student         User          @relation("StudentCTMarks", fields: [studentId], references: [id])
+  marksObtained   Float
+  maxMarks        Float
+  uploadedAt      DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([scheduleEntryId, studentId])
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  batchId     String
+  batch       Batch    @relation(fields: [batchId], references: [id])
+  teacherId   String
+  teacher     User     @relation("AssignmentTeacher", fields: [teacherId], references: [id])
+  title       String
+  description String
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([batchId])
+}
+
+// ==========================================
+// RESOURCES & RESULTS
+// ==========================================
+
+model Resource {
+  id            String       @id @default(uuid())
+  title         String
+  courseName    String
+  semesterLabel String
+  year          Int
+  type          ResourceType
+  fileUrl       String
+  fileSizeBytes Int
+  uploaderId    String
+  uploader      User         @relation("ResourceUploader", fields: [uploaderId], references: [id])
+  downloadCount Int          @default(0)
+  createdAt     DateTime     @default(now())
+
+  @@index([year, semesterLabel])
+}
+
+model Result {
+  id           String   @id @default(uuid())
+  batchId      String
+  batch        Batch    @relation(fields: [batchId], references: [id])
+  semesterId   String
+  semester     Semester @relation(fields: [semesterId], references: [id])
+  studentId    String
+  student      User     @relation("StudentResults", fields: [studentId], references: [id])
+  universityId String
+  courseMarks  Json
+  gpa          Float?
+  cgpa         Float?
+  uploadedById String
+  uploadedBy   User     @relation("ResultUploader", fields: [uploadedById], references: [id])
+  publishedAt  DateTime @default(now())
+
+  @@index([batchId, semesterId])
+  @@index([studentId])
+}
+
+// ==========================================
+// OPERATIONS, NOTIFICATIONS & AUDIT
+// ==========================================
+
+model PromotionRequest {
+  id            String          @id @default(uuid())
+  batchId       String
+  batch         Batch           @relation(fields: [batchId], references: [id])
+  semesterId    String
+  semester      Semester        @relation(fields: [semesterId], references: [id])
+  requestedById String
+  requestedBy   User            @relation("PromotionRequestedBy", fields: [requestedById], references: [id])
+  status        PromotionStatus @default(PENDING)
+  reason        String?
+  reviewedById  String?
+  reviewedBy    User?           @relation("PromotionReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  createdAt     DateTime        @default(now())
+
+  @@index([status])
+}
+
+model Notification {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  message           String
+  relatedEntityType String?
+  relatedEntityId   String?
+  isRead            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  ipAddress  String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
 }

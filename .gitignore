@@ -1,4 +1,13 @@
 server/.env
+*.env
+*.env.*
+!*.env.example
+node_modules
 server/node_modules
 client/node_modules
+server/dist
+client/dist
 server/docs
+dist
+coverage
+.scratch/tmp

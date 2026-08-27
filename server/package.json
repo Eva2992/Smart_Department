@@ -4,7 +4,18 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "dev": "tsx watch src/server.ts",
+        "build": "tsup src/server.ts --format esm",
+        "start": "node dist/server.js",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "prisma:generate": "prisma generate",
+        "prisma:validate": "prisma validate",
+        "prisma:migrate": "prisma migrate dev",
+        "prisma:seed": "tsx prisma/seed.ts"
+    },
+    "prisma": {
+        "seed": "tsx prisma/seed.ts"
     },
     "keywords": [],
     "author": "",
