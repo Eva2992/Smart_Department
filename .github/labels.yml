@@ -1,0 +1,39 @@
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "refactor"
+  color: "cfd3d7"
+  description: "Code refactoring or tech debt reduction"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "needs-triage"
+  color: "fbca04"
+  description: "Newly submitted item needing initial review"
+
+- name: "needs-info"
+  color: "d876e3"
+  description: "Requires clarification or reproduction steps from author"
+
+- name: "ready-for-agent"
+  color: "0e8a16"
+  description: "Unambiguous, vertical tracer bullet ready for autonomous agent execution"
+
+- name: "ready-for-human"
+  color: "e99695"
+  description: "Requires manual human intervention or real-world verification"
+
+- name: "in-progress"
+  color: "1d76db"
+  description: "Currently under active development"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
