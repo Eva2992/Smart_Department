@@ -2,6 +2,7 @@ import type { Role, Program } from "@prisma/client";
 
 export interface AccessTokenPayload {
   userId: string;
+  id?: string;
   email: string;
   role: Role;
   name: string;
@@ -56,4 +57,20 @@ export interface AuthTokens {
 export interface AuthSessionResponse {
   user: UserResponse;
   tokens: AuthTokens;
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
 }

@@ -76,25 +76,36 @@ enum PromotionStatus {
   REJECTED
 }
 
+enum StudentStatus {
+  ACTIVE
+  PROMOTED
+  DEMOTED
+  DROPOUT
+  GRADUATED
+}
+
 // ==========================================
 // IDENTITY & ACCESS MANAGEMENT
 // ==========================================
 
 model User {
-  id              String    @id @default(uuid())
+  id              String         @id @default(uuid())
   name            String
-  email           String    @unique
-  universityId    String?   @unique // For students / CRs
-  teacherUniqueId String?   @unique // For teachers
+  email           String         @unique
+  universityId    String?        @unique // For students / CRs
+  teacherUniqueId String?        @unique // For teachers
   passwordHash    String
   role            Role
-  program         Program?  // For students / CRs
+  studentStatus   StudentStatus? @default(ACTIVE) // For students / CRs
+  program         Program?       // For students / CRs
   batchId         String?
-  batch           Batch?    @relation("BatchStudents", fields: [batchId], references: [id])
+  batch           Batch?         @relation("BatchStudents", fields: [batchId], references: [id])
   isChairman              Boolean   @default(false)
   isVerified              Boolean   @default(false)
   verificationToken       String?   @unique
   verificationTokenExpiry DateTime?
+  resetPasswordToken      String?   @unique
+  resetPasswordTokenExpiry DateTime?
   failedAttempts          Int       @default(0)
   lockedUntil             DateTime?
   createdAt       DateTime  @default(now())

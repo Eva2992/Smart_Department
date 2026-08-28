@@ -47,6 +47,22 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   tokens: AuthTokens | null;
@@ -57,4 +73,9 @@ export interface AuthContextType {
   verifyEmail: (token: string) => Promise<{ success: boolean; message: string }>;
   resendVerification: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
+  changePassword: (data: ChangePasswordPayload) => Promise<{ success: boolean; message: string }>;
+  forgotPassword: (
+    email: string
+  ) => Promise<{ success: boolean; message: string; resetToken?: string }>;
+  resetPassword: (data: ResetPasswordPayload) => Promise<{ success: boolean; message: string }>;
 }

@@ -1,9 +1,10 @@
-import { useAuth } from "../context/useAuth.js";
 import { StudentResultCard } from "../components/StudentResultCard.js";
 import { Link } from "react-router-dom";
+import { ChangePasswordModal } from "../components/ChangePasswordModal.js";
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   if (!user) return null;
 
@@ -139,19 +140,70 @@ export function DashboardPage() {
               <span className="font-semibold text-gray-900">Enabled on use</span>
             </div>
           </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setIsChangePasswordOpen(true)}
+              className="bg-[#DC143C] hover:bg-[#B01030] text-white font-semibold text-xs rounded-xl px-4 py-2 transition-colors cursor-pointer"
+            >
+              Change Password
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Module Navigation Preview */}
-      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-center">
-        <h3 className="text-base font-bold text-gray-900 mb-1">
-          Result Generation & Examination Management Active
-        </h3>
-        <p className="text-xs text-gray-500 max-w-xl mx-auto">
-          Dual-hybrid result publishing, JU CSE GPA calculation engine, public result querying, and
-          personalized student grade dashboards are fully connected and operational.
-        </p>
+      {/* Quick Action Modules */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <a
+          href="/schedules"
+          className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 hover:border-[#DC143C]/40 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#DC143C]/10 text-[#DC143C] flex items-center justify-center text-lg font-bold mb-3 group-hover:scale-105 transition-transform">
+            🗓️
+          </div>
+          <h3 className="text-sm font-bold text-[#1F2937] font-[Poppins] mb-1">
+            Class Routine &amp; Schedules
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            View day-wise timetable, reschedule classes with 3-way conflict checking, or cancel
+            slots.
+          </p>
+        </a>
+
+        <a
+          href="/rooms"
+          className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 hover:border-[#DC143C]/40 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#16A34A]/10 text-[#16A34A] flex items-center justify-center text-lg font-bold mb-3 group-hover:scale-105 transition-transform">
+            🏢
+          </div>
+          <h3 className="text-sm font-bold text-[#1F2937] font-[Poppins] mb-1">
+            Room Availability Matrix
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            Inspect real-time facility occupancy across all 8 fixed classrooms and laboratories.
+          </p>
+        </a>
+
+        <a
+          href="/results"
+          className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 hover:border-[#DC143C]/40 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#DA532C]/10 text-[#DA532C] flex items-center justify-center text-lg font-bold mb-3 group-hover:scale-105 transition-transform">
+            📊
+          </div>
+          <h3 className="text-sm font-bold text-[#1F2937] font-[Poppins] mb-1">
+            Examination Results
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            Search semester final results, verify grades, or upload batch grade sheets.
+          </p>
+        </a>
       </div>
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
     </div>
   );
 }
