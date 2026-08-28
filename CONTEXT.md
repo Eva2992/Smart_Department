@@ -1,6 +1,7 @@
 # Domain Context & Ubiquitous Language
 
 ## Project Overview
+
 **Smart_Schedular (JU CSE Department Academic Management System)** is a comprehensive full-stack platform designed to digitize and manage the academic operations of the Department of Computer Science and Engineering (CSE) at Jahangirnagar University (JU), Savar, Dhaka, Bangladesh.
 
 ---
@@ -8,6 +9,7 @@
 ## Ubiquitous Language & Core Terminology
 
 ### 1. Identity & Actors
+
 - **User**: Any authenticated entity in the system. Discriminated into 4 distinct roles:
   - **Admin**: Department office/management holding system-wide authority (preloading student/teacher rosters, managing global settings, resolving deadlocks).
   - **Teacher / Faculty**: Academic instructors who manage class schedules, conduct assessments, record marks, and request room/slot changes.
@@ -17,6 +19,7 @@
 - **Preloaded Student / Teacher**: Authoritative roster maintained by Admin for zero-friction account verification during registration.
 
 ### 2. Academic Structure & Hierarchy
+
 - **Program**: Degree offering of the department:
   - `BSC_HONOURS` (4-year Bachelor of Science)
   - `MSC` (Master of Science)
@@ -28,13 +31,16 @@
 - **Course**: An academic curriculum unit (e.g., CSE 404: Software Engineering) with credit weight, syllabus, and assigned instructors.
 
 ### 3. Physical Facilities & Rooms
+
 Fixed department facilities allocated for lectures and laboratories:
+
 - **Lecture Rooms**: `R-101`, `R-102`, `R-103` (Standard lecture halls).
 - **Computer Laboratories**: `R-201`, `R-203`, `R-302` (Equipped for programming & computational labs).
 - **Specialized Lab**: `R-105` (Electrical Circuit & Hardware Lab).
 - **Multipurpose Room**: `R-202` (Flexible space for exams, seminars, and thesis presentations).
 
 ### 4. Scheduling & Routine Engine
+
 - **Master Routine**: The recurring baseline weekly timetable for a semester.
 - **Daily Schedule Instance**: The active schedule entry for a specific calendar date, reflecting real-time statuses.
 - **Time Slot**: A bounded time range (`startTime` - `endTime`) on a specific day of the week.
@@ -42,6 +48,7 @@ Fixed department facilities allocated for lectures and laboratories:
   1. **Room Conflict**: Two classes scheduled in the same room at overlapping times.
   2. **Teacher Conflict**: A faculty member scheduled to teach two classes simultaneously.
   3. **Batch Conflict**: A student batch scheduled for two activities at the same time.
+- **Self-Exclusion Rule**: When updating/rescheduling an existing schedule entry, `conflictService.checkOverlap` excludes `excludeEntryId` to avoid false-positive self-conflicts.
 - **Class State**:
   - `SCHEDULED`: Normal planned class.
   - `RESCHEDULED`: Moved to a different time slot or room.
@@ -50,11 +57,25 @@ Fixed department facilities allocated for lectures and laboratories:
   - `MAKEUP`: Extra session scheduled outside regular master routine.
 
 ### 5. Assessments & Results
+
 - **Class Test (CT)**: Continuous assessment quizzes conducted during the term.
-- **Assignment**: Homework or project submission with deadline and grading criteria.
+- **CT Aggregation Policy**: Configurable score computation method per course:
+  - `BEST_3_OF_4` (Default JU CSE departmental policy).
+  - `AVERAGE_ALL` (Average of all conducted CTs).
+  - `BEST_2_OF_3` / `BEST_N_OF_M` (Custom course policy).
+- **Assignment**: Homework or project task supporting dual-mode submissions (URL links e.g. GitHub/Drive, and direct file uploads).
 - **Marks Sheet**: Tabulated scores for CTs and assignments per course.
-- **Semester Final Result**: Official tabulated grade sheet/GPA report uploaded per semester.
+- **Semester Final Result (Dual Hybrid)**: CR uploads grade sheets; tabular student rows parse into structured relational `Result` records (`gpa`, `cgpa`, `courseMarks` JSON) for student dashboards, while the original file document is archived in the `Resource` repository for full-batch downloads.
 - **Study Resource**: Downloadable academic artifact (lecture slides, notes, reference PDFs, question banks) categorized by Year and Semester.
+
+### 6. Batch Promotion & CR Lifecycle
+
+- **Promotion Processing**: Batch advances to next sequential semester; previous routines and schedules are archived.
+- **CR Role Reset**: All active `CR` user roles within the promoted batch are automatically reset to `STUDENT` on promotion. Faculty/Admin re-assigns or confirms CR designations for the new term.
+
+### 7. Communication & Email Delivery
+
+- **Email Delivery Service**: Zero-friction adapter logging verification URLs and OTPs directly to console during local development and testing (`NODE_ENV !== "production"`), switching to SMTP transport in production.
 
 ---
 

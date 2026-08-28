@@ -60,10 +60,7 @@ export const FIXED_ROOMS = [
 ];
 
 export async function seed() {
-  console.log("🌱 Seeding academic management system database...");
-
-  // 1. Seed Rooms
-  const roomMap = new Map<string, string>();
+  console.log("🌱 Seeding fixed departmental rooms...");
   for (const room of FIXED_ROOMS) {
     const r = await prisma.room.upsert({
       where: { roomNumber: room.roomNumber },
