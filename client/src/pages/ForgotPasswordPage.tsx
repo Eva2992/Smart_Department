@@ -54,7 +54,8 @@ export function ForgotPasswordPage() {
               <Alert type="success" message={success.message} onClose={() => setSuccess(null)} />
               {success.resetToken && (
                 <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs break-all">
-                  <span className="font-semibold text-gray-700">Dev token:</span> {success.resetToken}
+                  <span className="font-semibold text-gray-700">Dev token:</span>{" "}
+                  {success.resetToken}
                 </div>
               )}
             </div>

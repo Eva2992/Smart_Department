@@ -5,6 +5,7 @@ import {
   rescheduleClass,
   type ConflictCheckResponse,
 } from "../api/scheduleApi";
+import { ConflictAlertBadge } from "./ConflictAlertBadge";
 
 interface RescheduleModalProps {
   isOpen: boolean;
@@ -35,17 +36,21 @@ export function RescheduleModal({
   // Initialize/sync when entry changes
   useEffect(() => {
     if (entry) {
-      const initialDate = entry.date ? entry.date.split("T")[0] : new Date().toISOString().split("T")[0];
-      const initialStartTime = typeof entry.startTime === "string" && entry.startTime.includes("T")
-        ? new Date(entry.startTime).toISOString().substring(11, 16)
-        : typeof entry.startTime === "string"
-        ? entry.startTime.substring(0, 5)
-        : "09:00";
-      const initialEndTime = typeof entry.endTime === "string" && entry.endTime.includes("T")
-        ? new Date(entry.endTime).toISOString().substring(11, 16)
-        : typeof entry.endTime === "string"
-        ? entry.endTime.substring(0, 5)
-        : "10:30";
+      const initialDate = entry.date
+        ? entry.date.split("T")[0]
+        : new Date().toISOString().split("T")[0];
+      const initialStartTime =
+        typeof entry.startTime === "string" && entry.startTime.includes("T")
+          ? new Date(entry.startTime).toISOString().substring(11, 16)
+          : typeof entry.startTime === "string"
+            ? entry.startTime.substring(0, 5)
+            : "09:00";
+      const initialEndTime =
+        typeof entry.endTime === "string" && entry.endTime.includes("T")
+          ? new Date(entry.endTime).toISOString().substring(11, 16)
+          : typeof entry.endTime === "string"
+            ? entry.endTime.substring(0, 5)
+            : "10:30";
 
       setDate(initialDate);
       setStartTime(initialStartTime);
@@ -114,21 +119,22 @@ export function RescheduleModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 text-slate-100 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="bg-[#FFFFFF] border border-gray-100 rounded-3xl max-w-lg w-full p-6 text-[#1F2937] shadow-[0_10px_25px_rgba(0,0,0,0.1)]">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-[#1F2937] flex items-center gap-2 font-[Poppins]">
               <span>📅 Reschedule Class</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              {entry.course?.code || "Class"} - {entry.course?.name || "General"} ({entry.batch?.name || "Batch"})
+            <p className="text-xs text-[#6B7280] mt-1">
+              {entry.course?.code || "Class"} - {entry.course?.name || "General"} (
+              {entry.batch?.name || "Batch"})
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-[#6B7280] hover:text-[#1F2937] p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer"
           >
             ✕
           </button>
@@ -137,7 +143,7 @@ export function RescheduleModal({
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Date Picker */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
               New Date
             </label>
             <input
@@ -145,14 +151,14 @@ export function RescheduleModal({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
+              className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
             />
           </div>
 
           {/* Time Pickers */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
                 Start Time
               </label>
               <input
@@ -160,11 +166,11 @@ export function RescheduleModal({
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 required
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
                 End Time
               </label>
               <input
@@ -172,20 +178,20 @@ export function RescheduleModal({
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 required
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
+                className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
               />
             </div>
           </div>
 
           {/* Room Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
               Target Room (8 Fixed Facilities)
             </label>
             <select
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-sm"
+              className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
             >
               {rooms.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -197,77 +203,52 @@ export function RescheduleModal({
 
           {/* Reschedule Reason */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              Reason for Reschedule (Optional)
+            <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
+              Reason for Rescheduling (Optional)
             </label>
-            <input
-              type="text"
-              placeholder="e.g. Faculty conference, lab equipment maintenance"
+            <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm"
-            />
+              placeholder="e.g. Lab equipment maintenance, Faculty makeup session..."
+              rows={2}
+              className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm resize-none"
+            ></textarea>
           </div>
 
-          {/* Live Conflict Validation Status Badge */}
-          <div className="pt-2">
-            <div className="text-xs font-semibold text-slate-400 mb-1 flex items-center justify-between">
-              <span>3-Way Conflict Engine Validation</span>
-              {isCheckingConflict && (
-                <span className="text-indigo-400 animate-pulse text-xs">Evaluating...</span>
-              )}
-            </div>
+          {/* Live Conflict Feedback using ConflictAlertBadge */}
+          <ConflictAlertBadge
+            isChecking={isCheckingConflict}
+            hasConflict={conflictResult?.hasConflict}
+            conflicts={conflictResult?.conflicts}
+            summaryMessage={conflictResult?.summaryMessage}
+          />
 
-            {isCheckingConflict ? (
-              <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 text-sm flex items-center gap-2">
-                <span className="animate-spin">⏳</span> Checking room, teacher & batch availability...
-              </div>
-            ) : conflictResult?.hasConflict ? (
-              <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-700/80 text-rose-200 text-sm space-y-1">
-                <div className="flex items-center gap-2 font-bold text-rose-300">
-                  <span>❌ Conflict Detected</span>
-                </div>
-                <ul className="text-xs list-disc list-inside space-y-1 mt-1 text-rose-200/90">
-                  {conflictResult.conflicts.map((c, i) => (
-                    <li key={i}>
-                      <span className="font-semibold text-rose-100">[{c.type} CONFLICT]:</span> {c.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : conflictResult && !conflictResult.hasConflict ? (
-              <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-700/80 text-emerald-200 text-sm flex items-center gap-2">
-                <span className="text-emerald-400 font-bold">✓</span>
-                <span>Slot Available — No Room, Teacher, or Batch Conflicts.</span>
-              </div>
-            ) : null}
-          </div>
-
+          {/* Submit Error */}
           {submitError && (
-            <div className="p-2 rounded-lg bg-rose-900/50 border border-rose-700 text-rose-300 text-xs">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#E11D48] text-xs font-semibold">
               {submitError}
             </div>
           )}
 
           {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-800 text-sm font-medium transition"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-100 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isCheckingConflict || !!conflictResult?.hasConflict}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
-                conflictResult?.hasConflict || isCheckingConflict || isSubmitting
-                  ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
-                  : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30"
+              disabled={isSubmitting || isCheckingConflict || Boolean(conflictResult?.hasConflict)}
+              className={`px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                conflictResult?.hasConflict || isCheckingConflict
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-[#DC143C] hover:bg-[#B01030] text-white shadow-xs"
               }`}
             >
-              {isSubmitting ? "Updating..." : "Confirm Reschedule"}
+              {isSubmitting ? "Rescheduling..." : "Confirm Reschedule"}
             </button>
           </div>
         </form>

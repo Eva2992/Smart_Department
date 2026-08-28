@@ -1,18 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { env } from "../config/env.js";
 import { AppError } from "./errorHandler.js";
+import { verifyAccessToken } from "../utils/token.js";
+import type { AccessTokenPayload } from "../types/auth.js";
 import { Role } from "@prisma/client";
 
-export interface AuthUser {
+export interface AuthUser extends AccessTokenPayload {
   id: string;
-  email: string;
-  role: Role;
-  name?: string;
-  teacherUniqueId?: string | null;
-  universityId?: string | null;
-  batchId?: string | null;
-  isChairman?: boolean;
+  userId: string;
 }
 
 declare global {
@@ -24,20 +18,23 @@ declare global {
 }
 
 /**
- * Authentication middleware: verifies JWT or mock auth headers in test/dev environment.
+ * Authentication middleware: verifies JWT access token or mock headers in test/dev environment.
  */
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
-  // Check authorization header
   const authHeader = req.headers.authorization;
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.substring(7);
     try {
-      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as AuthUser;
-      req.user = decoded;
+      const decoded = verifyAccessToken(token);
+      req.user = {
+        ...decoded,
+        id: decoded.id || decoded.userId,
+        userId: decoded.userId || decoded.id || "",
+      };
       return next();
     } catch {
-      return next(new AppError("Invalid or expired authentication token", 401, "UNAUTHORIZED"));
+      return next(new AppError("Invalid or expired access token", 401, "INVALID_TOKEN"));
     }
   }
 
@@ -47,6 +44,7 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
 
   if (mockUserId && mockUserRole) {
     req.user = {
+      userId: mockUserId,
       id: mockUserId,
       email: (req.headers["x-user-email"] as string) || "user@juniv.edu",
       role: mockUserRole,
@@ -59,8 +57,13 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     return next();
   }
 
-  // If no auth credentials provided
-  return next(new AppError("Authentication required. Please provide a valid bearer token.", 401, "UNAUTHORIZED"));
+  return next(
+    new AppError(
+      "Authentication required. Please provide a valid Bearer token.",
+      401,
+      "UNAUTHORIZED"
+    )
+  );
 }
 
 /**
@@ -71,8 +74,12 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.substring(7);
     try {
-      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as AuthUser;
-      req.user = decoded;
+      const decoded = verifyAccessToken(token);
+      req.user = {
+        ...decoded,
+        id: decoded.id || decoded.userId,
+        userId: decoded.userId || decoded.id || "",
+      };
     } catch {
       // Ignore token error for optional auth
     }
@@ -81,9 +88,11 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
     const mockUserRole = req.headers["x-user-role"] as Role;
     if (mockUserId && mockUserRole) {
       req.user = {
+        userId: mockUserId,
         id: mockUserId,
         email: (req.headers["x-user-email"] as string) || "user@juniv.edu",
         role: mockUserRole,
+        name: (req.headers["x-user-name"] as string) || "Mock User",
         teacherUniqueId: req.headers["x-user-teacher-id"] as string | undefined,
         universityId: req.headers["x-user-university-id"] as string | undefined,
         batchId: req.headers["x-user-batch-id"] as string | undefined,
@@ -92,4 +101,44 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
     }
   }
   next();
+}
+
+/**
+ * Role-based access control middleware (RBAC).
+ */
+export function authorize(...allowedRoles: Role[]) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      return next(
+        new AppError("Authentication required before authorization", 401, "UNAUTHORIZED")
+      );
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(
+        new AppError(
+          `Forbidden: Role '${req.user.role}' is not authorized to access this resource`,
+          403,
+          "FORBIDDEN"
+        )
+      );
+    }
+
+    next();
+  };
+}
+
+/**
+ * Chairman role check middleware.
+ */
+export function requireChairman(req: Request, _res: Response, next: NextFunction): void {
+  if (!req.user) {
+    return next(new AppError("Authentication required", 401, "UNAUTHORIZED"));
+  }
+
+  if (req.user.role === Role.ADMIN || req.user.isChairman) {
+    return next();
+  }
+
+  return next(new AppError("Chairman privileges required for this action", 403, "FORBIDDEN"));
 }

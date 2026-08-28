@@ -6,12 +6,15 @@ interface StudentOverrideModalProps {
   onClose: () => void;
   student: StudentSummary | null;
   batches: Batch[];
-  onSubmit: (studentId: string, payload: {
-    batchId?: string;
-    studentStatus?: StudentStatus;
-    role?: Role;
-    reason?: string;
-  }) => Promise<void>;
+  onSubmit: (
+    studentId: string,
+    payload: {
+      batchId?: string;
+      studentStatus?: StudentStatus;
+      role?: Role;
+      reason?: string;
+    }
+  ) => Promise<void>;
 }
 
 export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
@@ -50,8 +53,8 @@ export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
-          ? err.message
-          : "Failed to update student semester status";
+            ? err.message
+            : "Failed to update student semester status";
       setError(msg || "Failed to update student");
     } finally {
       setIsSubmitting(false);
@@ -82,14 +85,22 @@ export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
             className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div role="alert" className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48]">
+            <div
+              role="alert"
+              className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48]"
+            >
               {error}
             </div>
           )}
@@ -135,7 +146,10 @@ export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             {/* Student Status */}
             <div>
-              <label htmlFor="student-status-select" className="block text-xs font-bold text-gray-700 mb-1">
+              <label
+                htmlFor="student-status-select"
+                className="block text-xs font-bold text-gray-700 mb-1"
+              >
                 Student Status *
               </label>
               <select

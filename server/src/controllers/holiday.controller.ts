@@ -30,7 +30,7 @@ export class HolidayController {
       if (!req.user) {
         throw new AppError("Authentication required", 401, "UNAUTHORIZED");
       }
-      const result = await holidayService.deleteHoliday(req.params.id, req.user);
+      const result = await holidayService.deleteHoliday(req.params.id as string, req.user);
       sendSuccess(res, result, result.message);
     } catch (err) {
       next(err);

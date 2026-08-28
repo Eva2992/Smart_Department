@@ -52,12 +52,18 @@ export function Navbar() {
                 >
                   Dashboard
                 </Link>
+                <Link
+                  to="/schedules"
+                  className="text-sm font-medium text-[#1F2937] hover:text-[#DC143C] transition-colors hidden sm:block"
+                >
+                  Routine &amp; Schedules
+                </Link>
                 {user.role === "ADMIN" && (
                   <Link
                     to="/admin/batches"
                     className="text-sm font-medium text-[#1F2937] hover:text-[#DC143C] transition-colors hidden sm:block"
                   >
-                    Batch & Semesters
+                    Batch &amp; Semesters
                   </Link>
                 )}
                 <div className="flex items-center gap-2 pl-3 border-l border-gray-200">

@@ -133,8 +133,14 @@ export function evaluateInMemConflicts(
       batchName: entry.batch?.name,
       batchId: entry.batchId,
       date: entryDateStr,
-      startTime: typeof entry.startTime === "string" ? entry.startTime : minutesToTimeString(timeToMinutes(entry.startTime)),
-      endTime: typeof entry.endTime === "string" ? entry.endTime : minutesToTimeString(timeToMinutes(entry.endTime)),
+      startTime:
+        typeof entry.startTime === "string"
+          ? entry.startTime
+          : minutesToTimeString(timeToMinutes(entry.startTime)),
+      endTime:
+        typeof entry.endTime === "string"
+          ? entry.endTime
+          : minutesToTimeString(timeToMinutes(entry.endTime)),
       type: entry.type || "CLASS",
       status: String(entry.status || "SCHEDULED"),
     };
@@ -206,9 +212,7 @@ export class ConflictService {
         status: {
           notIn: [ScheduleEntryStatus.CANCELLED, ScheduleEntryStatus.HOLIDAY],
         },
-        ...(input.excludeScheduleEntryId
-          ? { id: { not: input.excludeScheduleEntryId } }
-          : {}),
+        ...(input.excludeScheduleEntryId ? { id: { not: input.excludeScheduleEntryId } } : {}),
         OR: orConditions,
       },
       include: {

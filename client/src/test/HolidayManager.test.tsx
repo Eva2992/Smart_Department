@@ -24,12 +24,7 @@ describe("HolidayManager Component", () => {
       },
     ]);
 
-    render(
-      <HolidayManager
-        userRole="ADMIN"
-        onHolidayChanged={vi.fn()}
-      />
-    );
+    render(<HolidayManager userRole="ADMIN" onHolidayChanged={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText("University Foundation Day")).toBeInTheDocument();

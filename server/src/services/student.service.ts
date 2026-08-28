@@ -97,7 +97,11 @@ export class StudentService {
     }
 
     if (student.role !== "STUDENT" && student.role !== "CR") {
-      throw new AppError("Only student accounts can be overridden via this method", 400, "INVALID_ROLE");
+      throw new AppError(
+        "Only student accounts can be overridden via this method",
+        400,
+        "INVALID_ROLE"
+      );
     }
 
     let targetBatchName: string | undefined;

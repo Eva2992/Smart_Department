@@ -27,4 +27,3 @@ apiV1Router.use("/admin", adminRouter);
 apiV1Router.use("/assessments", assessmentsRouter);
 
 export { apiV1Router };
-

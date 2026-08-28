@@ -94,9 +94,7 @@ describe("RescheduleModal Component", () => {
 
     await waitFor(() => {
       expect(screen.getByText("❌ Conflict Detected")).toBeInTheDocument();
-      expect(
-        screen.getByText(/Room R-101 is already occupied by CSE 301/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Room R-101 is already occupied by CSE 301/)).toBeInTheDocument();
     });
 
     const submitBtn = screen.getByText("Confirm Reschedule");

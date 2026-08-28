@@ -164,20 +164,22 @@ export async function rescheduleClass(
   return res.data.data;
 }
 
-export async function cancelClass(
-  id: string,
-  data?: { reason?: string }
-): Promise<ScheduleEntry> {
+export async function cancelClass(id: string, data?: { reason?: string }): Promise<ScheduleEntry> {
   const res = await api.patch(`/schedules/${id}/cancel`, data);
   return res.data.data;
 }
 
-export async function getRooms(): Promise<Array<{ id: string; roomNumber: string; type: string; description?: string }>> {
+export async function getRooms(): Promise<
+  Array<{ id: string; roomNumber: string; type: string; description?: string }>
+> {
   const res = await api.get("/rooms");
   return res.data.data;
 }
 
-export async function getRoomAvailability(date: string, roomId?: string): Promise<RoomAvailabilityMatrixItem[]> {
+export async function getRoomAvailability(
+  date: string,
+  roomId?: string
+): Promise<RoomAvailabilityMatrixItem[]> {
   const res = await api.get("/rooms/availability", { params: { date, roomId } });
   return res.data.data;
 }
@@ -197,7 +199,9 @@ export async function declareHoliday(data: {
   return res.data.data;
 }
 
-export async function deleteHoliday(id: string): Promise<{ success: boolean; restoredClassesCount: number; message?: string }> {
+export async function deleteHoliday(
+  id: string
+): Promise<{ success: boolean; restoredClassesCount: number; message?: string }> {
   const res = await api.delete(`/holidays/${id}`);
   return res.data.data;
 }

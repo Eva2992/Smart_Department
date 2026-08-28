@@ -1,4 +1,11 @@
-import type { Program, BatchStatus, SemesterStatus, StudentStatus, Role, PromotionStatus } from "@prisma/client";
+import type {
+  Program,
+  BatchStatus,
+  SemesterStatus,
+  StudentStatus,
+  Role,
+  PromotionStatus,
+} from "@prisma/client";
 
 export interface CreateBatchDto {
   name: string;

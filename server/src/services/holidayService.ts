@@ -24,14 +24,22 @@ export class HolidayService {
    */
   async declareHoliday(input: DeclareHolidayInput, actor: AuthUser) {
     if (actor.role !== Role.ADMIN) {
-      throw new AppError("Only departmental administrators can declare holidays.", 403, "FORBIDDEN");
+      throw new AppError(
+        "Only departmental administrators can declare holidays.",
+        403,
+        "FORBIDDEN"
+      );
     }
 
     const holidayDate = new Date(normalizeDateString(input.date));
     const scope = input.scope || HolidayScope.ALL;
 
     if (scope === HolidayScope.BATCH && !input.batchId) {
-      throw new AppError("batchId is required when holiday scope is BATCH.", 400, "VALIDATION_ERROR");
+      throw new AppError(
+        "batchId is required when holiday scope is BATCH.",
+        400,
+        "VALIDATION_ERROR"
+      );
     }
 
     return await prisma.$transaction(async (tx) => {

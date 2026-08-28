@@ -117,8 +117,8 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
-          ? err.message
-          : "Failed to create semester";
+            ? err.message
+            : "Failed to create semester";
       setError(msg || "Failed to create semester");
     } finally {
       setIsSubmitting(false);
@@ -149,7 +149,12 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
             className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -157,9 +162,16 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
-            <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2">
+            <div
+              role="alert"
+              className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2"
+            >
               <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>{error}</span>
             </div>
@@ -167,7 +179,10 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="semester-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+              <label
+                htmlFor="semester-name"
+                className="block text-xs font-bold text-gray-700 mb-1.5"
+              >
                 Semester Name *
               </label>
               <input
@@ -181,7 +196,10 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
             </div>
 
             <div>
-              <label htmlFor="target-batch" className="block text-xs font-bold text-gray-700 mb-1.5">
+              <label
+                htmlFor="target-batch"
+                className="block text-xs font-bold text-gray-700 mb-1.5"
+              >
                 Target Batch *
               </label>
               <select
@@ -239,7 +257,12 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
                 className="inline-flex items-center gap-1 text-xs font-bold text-[#DC143C] hover:text-[#B01030]"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 Add Course
               </button>
@@ -305,8 +328,18 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
                         className="text-gray-400 hover:text-rose-600 p-1 transition-colors"
                         title="Remove course"
                       >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     )}

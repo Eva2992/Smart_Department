@@ -100,10 +100,7 @@ export class AuthController {
 
   async resetPassword(req: Request, res: Response): Promise<void> {
     const validatedData = resetPasswordSchema.parse(req.body);
-    const result = await authService.resetPassword(
-      validatedData.token,
-      validatedData.newPassword
-    );
+    const result = await authService.resetPassword(validatedData.token, validatedData.newPassword);
 
     sendSuccess(res, result, result.message);
   }

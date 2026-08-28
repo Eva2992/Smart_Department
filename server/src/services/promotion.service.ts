@@ -35,7 +35,11 @@ export class PromotionService {
     }
 
     if (batch.status === "COMPLETED") {
-      throw new AppError("This batch is already completed and graduated", 400, "BATCH_ALREADY_COMPLETED");
+      throw new AppError(
+        "This batch is already completed and graduated",
+        400,
+        "BATCH_ALREADY_COMPLETED"
+      );
     }
 
     const currentSemester = await prisma.semester.findUnique({
@@ -43,7 +47,11 @@ export class PromotionService {
     });
 
     if (!currentSemester || currentSemester.batchId !== dto.batchId) {
-      throw new AppError("Specified semester does not belong to this batch", 400, "INVALID_SEMESTER");
+      throw new AppError(
+        "Specified semester does not belong to this batch",
+        400,
+        "INVALID_SEMESTER"
+      );
     }
 
     // FR-07 Rule: Promotion request allowed when semester end date has passed or within 7 days
@@ -294,7 +302,11 @@ export class PromotionService {
     }
 
     if (request.status !== "PENDING") {
-      throw new AppError(`Cannot reject a promotion request that is ${request.status}`, 400, "INVALID_STATE");
+      throw new AppError(
+        `Cannot reject a promotion request that is ${request.status}`,
+        400,
+        "INVALID_STATE"
+      );
     }
 
     const updated = await prisma.promotionRequest.update({
@@ -346,7 +358,9 @@ export class PromotionService {
       include: {
         batch: { select: { id: true, name: true, program: true, status: true } },
         semester: { select: { id: true, name: true, startDate: true, endDate: true } },
-        requestedBy: { select: { id: true, name: true, email: true, role: true, universityId: true } },
+        requestedBy: {
+          select: { id: true, name: true, email: true, role: true, universityId: true },
+        },
         reviewedBy: { select: { id: true, name: true, email: true } },
       },
     });

@@ -86,14 +86,12 @@ describe("Schedule & Holiday API Integration Tests", () => {
     it("should return hasConflict: false when no overlapping events exist", async () => {
       (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
 
-      const res = await request(app)
-        .post("/api/v1/schedules/check-conflict")
-        .send({
-          date: "2026-09-01",
-          startTime: "09:00",
-          endTime: "10:30",
-          roomId: "r-101",
-        });
+      const res = await request(app).post("/api/v1/schedules/check-conflict").send({
+        date: "2026-09-01",
+        startTime: "09:00",
+        endTime: "10:30",
+        roomId: "r-101",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -103,14 +101,12 @@ describe("Schedule & Holiday API Integration Tests", () => {
     it("should return hasConflict: true with conflict details when a clash exists", async () => {
       (prisma.scheduleEntry.findMany as any).mockResolvedValue([sampleEntry]);
 
-      const res = await request(app)
-        .post("/api/v1/schedules/check-conflict")
-        .send({
-          date: "2026-09-01",
-          startTime: "09:15",
-          endTime: "10:00",
-          roomId: "r-101",
-        });
+      const res = await request(app).post("/api/v1/schedules/check-conflict").send({
+        date: "2026-09-01",
+        startTime: "09:15",
+        endTime: "10:00",
+        roomId: "r-101",
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.data.hasConflict).toBe(true);
@@ -123,8 +119,7 @@ describe("Schedule & Holiday API Integration Tests", () => {
     it("should return room availability matrix", async () => {
       (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
 
-      const res = await request(app)
-        .get("/api/v1/rooms/availability?date=2026-09-01");
+      const res = await request(app).get("/api/v1/rooms/availability?date=2026-09-01");
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -134,13 +129,11 @@ describe("Schedule & Holiday API Integration Tests", () => {
 
   describe("PATCH /api/v1/schedules/:id/reschedule", () => {
     it("should reject unauthenticated request with 401", async () => {
-      const res = await request(app)
-        .patch("/api/v1/schedules/entry-101/reschedule")
-        .send({
-          date: "2026-09-02",
-          startTime: "09:00",
-          endTime: "10:30",
-        });
+      const res = await request(app).patch("/api/v1/schedules/entry-101/reschedule").send({
+        date: "2026-09-02",
+        startTime: "09:00",
+        endTime: "10:30",
+      });
 
       expect(res.status).toBe(401);
     });
@@ -260,14 +253,11 @@ describe("Schedule & Holiday API Integration Tests", () => {
       (prisma.scheduleEntry.findMany as any).mockResolvedValue([sampleEntry]);
       (prisma.scheduleEntry.updateMany as any).mockResolvedValue({ count: 1 });
 
-      const res = await request(app)
-        .post("/api/v1/holidays")
-        .set(adminHeaders)
-        .send({
-          date: "2026-09-15",
-          reason: "University Foundation Day",
-          scope: "ALL",
-        });
+      const res = await request(app).post("/api/v1/holidays").set(adminHeaders).send({
+        date: "2026-09-15",
+        reason: "University Foundation Day",
+        scope: "ALL",
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -275,13 +265,10 @@ describe("Schedule & Holiday API Integration Tests", () => {
     });
 
     it("should reject non-admin from declaring holiday with 403", async () => {
-      const res = await request(app)
-        .post("/api/v1/holidays")
-        .set(teacherHeaders)
-        .send({
-          date: "2026-09-15",
-          reason: "Teacher Day Off",
-        });
+      const res = await request(app).post("/api/v1/holidays").set(teacherHeaders).send({
+        date: "2026-09-15",
+        reason: "Teacher Day Off",
+      });
 
       expect(res.status).toBe(403);
     });
@@ -296,9 +283,7 @@ describe("Schedule & Holiday API Integration Tests", () => {
       (prisma.holiday.delete as any).mockResolvedValue({ id: "hol-1" });
       (prisma.scheduleEntry.updateMany as any).mockResolvedValue({ count: 1 });
 
-      const res = await request(app)
-        .delete("/api/v1/holidays/hol-1")
-        .set(adminHeaders);
+      const res = await request(app).delete("/api/v1/holidays/hol-1").set(adminHeaders);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

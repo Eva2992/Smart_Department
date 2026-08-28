@@ -19,8 +19,8 @@ const mockAuth: AuthContextType = {
   resetPassword: vi.fn(),
 };
 
-vi.mock('../context/useAuth.js', () => ({ 
-  useAuth: () => mockAuth 
+vi.mock("../context/useAuth.js", () => ({
+  useAuth: () => mockAuth,
 }));
 
 describe("ResetPasswordPage", () => {
@@ -57,7 +57,7 @@ describe("ResetPasswordPage", () => {
 
   it("calls resetPassword on form submission", async () => {
     vi.mocked(mockAuth.resetPassword).mockResolvedValue({ success: true, message: "Success" });
-    
+
     render(
       <BrowserRouter>
         <ResetPasswordPage />
@@ -79,16 +79,16 @@ describe("ResetPasswordPage", () => {
       expect(mockAuth.resetPassword).toHaveBeenCalledWith({
         token: "some-token",
         newPassword: "StrongPass1!",
-        confirmPassword: "StrongPass1!"
+        confirmPassword: "StrongPass1!",
       });
     });
   });
 
   it("shows error for invalid token", async () => {
-    vi.mocked(mockAuth.resetPassword).mockRejectedValue({ 
-      response: { data: { message: "Invalid or expired reset token" } } 
+    vi.mocked(mockAuth.resetPassword).mockRejectedValue({
+      response: { data: { message: "Invalid or expired reset token" } },
     });
-    
+
     render(
       <BrowserRouter>
         <ResetPasswordPage />

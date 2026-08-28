@@ -1,9 +1,6 @@
 import type { Request, Response } from "express";
 import { studentService } from "../services/student.service.js";
-import {
-  overrideStudentSemesterSchema,
-  assignCRSchema,
-} from "../validators/academic.validator.js";
+import { overrideStudentSemesterSchema, assignCRSchema } from "../validators/academic.validator.js";
 import { sendSuccess } from "../utils/response.js";
 import type { Program, StudentStatus, Role } from "@prisma/client";
 
@@ -30,7 +27,12 @@ export class StudentController {
     const adminUser = req.user!;
     const ipAddress = req.ip || req.socket.remoteAddress || "127.0.0.1";
 
-    const updated = await studentService.overrideSemester(id, validated, adminUser.userId, ipAddress);
+    const updated = await studentService.overrideSemester(
+      id,
+      validated,
+      adminUser.userId,
+      ipAddress
+    );
     return sendSuccess(res, updated, "Student status / semester updated successfully");
   }
 

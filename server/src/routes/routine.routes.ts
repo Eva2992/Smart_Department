@@ -7,13 +7,8 @@ import { Role } from "@prisma/client";
 const routineRouter = Router();
 
 // Generate routine for a semester (Admin only)
-routineRouter.post(
-  "/generate",
-  authenticate,
-  authorize(Role.ADMIN),
-  (req, res, next) => {
-    routineController.generateRoutine(req, res, next);
-  }
-);
+routineRouter.post("/generate", authenticate, authorize(Role.ADMIN), (req, res, next) => {
+  routineController.generateRoutine(req, res, next);
+});
 
 export { routineRouter };

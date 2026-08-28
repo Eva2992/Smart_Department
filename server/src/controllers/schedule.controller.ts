@@ -68,7 +68,7 @@ export class ScheduleController {
 
   async getScheduleById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const data = await scheduleService.getScheduleById(req.params.id);
+      const data = await scheduleService.getScheduleById(req.params.id as string);
       sendSuccess(res, data, "Schedule entry retrieved successfully");
     } catch (err) {
       next(err);
@@ -91,7 +91,7 @@ export class ScheduleController {
         throw new AppError("Authentication required", 401, "UNAUTHORIZED");
       }
       const body = rescheduleSchema.parse(req.body);
-      const data = await scheduleService.rescheduleClass(req.params.id, body, req.user);
+      const data = await scheduleService.rescheduleClass(req.params.id as string, body, req.user);
       sendSuccess(res, data, "Class rescheduled successfully");
     } catch (err) {
       next(err);
@@ -104,7 +104,7 @@ export class ScheduleController {
         throw new AppError("Authentication required", 401, "UNAUTHORIZED");
       }
       const body = updateTimeSchema.parse(req.body);
-      const data = await scheduleService.updateClassTime(req.params.id, body, req.user);
+      const data = await scheduleService.updateClassTime(req.params.id as string, body, req.user);
       sendSuccess(res, data, "Class time updated successfully");
     } catch (err) {
       next(err);
@@ -117,7 +117,7 @@ export class ScheduleController {
         throw new AppError("Authentication required", 401, "UNAUTHORIZED");
       }
       const body = cancelClassSchema.parse(req.body || {});
-      const data = await scheduleService.cancelClass(req.params.id, body, req.user);
+      const data = await scheduleService.cancelClass(req.params.id as string, body, req.user);
       sendSuccess(res, data, "Class cancelled successfully");
     } catch (err) {
       next(err);

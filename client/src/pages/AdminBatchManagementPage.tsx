@@ -218,7 +218,12 @@ export const AdminBatchManagementPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 Create Batch
               </button>
@@ -232,7 +237,12 @@ export const AdminBatchManagementPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-[#DC143C] hover:bg-[#B01030] text-white shadow-xs transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 New Semester
               </button>
@@ -344,7 +354,9 @@ export const AdminBatchManagementPage: React.FC = () => {
 
             {/* Batch Cards Grid */}
             {isLoading ? (
-              <div className="py-20 text-center text-gray-400 text-sm">Loading academic batches...</div>
+              <div className="py-20 text-center text-gray-400 text-sm">
+                Loading academic batches...
+              </div>
             ) : batches.length === 0 ? (
               <div className="bg-white rounded-2xl p-12 text-center border border-gray-200/70">
                 <p className="text-sm font-semibold text-gray-600 mb-3">
@@ -394,7 +406,8 @@ export const AdminBatchManagementPage: React.FC = () => {
                   Class Representative Promotion Requests (FR-07, FR-08)
                 </h2>
                 <p className="text-xs text-gray-500">
-                  Review and process semester progression requests submitted by batch representatives.
+                  Review and process semester progression requests submitted by batch
+                  representatives.
                 </p>
               </div>
             </div>
@@ -429,7 +442,9 @@ export const AdminBatchManagementPage: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="font-semibold text-gray-900">{req.requestedBy?.name}</div>
-                          <div className="text-[11px] text-gray-400">{req.requestedBy?.universityId}</div>
+                          <div className="text-[11px] text-gray-400">
+                            {req.requestedBy?.universityId}
+                          </div>
                         </td>
                         <td className="px-6 py-4 max-w-xs truncate text-gray-600">
                           {req.reason || "Term completed"}
@@ -440,8 +455,8 @@ export const AdminBatchManagementPage: React.FC = () => {
                               req.status === "PENDING"
                                 ? "bg-amber-50 text-[#F59E0B] border border-amber-200/60"
                                 : req.status === "APPROVED"
-                                ? "bg-emerald-50 text-[#16A34A] border border-emerald-200/60"
-                                : "bg-rose-50 text-[#E11D48] border border-rose-200/60"
+                                  ? "bg-emerald-50 text-[#16A34A] border border-emerald-200/60"
+                                  : "bg-rose-50 text-[#E11D48] border border-rose-200/60"
                             }`}
                           >
                             {req.status}
@@ -486,7 +501,8 @@ export const AdminBatchManagementPage: React.FC = () => {
                   Student Roster & Semester Overrides (FR-09)
                 </h2>
                 <p className="text-xs text-gray-500">
-                  Search students to manually update academic standing, reassign batches, or appoint Class Representatives.
+                  Search students to manually update academic standing, reassign batches, or appoint
+                  Class Representatives.
                 </p>
               </div>
 
@@ -567,12 +583,12 @@ export const AdminBatchManagementPage: React.FC = () => {
                               st.studentStatus === "ACTIVE"
                                 ? "bg-emerald-50 text-[#16A34A]"
                                 : st.studentStatus === "PROMOTED"
-                                ? "bg-blue-50 text-blue-700"
-                                : st.studentStatus === "DEMOTED"
-                                ? "bg-amber-50 text-amber-700"
-                                : st.studentStatus === "DROPOUT"
-                                ? "bg-rose-50 text-[#E11D48]"
-                                : "bg-purple-50 text-purple-700"
+                                  ? "bg-blue-50 text-blue-700"
+                                  : st.studentStatus === "DEMOTED"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : st.studentStatus === "DROPOUT"
+                                      ? "bg-rose-50 text-[#E11D48]"
+                                      : "bg-purple-50 text-purple-700"
                             }`}
                           >
                             {st.studentStatus || "ACTIVE"}
@@ -601,8 +617,8 @@ export const AdminBatchManagementPage: React.FC = () => {
             {studentTotal > 10 && (
               <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
                 <span>
-                  Showing {(studentPage - 1) * 10 + 1} to{" "}
-                  {Math.min(studentPage * 10, studentTotal)} of {studentTotal} students
+                  Showing {(studentPage - 1) * 10 + 1} to {Math.min(studentPage * 10, studentTotal)}{" "}
+                  of {studentTotal} students
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -639,7 +655,10 @@ export const AdminBatchManagementPage: React.FC = () => {
             <h3 className="text-lg font-extrabold text-gray-900 mb-4">Create New Academic Batch</h3>
             <form onSubmit={handleCreateBatch} className="space-y-4">
               <div>
-                <label htmlFor="batch-name-input" className="block text-xs font-bold text-gray-700 mb-1">
+                <label
+                  htmlFor="batch-name-input"
+                  className="block text-xs font-bold text-gray-700 mb-1"
+                >
                   Batch Name (e.g. "53rd") *
                 </label>
                 <input
@@ -653,7 +672,10 @@ export const AdminBatchManagementPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="batch-program-select" className="block text-xs font-bold text-gray-700 mb-1">
+                <label
+                  htmlFor="batch-program-select"
+                  className="block text-xs font-bold text-gray-700 mb-1"
+                >
                   Academic Program *
                 </label>
                 <select

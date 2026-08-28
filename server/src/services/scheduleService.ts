@@ -1,9 +1,5 @@
 import { prisma } from "../lib/prisma.js";
-import {
-  ScheduleEntryStatus,
-  ScheduleEntryType,
-  Role,
-} from "@prisma/client";
+import { ScheduleEntryStatus, ScheduleEntryType, Role } from "@prisma/client";
 import { AppError } from "../middleware/errorHandler.js";
 import { AuthUser } from "../middleware/auth.js";
 import { conflictService } from "./conflictService.js";
@@ -150,7 +146,11 @@ export class ScheduleService {
       throw new AppError("Cannot reschedule a cancelled class slot.", 400, "INVALID_OPERATION");
     }
     if (entry.status === ScheduleEntryStatus.HOLIDAY) {
-      throw new AppError("Cannot reschedule a class falling on a declared holiday.", 400, "INVALID_OPERATION");
+      throw new AppError(
+        "Cannot reschedule a class falling on a declared holiday.",
+        400,
+        "INVALID_OPERATION"
+      );
     }
 
     const targetDateStr = normalizeDateString(payload.date);
@@ -541,7 +541,11 @@ export class ScheduleService {
       }
     }
 
-    throw new AppError("You do not have permission to modify this class schedule.", 403, "FORBIDDEN");
+    throw new AppError(
+      "You do not have permission to modify this class schedule.",
+      403,
+      "FORBIDDEN"
+    );
   }
 }
 

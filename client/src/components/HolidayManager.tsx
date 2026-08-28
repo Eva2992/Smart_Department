@@ -6,10 +6,7 @@ interface HolidayManagerProps {
   onHolidayChanged: () => void;
 }
 
-export function HolidayManager({
-  userRole,
-  onHolidayChanged,
-}: HolidayManagerProps) {
+export function HolidayManager({ userRole, onHolidayChanged }: HolidayManagerProps) {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,9 +49,7 @@ export function HolidayManager({
         scope,
       });
 
-      setBannerMessage(
-        `✓ ${res.message || "Holiday declared successfully."}`
-      );
+      setBannerMessage(`✓ ${res.message || "Holiday declared successfully."}`);
       setReason("");
       fetchList();
       onHolidayChanged();
@@ -85,24 +80,24 @@ export function HolidayManager({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Left Column: Declaration Form (Admin only) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-100 shadow-xl">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+      <div className="bg-[#FFFFFF] border border-gray-100 rounded-3xl p-6 text-[#1F2937] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+        <h2 className="text-lg font-bold text-[#1F2937] flex items-center gap-2 font-[Poppins]">
           <span>★ Declare Academic Holiday</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-[#6B7280] mt-1 leading-relaxed">
           Declaring a holiday automatically and retroactively marks all overlapping classes on that
-          date as <strong>Holiday (Cancelled)</strong>.
+          date as <strong className="text-[#F59E0B]">Holiday (Cancelled)</strong>.
         </p>
 
         {userRole !== "ADMIN" ? (
-          <div className="mt-4 p-4 rounded-xl bg-slate-800/60 border border-slate-700 text-xs text-slate-400">
-            🔒 Only Department Administrators hold privileges to declare or remove academic
-            holidays (FR-18).
+          <div className="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-[#6B7280]">
+            🔒 Only Department Administrators hold privileges to declare or remove academic holidays
+            (FR-18).
           </div>
         ) : (
           <form onSubmit={handleDeclare} className="mt-4 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
                 Holiday Date
               </label>
               <input
@@ -110,40 +105,40 @@ export function HolidayManager({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
                 Occasion / Reason
               </label>
               <input
                 type="text"
-                placeholder="e.g. Independence Day, Eid-ul-Fitr, University Day"
+                placeholder="e.g. Eid-ul-Fitr, University Foundation Day"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 required
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] placeholder-gray-400 focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1">
                 Scope
               </label>
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value as "ALL" | "BATCH")}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
               >
-                <option value="ALL">All Batches (Department-wide)</option>
-                <option value="BATCH">Single Batch Only</option>
+                <option value="ALL">Entire Department (All Batches)</option>
+                <option value="BATCH">Specific Batch</option>
               </select>
             </div>
 
             {error && (
-              <div className="p-2.5 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-xs">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#E11D48] text-xs font-semibold">
                 {error}
               </div>
             )}
@@ -151,71 +146,81 @@ export function HolidayManager({
             <button
               type="submit"
               disabled={isDeclaring}
-              className="w-full py-2.5 px-4 rounded-lg text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 transition disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#DC143C] hover:bg-[#B01030] text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isDeclaring ? "Declaring..." : "Declare Holiday"}
+              {isDeclaring ? "Declaring Holiday..." : "Declare Holiday"}
             </button>
           </form>
         )}
       </div>
 
-      {/* Right Column: List of Holidays */}
-      <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-100 shadow-xl">
-        <h2 className="text-lg font-bold text-white flex items-center justify-between pb-4 border-b border-slate-800">
-          <span className="flex items-center gap-2">
-            <span>📅 Declared Holidays & Off-Days</span>
-          </span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-semibold">
-            {holidays.length} Total
-          </span>
-        </h2>
+      {/* Right Column: Existing Holidays List */}
+      <div className="lg:col-span-2 bg-[#FFFFFF] border border-gray-100 rounded-3xl p-6 text-[#1F2937] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-bold text-[#1F2937] font-[Poppins]">
+              Department Academic Holidays
+            </h2>
+            <p className="text-xs text-[#6B7280]">
+              Active calendar closures and observed department off-days.
+            </p>
+          </div>
+          <button
+            onClick={fetchList}
+            className="text-xs font-semibold text-[#DC143C] hover:underline"
+          >
+            Refresh
+          </button>
+        </div>
 
         {bannerMessage && (
-          <div className="mt-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-200 text-xs flex items-center justify-between">
-            <span>{bannerMessage}</span>
-            <button onClick={() => setBannerMessage(null)} className="text-emerald-400 hover:text-white">
-              ✕
-            </button>
+          <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold">
+            {bannerMessage}
           </div>
         )}
 
-        {loading ? (
-          <div className="p-12 text-center text-slate-400">
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-xs">Loading holiday calendar...</p>
-          </div>
-        ) : holidays.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 text-xs">
-            No holidays currently recorded in the academic calendar.
-          </div>
-        ) : (
-          <div className="mt-4 divide-y divide-slate-800/80">
-            {holidays.map((h) => (
-              <div key={h.id} className="py-3.5 flex items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm">{h.reason}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-950/80 text-purple-300 border border-purple-800">
-                      {h.scope === "ALL" ? "Department-wide" : `Batch ${h.batch?.name || ""}`}
-                    </span>
+        <div className="mt-4 space-y-3">
+          {loading ? (
+            <div className="p-8 text-center text-[#6B7280] text-xs">
+              Loading declared holidays...
+            </div>
+          ) : holidays.length === 0 ? (
+            <div className="p-8 text-center text-[#6B7280] text-xs bg-gray-50 rounded-2xl">
+              No holidays currently recorded on the departmental calendar.
+            </div>
+          ) : (
+            holidays.map((h) => {
+              const dateStr = h.date ? h.date.split("T")[0] : "";
+              return (
+                <div
+                  key={h.id}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/40 border border-amber-200 hover:border-amber-300 transition"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#F59E0B]/20 text-[#B45309] border border-[#F59E0B]/40">
+                        ★ {dateStr}
+                      </span>
+                      <span className="text-xs font-medium text-[#6B7280]">
+                        Scope: {h.scope === "ALL" ? "Department-Wide" : "Batch Specific"}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-[#1F2937]">{h.reason}</h4>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Date: <strong className="text-slate-200">{h.date.split("T")[0]}</strong>
-                  </p>
-                </div>
 
-                {userRole === "ADMIN" && (
-                  <button
-                    onClick={() => handleDelete(h.id)}
-                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/60 transition"
-                  >
-                    ✕ Remove & Restore
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                  {userRole === "ADMIN" && (
+                    <button
+                      onClick={() => handleDelete(h.id)}
+                      className="py-1.5 px-3 rounded-xl text-xs font-bold text-[#E11D48] hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                    >
+                      ✕ Remove &amp; Restore
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

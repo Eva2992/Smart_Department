@@ -481,11 +481,7 @@ export class AuthService {
     // Verify current password
     const isCurrentValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isCurrentValid) {
-      throw new AppError(
-        "Current password is incorrect",
-        401,
-        "INVALID_CURRENT_PASSWORD"
-      );
+      throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
     }
 
     // Hash new password (cost factor 10, NFR-06)
@@ -532,8 +528,7 @@ export class AuthService {
     }
 
     // Generate single-use reset token (1-hour expiry)
-    const { token: resetToken, expiresAt: resetTokenExpiry } =
-      generateResetPasswordToken();
+    const { token: resetToken, expiresAt: resetTokenExpiry } = generateResetPasswordToken();
 
     // Save reset token to user record
     await prisma.user.update({
@@ -567,18 +562,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppError(
-        "Invalid or expired reset token",
-        400,
-        "INVALID_RESET_TOKEN"
-      );
+      throw new AppError("Invalid or expired reset token", 400, "INVALID_RESET_TOKEN");
     }
 
     // Check token expiry
-    if (
-      user.resetPasswordTokenExpiry &&
-      user.resetPasswordTokenExpiry < new Date()
-    ) {
+    if (user.resetPasswordTokenExpiry && user.resetPasswordTokenExpiry < new Date()) {
       throw new AppError(
         "Reset token has expired. Please request a new one.",
         400,
