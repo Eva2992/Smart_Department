@@ -74,6 +74,8 @@ export interface AuthContextType {
   resendVerification: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   changePassword: (data: ChangePasswordPayload) => Promise<{ success: boolean; message: string }>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; message: string; resetToken?: string }>;
+  forgotPassword: (
+    email: string
+  ) => Promise<{ success: boolean; message: string; resetToken?: string }>;
   resetPassword: (data: ResetPasswordPayload) => Promise<{ success: boolean; message: string }>;
 }

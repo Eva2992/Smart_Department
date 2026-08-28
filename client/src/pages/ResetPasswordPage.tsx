@@ -16,7 +16,7 @@ export function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function ResetPasswordPage() {
       setError("Passwords do not match");
       return;
     }
-    
+
     setError(null);
     setSuccess(null);
     setIsLoading(true);
@@ -56,9 +56,7 @@ export function ResetPasswordPage() {
             <h1 className="text-2xl font-bold text-[#1F2937] tracking-tight font-[Poppins]">
               Reset Password
             </h1>
-            <p className="text-xs text-[#6B7280] mt-1.5">
-              Enter your new password below
-            </p>
+            <p className="text-xs text-[#6B7280] mt-1.5">Enter your new password below</p>
           </div>
 
           {error && (

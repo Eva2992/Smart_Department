@@ -95,15 +95,27 @@ export async function scheduleCT(input: ScheduleCTInput) {
   }
 
   if (entry.type !== ScheduleEntryType.CLASS) {
-    throw new AppError("Only regular class slots can be converted to CT sessions", 409, "INVALID_CT_SOURCE");
+    throw new AppError(
+      "Only regular class slots can be converted to CT sessions",
+      409,
+      "INVALID_CT_SOURCE"
+    );
   }
 
   if (entry.teacherId !== input.teacherId) {
-    throw new AppError("You can only convert your own class slots to CT sessions", 403, "FORBIDDEN");
+    throw new AppError(
+      "You can only convert your own class slots to CT sessions",
+      403,
+      "FORBIDDEN"
+    );
   }
 
   if (entry.status !== ScheduleEntryStatus.SCHEDULED) {
-    throw new AppError("Only scheduled class slots can be converted to CT sessions", 409, "INVALID_CLASS_STATUS");
+    throw new AppError(
+      "Only scheduled class slots can be converted to CT sessions",
+      409,
+      "INVALID_CLASS_STATUS"
+    );
   }
 
   ensureDateRange(entry.startTime, entry.endTime);
@@ -166,7 +178,8 @@ export async function scheduleCT(input: ScheduleCTInput) {
 
   return {
     ctEntry,
-    warnings: sameDayCTs.length > 0 ? ["Another CT already exists on this date for the same batch."] : [],
+    warnings:
+      sameDayCTs.length > 0 ? ["Another CT already exists on this date for the same batch."] : [],
   };
 }
 
@@ -210,7 +223,10 @@ export async function listStudentCTMarks(studentId: string): Promise<StudentCTMa
       batchId: student.batchId,
       type: ScheduleEntryType.CT,
       status: { notIn: [ScheduleEntryStatus.CANCELLED, ScheduleEntryStatus.HOLIDAY] },
-      date: { gte: student.batch.currentSemester.startDate, lte: student.batch.currentSemester.endDate },
+      date: {
+        gte: student.batch.currentSemester.startDate,
+        lte: student.batch.currentSemester.endDate,
+      },
     },
     include: {
       course: { select: { id: true, code: true, name: true } },

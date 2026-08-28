@@ -47,9 +47,7 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
           />
         ))}
       </div>
-      {label && (
-        <p className={`text-xs mt-1.5 font-medium ${textColor} text-right`}>{label}</p>
-      )}
+      {label && <p className={`text-xs mt-1.5 font-medium ${textColor} text-right`}>{label}</p>}
     </div>
   );
 }

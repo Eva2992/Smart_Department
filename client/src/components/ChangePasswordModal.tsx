@@ -16,7 +16,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
       setError("New passwords do not match");
       return;
     }
-    
+
     setError(null);
     setSuccess(null);
     setIsLoading(true);
@@ -63,13 +63,24 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
       <div className="bg-[#FFFFFF] w-full max-w-md rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-[#1F2937] font-[Poppins]">Change Password</h2>
-          <button 
+          <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
             disabled={!!success}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -110,7 +121,9 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1F2937] mb-1">New Password</label>
+              <label className="block text-xs font-semibold text-[#1F2937] mb-1">
+                New Password
+              </label>
               <input
                 type={showPassword ? "text" : "password"}
                 required
@@ -123,7 +136,9 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1F2937] mb-1">Confirm New Password</label>
+              <label className="block text-xs font-semibold text-[#1F2937] mb-1">
+                Confirm New Password
+              </label>
               <input
                 type={showPassword ? "text" : "password"}
                 required

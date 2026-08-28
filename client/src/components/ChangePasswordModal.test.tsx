@@ -18,8 +18,8 @@ const mockAuth: AuthContextType = {
   resetPassword: vi.fn(),
 };
 
-vi.mock('../context/useAuth.js', () => ({ 
-  useAuth: () => mockAuth 
+vi.mock("../context/useAuth.js", () => ({
+  useAuth: () => mockAuth,
 }));
 
 describe("ChangePasswordModal", () => {
@@ -28,16 +28,12 @@ describe("ChangePasswordModal", () => {
   });
 
   it("does not render when isOpen is false", () => {
-    render(
-      <ChangePasswordModal isOpen={false} onClose={vi.fn()} />
-    );
+    render(<ChangePasswordModal isOpen={false} onClose={vi.fn()} />);
     expect(screen.queryByText("Change Password")).not.toBeInTheDocument();
   });
 
   it("renders form when isOpen is true", () => {
-    render(
-      <ChangePasswordModal isOpen={true} onClose={vi.fn()} />
-    );
+    render(<ChangePasswordModal isOpen={true} onClose={vi.fn()} />);
     expect(screen.getByPlaceholderText("Enter current password")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter new password")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Confirm new password")).toBeInTheDocument();
@@ -45,9 +41,7 @@ describe("ChangePasswordModal", () => {
   });
 
   it("shows password strength meter for new password", () => {
-    render(
-      <ChangePasswordModal isOpen={true} onClose={vi.fn()} />
-    );
+    render(<ChangePasswordModal isOpen={true} onClose={vi.fn()} />);
 
     // Type a weak password to trigger the strength meter
     fireEvent.change(screen.getByPlaceholderText("Enter new password"), {
@@ -58,10 +52,8 @@ describe("ChangePasswordModal", () => {
 
   it("calls changePassword on form submission", async () => {
     vi.mocked(mockAuth.changePassword).mockResolvedValue({ success: true, message: "Success" });
-    
-    render(
-      <ChangePasswordModal isOpen={true} onClose={vi.fn()} />
-    );
+
+    render(<ChangePasswordModal isOpen={true} onClose={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText("Enter current password"), {
       target: { value: "OldPass1!" },
@@ -78,16 +70,14 @@ describe("ChangePasswordModal", () => {
       expect(mockAuth.changePassword).toHaveBeenCalledWith({
         currentPassword: "OldPass1!",
         newPassword: "NewPass1!",
-        confirmPassword: "NewPass1!"
+        confirmPassword: "NewPass1!",
       });
     });
   });
 
   it("closes on cancel button click", () => {
     const handleClose = vi.fn();
-    render(
-      <ChangePasswordModal isOpen={true} onClose={handleClose} />
-    );
+    render(<ChangePasswordModal isOpen={true} onClose={handleClose} />);
 
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(handleClose).toHaveBeenCalledTimes(1);

@@ -128,20 +128,58 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Module Navigation Preview */}
-      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 text-center">
-        <h3 className="text-base font-bold text-gray-900 mb-1">
-          Authentication & Identity Module Ready
-        </h3>
-        <p className="text-xs text-gray-500 max-w-xl mx-auto">
-          User registration with preloaded roster verification, email confirmation tokens, and JWT
-          access + hashed refresh token session management are fully operational.
-        </p>
+      {/* Quick Action Modules */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+        <a
+          href="/schedules"
+          className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 hover:border-[#DC143C]/40 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#DC143C]/10 text-[#DC143C] flex items-center justify-center text-lg font-bold mb-3 group-hover:scale-105 transition-transform">
+            🗓️
+          </div>
+          <h3 className="text-sm font-bold text-[#1F2937] font-[Poppins] mb-1">
+            Class Routine &amp; Schedules
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            View day-wise timetable, reschedule classes with 3-way conflict checking, or cancel
+            slots.
+          </p>
+        </a>
+
+        <a
+          href="/rooms"
+          className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 hover:border-[#DC143C]/40 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#16A34A]/10 text-[#16A34A] flex items-center justify-center text-lg font-bold mb-3 group-hover:scale-105 transition-transform">
+            🏢
+          </div>
+          <h3 className="text-sm font-bold text-[#1F2937] font-[Poppins] mb-1">
+            Room Availability Matrix
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            Inspect real-time facility occupancy across all 8 fixed classrooms and laboratories.
+          </p>
+        </a>
+
+        <a
+          href="/admin/holidays"
+          className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 hover:border-[#DC143C]/40 hover:shadow-md transition-all group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 text-[#F59E0B] flex items-center justify-center text-lg font-bold mb-3 group-hover:scale-105 transition-transform">
+            ★
+          </div>
+          <h3 className="text-sm font-bold text-[#1F2937] font-[Poppins] mb-1">
+            Academic Holidays
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            Review university calendar closures and manage department off-days.
+          </p>
+        </a>
       </div>
-      
-      <ChangePasswordModal 
-        isOpen={isChangePasswordOpen} 
-        onClose={() => setIsChangePasswordOpen(false)} 
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
     </div>
   );

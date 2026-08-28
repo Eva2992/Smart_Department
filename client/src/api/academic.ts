@@ -64,10 +64,9 @@ export const academicApi = {
   },
 
   promoteBatch: async (batchId: string, data: PromoteBatchPayload) => {
-    const res = await apiClient.post<ApiResponse<{ success: boolean; message: string; crRolesReset: boolean }>>(
-      `/admin/batches/${batchId}/promote`,
-      data
-    );
+    const res = await apiClient.post<
+      ApiResponse<{ success: boolean; message: string; crRolesReset: boolean }>
+    >(`/admin/batches/${batchId}/promote`, data);
     return res.data;
   },
 

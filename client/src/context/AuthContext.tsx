@@ -99,7 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const changePassword = async (data: ChangePasswordPayload): Promise<{ success: boolean; message: string }> => {
+  const changePassword = async (
+    data: ChangePasswordPayload
+  ): Promise<{ success: boolean; message: string }> => {
     const res = await apiClient.post<ApiResponse>("/auth/change-password", data);
     if (res.data.success) {
       await logout(); // automatically logout on success
@@ -110,8 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const forgotPassword = async (email: string): Promise<{ success: boolean; message: string; resetToken?: string }> => {
-    const res = await apiClient.post<ApiResponse<{ resetToken?: string }>>("/auth/forgot-password", { email });
+  const forgotPassword = async (
+    email: string
+  ): Promise<{ success: boolean; message: string; resetToken?: string }> => {
+    const res = await apiClient.post<ApiResponse<{ resetToken?: string }>>(
+      "/auth/forgot-password",
+      { email }
+    );
     return {
       success: res.data.success,
       message: res.data.message || "Password reset link sent",
@@ -119,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const resetPassword = async (data: ResetPasswordPayload): Promise<{ success: boolean; message: string }> => {
+  const resetPassword = async (
+    data: ResetPasswordPayload
+  ): Promise<{ success: boolean; message: string }> => {
     const res = await apiClient.post<ApiResponse>("/auth/reset-password", data);
     return {
       success: res.data.success,

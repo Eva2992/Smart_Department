@@ -138,12 +138,16 @@ export class EmailService {
     };
 
     if (env.NODE_ENV !== "test") {
-      console.log("\n================ [EMAIL SERVICE - PASSWORD RESET (ADR-0005)] ================");
+      console.log(
+        "\n================ [EMAIL SERVICE - PASSWORD RESET (ADR-0005)] ================"
+      );
       console.log(`To: ${to}`);
       console.log(`Subject: ${subject}`);
       console.log(`Reset Link: ${resetLink}`);
       console.log(`Token: ${token}`);
-      console.log("=============================================================================\n");
+      console.log(
+        "=============================================================================\n"
+      );
     }
 
     return {

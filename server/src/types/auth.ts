@@ -2,6 +2,7 @@ import type { Role, Program } from "@prisma/client";
 
 export interface AccessTokenPayload {
   userId: string;
+  id?: string;
   email: string;
   role: Role;
   name: string;

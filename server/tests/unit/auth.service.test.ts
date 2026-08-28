@@ -392,10 +392,7 @@ describe("AuthService (Unit Seam)", () => {
       vi.mocked(prisma.user.update).mockResolvedValue(mockUser as any);
       vi.mocked(prisma.refreshToken.updateMany).mockResolvedValue({ count: 1 } as any);
 
-      const result = await authService.resetPassword(
-        "valid-reset-token",
-        "BrandNewPassword789!"
-      );
+      const result = await authService.resetPassword("valid-reset-token", "BrandNewPassword789!");
 
       expect(result.success).toBe(true);
       expect(result.message).toContain("Password reset successfully");
@@ -434,9 +431,9 @@ describe("AuthService (Unit Seam)", () => {
     it("throws INVALID_RESET_TOKEN for unknown token", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-      await expect(
-        authService.resetPassword("unknown-token", "NewPassword123!")
-      ).rejects.toThrow(/Invalid or expired reset token/);
+      await expect(authService.resetPassword("unknown-token", "NewPassword123!")).rejects.toThrow(
+        /Invalid or expired reset token/
+      );
     });
 
     it("throws TOKEN_EXPIRED for expired token", async () => {
@@ -449,9 +446,9 @@ describe("AuthService (Unit Seam)", () => {
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
 
-      await expect(
-        authService.resetPassword("expired-token", "NewPassword123!")
-      ).rejects.toThrow(/expired/);
+      await expect(authService.resetPassword("expired-token", "NewPassword123!")).rejects.toThrow(
+        /expired/
+      );
     });
 
     it("clears reset token fields after successful reset", async () => {

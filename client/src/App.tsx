@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.js";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { AdminBatchManagementPage } from "./pages/AdminBatchManagementPage.js";
+import { ScheduleManagementPage } from "./pages/ScheduleManagementPage.js";
 import { ProtectedRoute } from "./components/ProtectedRoute.js";
 import { useAuth } from "./context/useAuth.js";
 
@@ -18,7 +19,7 @@ function HomeRedirect() {
 
 export function App() {
   return (
-    <div className="min-h-screen bg-slate-50 text-gray-900 flex flex-col antialiased">
+    <div className="min-h-screen bg-[#FFFBFA] text-[#1F2937] flex flex-col antialiased">
       <Navbar />
       <main className="flex-1">
         <Routes>
@@ -37,6 +38,30 @@ export function App() {
             }
           />
           <Route
+            path="/schedules"
+            element={
+              <ProtectedRoute>
+                <ScheduleManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/routine"
+            element={
+              <ProtectedRoute>
+                <ScheduleManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rooms"
+            element={
+              <ProtectedRoute>
+                <ScheduleManagementPage defaultTab="rooms" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/batches"
             element={
               <ProtectedRoute allowedRoles={["ADMIN"]}>
@@ -49,6 +74,14 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminBatchManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/holidays"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <ScheduleManagementPage defaultTab="holidays" />
               </ProtectedRoute>
             }
           />

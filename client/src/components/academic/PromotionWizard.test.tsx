@@ -35,12 +35,7 @@ describe("PromotionWizard (React Testing Library Component Seam)", () => {
     const onPromote = vi.fn();
 
     render(
-      <PromotionWizard
-        isOpen={true}
-        onClose={onClose}
-        batch={mockBatch}
-        onPromote={onPromote}
-      />
+      <PromotionWizard isOpen={true} onClose={onClose} batch={mockBatch} onPromote={onPromote} />
     );
 
     expect(screen.getByText(/Batch Promotion Wizard • 52nd Batch/i)).toBeInTheDocument();
@@ -55,12 +50,7 @@ describe("PromotionWizard (React Testing Library Component Seam)", () => {
     const onPromote = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <PromotionWizard
-        isOpen={true}
-        onClose={onClose}
-        batch={mockBatch}
-        onPromote={onPromote}
-      />
+      <PromotionWizard isOpen={true} onClose={onClose} batch={mockBatch} onPromote={onPromote} />
     );
 
     const semesterInput = screen.getByLabelText(/Next Semester Name/i);
@@ -88,12 +78,7 @@ describe("PromotionWizard (React Testing Library Component Seam)", () => {
     const onPromote = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <PromotionWizard
-        isOpen={true}
-        onClose={onClose}
-        batch={mockBatch}
-        onPromote={onPromote}
-      />
+      <PromotionWizard isOpen={true} onClose={onClose} batch={mockBatch} onPromote={onPromote} />
     );
 
     const graduationRadio = screen.getByDisplayValue("GRADUATE");

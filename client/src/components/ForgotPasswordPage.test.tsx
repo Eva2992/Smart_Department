@@ -19,8 +19,8 @@ const mockAuth: AuthContextType = {
   resetPassword: vi.fn(),
 };
 
-vi.mock('../context/useAuth.js', () => ({ 
-  useAuth: () => mockAuth 
+vi.mock("../context/useAuth.js", () => ({
+  useAuth: () => mockAuth,
 }));
 
 describe("ForgotPasswordPage", () => {
@@ -40,8 +40,11 @@ describe("ForgotPasswordPage", () => {
   });
 
   it("calls forgotPassword on form submission", async () => {
-    vi.mocked(mockAuth.forgotPassword).mockResolvedValue({ success: true, message: "Reset link sent" });
-    
+    vi.mocked(mockAuth.forgotPassword).mockResolvedValue({
+      success: true,
+      message: "Reset link sent",
+    });
+
     render(
       <BrowserRouter>
         <ForgotPasswordPage />
@@ -59,8 +62,11 @@ describe("ForgotPasswordPage", () => {
   });
 
   it("shows success alert after successful submission", async () => {
-    vi.mocked(mockAuth.forgotPassword).mockResolvedValue({ success: true, message: "Check your email for the reset link" });
-    
+    vi.mocked(mockAuth.forgotPassword).mockResolvedValue({
+      success: true,
+      message: "Check your email for the reset link",
+    });
+
     render(
       <BrowserRouter>
         <ForgotPasswordPage />

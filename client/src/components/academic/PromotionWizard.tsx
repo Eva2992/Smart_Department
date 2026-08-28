@@ -6,13 +6,16 @@ interface PromotionWizardProps {
   onClose: () => void;
   batch: Batch;
   pendingRequest?: PromotionRequest | null;
-  onPromote: (batchId: string, payload: {
-    promotionRequestId?: string;
-    nextSemesterName?: string;
-    nextSemesterStartDate?: string;
-    nextSemesterEndDate?: string;
-    isGraduation?: boolean;
-  }) => Promise<void>;
+  onPromote: (
+    batchId: string,
+    payload: {
+      promotionRequestId?: string;
+      nextSemesterName?: string;
+      nextSemesterStartDate?: string;
+      nextSemesterEndDate?: string;
+      isGraduation?: boolean;
+    }
+  ) => Promise<void>;
   onRejectRequest?: (requestId: string, reason: string) => Promise<void>;
 }
 
@@ -59,8 +62,8 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
-          ? err.message
-          : "Promotion processing failed";
+            ? err.message
+            : "Promotion processing failed";
       setError(msg || "Promotion processing failed");
     } finally {
       setIsSubmitting(false);
@@ -83,8 +86,8 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
-          ? err.message
-          : "Failed to reject promotion request";
+            ? err.message
+            : "Failed to reject promotion request";
       setError(msg || "Failed to reject promotion request");
     } finally {
       setIsSubmitting(false);
@@ -115,16 +118,28 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
             className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         <div className="p-6 space-y-5">
           {error && (
-            <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2">
+            <div
+              role="alert"
+              className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2"
+            >
               <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>{error}</span>
             </div>
@@ -133,15 +148,24 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
           {/* ADR-0004 CR Reset Notice Alert Banner */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
             <div className="font-bold flex items-center gap-1.5 text-amber-800">
-              <svg className="w-4 h-4 text-[#F59E0B] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              <svg
+                className="w-4 h-4 text-[#F59E0B] shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               CR Role Reset Rule (ADR-0004)
             </div>
             <p className="leading-relaxed">
               Upon executing promotion, all active Class Representative (CR) accounts for Batch{" "}
-              <strong>{batch.name}</strong> will be automatically reset to <strong>STUDENT</strong> role.
-              The Department Admin or Faculty must explicitly confirm or reassign the CR for the new semester.
+              <strong>{batch.name}</strong> will be automatically reset to <strong>STUDENT</strong>{" "}
+              role. The Department Admin or Faculty must explicitly confirm or reassign the CR for
+              the new semester.
             </p>
           </div>
 
@@ -149,8 +173,11 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
           {pendingRequest && (
             <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
               <span className="font-bold">Pending CR Request:</span> Submitted by{" "}
-              <strong>{pendingRequest.requestedBy?.name}</strong> ({pendingRequest.requestedBy?.universityId || "CR"}).
-              {pendingRequest.reason && <p className="mt-1 italic text-blue-800">"{pendingRequest.reason}"</p>}
+              <strong>{pendingRequest.requestedBy?.name}</strong> (
+              {pendingRequest.requestedBy?.universityId || "CR"}).
+              {pendingRequest.reason && (
+                <p className="mt-1 italic text-blue-800">"{pendingRequest.reason}"</p>
+              )}
             </div>
           )}
 
@@ -181,7 +208,8 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
                       <span className="text-xs font-bold text-gray-900">Next Semester</span>
                     </div>
                     <p className="text-[11px] text-gray-500">
-                      Advance batch students to the next sequential term and archive previous routine.
+                      Advance batch students to the next sequential term and archive previous
+                      routine.
                     </p>
                   </label>
 
@@ -213,7 +241,10 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
               {actionType === "NEXT_SEMESTER" && (
                 <div className="space-y-3.5 pt-2">
                   <div>
-                    <label htmlFor="next-semester-name" className="block text-xs font-bold text-gray-700 mb-1">
+                    <label
+                      htmlFor="next-semester-name"
+                      className="block text-xs font-bold text-gray-700 mb-1"
+                    >
                       Next Semester Name *
                     </label>
                     <input
@@ -228,7 +259,10 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label htmlFor="next-start-date" className="block text-xs font-bold text-gray-700 mb-1">
+                      <label
+                        htmlFor="next-start-date"
+                        className="block text-xs font-bold text-gray-700 mb-1"
+                      >
                         Estimated Start
                       </label>
                       <input
@@ -240,7 +274,10 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
                       />
                     </div>
                     <div>
-                      <label htmlFor="next-end-date" className="block text-xs font-bold text-gray-700 mb-1">
+                      <label
+                        htmlFor="next-end-date"
+                        className="block text-xs font-bold text-gray-700 mb-1"
+                      >
                         Estimated End
                       </label>
                       <input
@@ -285,8 +322,8 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
                     {isSubmitting
                       ? "Promoting..."
                       : actionType === "GRADUATE"
-                      ? "Complete & Graduate Batch"
-                      : "Execute Promotion"}
+                        ? "Complete & Graduate Batch"
+                        : "Execute Promotion"}
                   </button>
                 </div>
               </div>
@@ -295,7 +332,10 @@ export const PromotionWizard: React.FC<PromotionWizardProps> = ({
             /* Rejection Form */
             <div className="space-y-4">
               <div>
-                <label htmlFor="reject-reason" className="block text-xs font-bold text-gray-700 mb-1">
+                <label
+                  htmlFor="reject-reason"
+                  className="block text-xs font-bold text-gray-700 mb-1"
+                >
                   Reason for Rejection *
                 </label>
                 <textarea
