@@ -16,6 +16,9 @@ jobs:
   client:
     name: Client (Lint, Typecheck, Build)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,23 +31,26 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - name: Install client dependencies
-        run: npm ci --prefix client
+        run: npm ci
 
       - name: Run ESLint
-        run: npm run lint --prefix client
+        run: npm run lint
 
       - name: Run TypeScript typecheck
-        run: npm run typecheck --prefix client
+        run: npm run typecheck
 
       - name: Run Vitest frontend tests
-        run: npm run test --prefix client
+        run: npm run test
 
       - name: Run Vite production build
-        run: npm run build --prefix client
+        run: npm run build
 
   server:
     name: Server (Prisma, Typecheck, Tests, Build)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,22 +63,22 @@ jobs:
           cache-dependency-path: server/package-lock.json
 
       - name: Install server dependencies
-        run: npm ci --prefix server
+        run: npm ci
 
       - name: Validate Prisma Schema
-        run: npm run prisma:validate --prefix server
+        run: npm run prisma:validate
 
       - name: Generate Prisma Client
-        run: npm run prisma:generate --prefix server
+        run: npm run prisma:generate
 
       - name: Run TypeScript typecheck
-        run: npm run typecheck --prefix server
+        run: npm run typecheck
 
       - name: Run Vitest unit & integration tests
-        run: npm run test --prefix server
+        run: npm run test
 
       - name: Run Tsup production build
-        run: npm run build --prefix server
+        run: npm run build
 
   ci-gate:
     name: CI Gate
