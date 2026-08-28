@@ -44,6 +44,12 @@ export function Navbar() {
 
           {/* Navigation Items */}
           <div className="flex items-center gap-4">
+            <Link
+              to="/results"
+              className="text-sm font-medium text-[#1F2937] hover:text-[#DC143C] transition-colors"
+            >
+              Results
+            </Link>
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
                 <Link

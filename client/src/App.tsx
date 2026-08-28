@@ -11,6 +11,8 @@ import { ScheduleManagementPage } from "./pages/ScheduleManagementPage.js";
 import { ProtectedRoute } from "./components/ProtectedRoute.js";
 import { useAuth } from "./context/useAuth.js";
 
+import { ResultsPage } from "./pages/ResultsPage.js";
+
 function HomeRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return null;
@@ -27,6 +29,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/results" element={<ResultsPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
