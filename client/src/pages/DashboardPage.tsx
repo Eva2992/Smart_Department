@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useAuth } from "../context/useAuth.js";
 import { StudentResultCard } from "../components/StudentResultCard.js";
 import { Link } from "react-router-dom";
 import { ChangePasswordModal } from "../components/ChangePasswordModal.js";

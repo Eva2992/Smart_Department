@@ -33,6 +33,9 @@ describe("ResultUploadForm Component", () => {
       logout: vi.fn(),
       verifyEmail: vi.fn(),
       resendVerification: vi.fn(),
+      changePassword: vi.fn(),
+      forgotPassword: vi.fn(),
+      resetPassword: vi.fn(),
     };
 
     return render(
