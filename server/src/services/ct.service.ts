@@ -10,6 +10,22 @@ export interface ScheduleCTInput {
   confirmSameDayConflict?: boolean;
 }
 
+export interface UpdateCTInput {
+  ctId: string;
+  teacherId: string;
+  topic?: string;
+  date?: Date;
+  startTime?: Date;
+  endTime?: Date;
+  roomNumber?: string;
+  confirmSameDayConflict?: boolean;
+}
+
+export interface CancelCTInput {
+  ctId: string;
+  teacherId: string;
+}
+
 export interface StudentCTMarkItem {
   scheduleEntryId: string;
   courseId: string | null;
@@ -45,6 +61,78 @@ export interface StudentCTMarksResponse {
     semesterName: string | null;
   };
   groups: StudentCTMarksGroup[];
+}
+
+export interface CTEntryResponse {
+  id: string;
+  type: ScheduleEntryType;
+  status: ScheduleEntryStatus;
+  courseId: string | null;
+  batchId: string;
+  teacherId: string;
+  roomId: string;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  topic: string | null;
+  course: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  batch: {
+    id: string;
+    name: string;
+  };
+  teacher: {
+    id: string;
+    name: string;
+  };
+  room: {
+    id: string;
+    roomNumber: string;
+  };
+}
+
+function startOfToday(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+async function resolveRoom(roomNumber?: string) {
+  if (!roomNumber) return null;
+
+  const room = await prisma.room.findUnique({
+    where: { roomNumber },
+    select: { id: true, roomNumber: true },
+  });
+
+  if (!room) {
+    throw new AppError(`Room ${roomNumber} not found`, 404, "ROOM_NOT_FOUND");
+  }
+
+  return room;
+}
+
+function mapCTEntry(entry: {
+  id: string;
+  type: ScheduleEntryType;
+  status: ScheduleEntryStatus;
+  courseId: string | null;
+  batchId: string;
+  teacherId: string;
+  roomId: string;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  topic: string | null;
+  course: { id: string; code: string; name: string } | null;
+  batch: { id: string; name: string };
+  teacher: { id: string; name: string };
+  room: { id: string; roomNumber: string };
+}): CTEntryResponse {
+  return entry;
 }
 
 function ensureDateRange(startTime: Date, endTime: Date): void {
@@ -180,6 +268,154 @@ export async function scheduleCT(input: ScheduleCTInput) {
     ctEntry,
     warnings:
       sameDayCTs.length > 0 ? ["Another CT already exists on this date for the same batch."] : [],
+  };
+}
+
+export async function updateCT(input: UpdateCTInput) {
+  const entry = await prisma.scheduleEntry.findUnique({
+    where: { id: input.ctId },
+    include: {
+      course: { select: { id: true, code: true, name: true } },
+      batch: { select: { id: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+      room: { select: { id: true, roomNumber: true } },
+    },
+  });
+
+  if (!entry) {
+    throw new AppError("CT entry not found", 404, "CT_NOT_FOUND");
+  }
+
+  if (entry.type !== ScheduleEntryType.CT) {
+    throw new AppError("Only CT entries can be updated here", 409, "INVALID_CT_SOURCE");
+  }
+
+  if (entry.teacherId !== input.teacherId) {
+    throw new AppError("You can only update your own CT sessions", 403, "FORBIDDEN");
+  }
+
+  const resolvedRoom = await resolveRoom(input.roomNumber);
+  const targetRoomId = resolvedRoom?.id ?? entry.roomId;
+  const targetDate = input.date ?? entry.date;
+  const targetStartTime = input.startTime ?? entry.startTime;
+  const targetEndTime = input.endTime ?? entry.endTime;
+  const targetTopic = input.topic ?? entry.topic;
+
+  if (targetDate < startOfToday()) {
+    throw new AppError("CT cannot be moved to a past date", 400, "INVALID_CT_DATE");
+  }
+
+  ensureDateRange(targetStartTime, targetEndTime);
+
+  const conflict = await checkScheduleConflict({
+    roomId: targetRoomId,
+    teacherId: entry.teacherId,
+    batchId: entry.batchId,
+    date: targetDate,
+    startTime: targetStartTime,
+    endTime: targetEndTime,
+    excludeScheduleEntryId: entry.id,
+  });
+
+  if (conflict.hasConflict) {
+    throw new AppError("Schedule conflict detected", 409, "SCHEDULE_CONFLICT", conflict.conflicts);
+  }
+
+  const sameDayCTs = await prisma.scheduleEntry.findMany({
+    where: {
+      batchId: entry.batchId,
+      date: targetDate,
+      type: ScheduleEntryType.CT,
+      status: { notIn: [ScheduleEntryStatus.CANCELLED, ScheduleEntryStatus.HOLIDAY] },
+      id: { not: entry.id },
+    },
+    include: {
+      course: { select: { code: true, name: true } },
+      room: { select: { roomNumber: true } },
+    },
+  });
+
+  if (sameDayCTs.length > 0 && !input.confirmSameDayConflict) {
+    throw new AppError(
+      "Another CT already exists on this date for the same batch. Confirm again to proceed.",
+      409,
+      "CT_SAME_DAY_WARNING",
+      sameDayCTs.map((ct) => ({
+        id: ct.id,
+        courseCode: ct.course?.code ?? null,
+        courseName: ct.course?.name ?? null,
+        roomNumber: ct.room.roomNumber,
+        date: ct.date,
+        startTime: ct.startTime,
+        endTime: ct.endTime,
+      }))
+    );
+  }
+
+  const ctEntry = await prisma.scheduleEntry.update({
+    where: { id: entry.id },
+    data: {
+      date: targetDate,
+      startTime: targetStartTime,
+      endTime: targetEndTime,
+      roomId: targetRoomId,
+      topic: targetTopic,
+    },
+    include: {
+      course: { select: { id: true, code: true, name: true } },
+      batch: { select: { id: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+      room: { select: { id: true, roomNumber: true } },
+    },
+  });
+
+  return {
+    ctEntry,
+    warnings: sameDayCTs.length > 0 ? ["Another CT already exists on this date for the same batch."] : [],
+  };
+}
+
+export async function cancelCT(input: CancelCTInput) {
+  const entry = await prisma.scheduleEntry.findUnique({
+    where: { id: input.ctId },
+    include: {
+      course: { select: { id: true, code: true, name: true } },
+      batch: { select: { id: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+      room: { select: { id: true, roomNumber: true } },
+    },
+  });
+
+  if (!entry) {
+    throw new AppError("CT entry not found", 404, "CT_NOT_FOUND");
+  }
+
+  if (entry.type !== ScheduleEntryType.CT) {
+    throw new AppError("Only CT entries can be cancelled here", 409, "INVALID_CT_SOURCE");
+  }
+
+  if (entry.teacherId !== input.teacherId) {
+    throw new AppError("You can only cancel your own CT sessions", 403, "FORBIDDEN");
+  }
+
+  const cancelledEntry = await prisma.scheduleEntry.update({
+    where: { id: entry.id },
+    data: {
+      type: ScheduleEntryType.CLASS,
+      status: ScheduleEntryStatus.SCHEDULED,
+      topic: null,
+    },
+    include: {
+      course: { select: { id: true, code: true, name: true } },
+      batch: { select: { id: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+      room: { select: { id: true, roomNumber: true } },
+    },
+  });
+
+  return {
+    ctEntry: cancelledEntry,
+    message: "CT cancelled and restored back to regular class",
   };
 }
 

@@ -5,9 +5,17 @@ import {
   listAssignmentsQuerySchema,
   scheduleCtSchema,
   studentCtMarksParamsSchema,
+  updateCtParamsSchema,
+  updateCtSchema,
+  cancelCtParamsSchema,
+  cancelCtSchema,
+  updateAssignmentParamsSchema,
+  updateAssignmentSchema,
+  deleteAssignmentParamsSchema,
+  deleteAssignmentSchema,
 } from "../validators/assessment.validator.js";
-import { createAssignment, listAssignments } from "../services/assignment.service.js";
-import { listStudentCTMarks, scheduleCT } from "../services/ct.service.js";
+import { createAssignment, listAssignments, updateAssignment, deleteAssignment } from "../services/assignment.service.js";
+import { listStudentCTMarks, scheduleCT, updateCT, cancelCT } from "../services/ct.service.js";
 
 export const assessmentsController = {
   async scheduleCT(req: Request, res: Response): Promise<Response> {
@@ -19,6 +27,26 @@ export const assessmentsController = {
       result,
       result.warnings.length > 0 ? "CT scheduled with warnings" : "CT scheduled successfully"
     );
+  },
+
+  async updateCT(req: Request, res: Response): Promise<Response> {
+    const { ctId } = updateCtParamsSchema.parse(req.params);
+    const payload = updateCtSchema.parse(req.body);
+    const result = await updateCT({ ctId, ...payload });
+
+    return sendSuccess(
+      res,
+      result,
+      result.warnings.length > 0 ? "CT updated with warnings" : "CT updated successfully"
+    );
+  },
+
+  async cancelCT(req: Request, res: Response): Promise<Response> {
+    const { ctId } = cancelCtParamsSchema.parse(req.params);
+    const payload = cancelCtSchema.parse(req.body);
+    const result = await cancelCT({ ctId, ...payload });
+
+    return sendSuccess(res, result, result.message);
   },
 
   async getStudentCTMarks(req: Request, res: Response): Promise<Response> {
@@ -40,5 +68,21 @@ export const assessmentsController = {
     const result = await listAssignments(batchId);
 
     return sendSuccess(res, result, "Assignments loaded successfully");
+  },
+
+  async updateAssignment(req: Request, res: Response): Promise<Response> {
+    const { assignmentId } = updateAssignmentParamsSchema.parse(req.params);
+    const payload = updateAssignmentSchema.parse(req.body);
+    const result = await updateAssignment({ assignmentId, ...payload });
+
+    return sendSuccess(res, result, "Assignment updated successfully");
+  },
+
+  async deleteAssignment(req: Request, res: Response): Promise<Response> {
+    const { assignmentId } = deleteAssignmentParamsSchema.parse(req.params);
+    const { teacherId } = deleteAssignmentSchema.parse(req.body);
+    await deleteAssignment(assignmentId, teacherId);
+
+    return sendSuccess(res, null, "Assignment deleted successfully");
   },
 };
