@@ -10,6 +10,7 @@ import { AdminBatchManagementPage } from "./pages/AdminBatchManagementPage.js";
 import { ScheduleManagementPage } from "./pages/ScheduleManagementPage.js";
 import { ProtectedRoute } from "./components/ProtectedRoute.js";
 import { useAuth } from "./context/useAuth.js";
+import { AssessmentsPage } from "./pages/AssessmentsPage.js";
 
 import { ResultsPage } from "./pages/ResultsPage.js";
 
@@ -85,6 +86,14 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <ScheduleManagementPage defaultTab="holidays" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assessments"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "TEACHER", "CR", "STUDENT"]}>
+                <AssessmentsPage />
               </ProtectedRoute>
             }
           />
