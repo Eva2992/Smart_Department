@@ -63,36 +63,7 @@ export interface StudentCTMarksResponse {
   groups: StudentCTMarksGroup[];
 }
 
-export interface CTEntryResponse {
-  id: string;
-  type: ScheduleEntryType;
-  status: ScheduleEntryStatus;
-  courseId: string | null;
-  batchId: string;
-  teacherId: string;
-  roomId: string;
-  date: Date;
-  startTime: Date;
-  endTime: Date;
-  topic: string | null;
-  course: {
-    id: string;
-    code: string;
-    name: string;
-  } | null;
-  batch: {
-    id: string;
-    name: string;
-  };
-  teacher: {
-    id: string;
-    name: string;
-  };
-  room: {
-    id: string;
-    roomNumber: string;
-  };
-}
+
 
 function startOfToday(): Date {
   const today = new Date();
@@ -115,31 +86,12 @@ async function resolveRoom(roomNumber?: string) {
   return room;
 }
 
-function mapCTEntry(entry: {
-  id: string;
-  type: ScheduleEntryType;
-  status: ScheduleEntryStatus;
-  courseId: string | null;
-  batchId: string;
-  teacherId: string;
-  roomId: string;
-  date: Date;
-  startTime: Date;
-  endTime: Date;
-  topic: string | null;
-  course: { id: string; code: string; name: string } | null;
-  batch: { id: string; name: string };
-  teacher: { id: string; name: string };
-  room: { id: string; roomNumber: string };
-}): CTEntryResponse {
-  return entry;
-}
-
 function ensureDateRange(startTime: Date, endTime: Date): void {
   if (startTime >= endTime) {
     throw new AppError("CT end time must be after the start time", 400, "INVALID_TIME_RANGE");
   }
 }
+
 
 function groupMarks(items: StudentCTMarkItem[]): StudentCTMarksGroup[] {
   const groups = new Map<string, StudentCTMarksGroup>();
@@ -376,6 +328,9 @@ export async function updateCT(input: UpdateCTInput) {
 }
 
 export async function cancelCT(input: CancelCTInput) {
+  // No past-date guard here intentionally: a teacher should always be able to
+  // undo a CT conversion even after the date has passed (e.g. data-entry mistakes).
+  // updateCT prevents moving a CT to a past date, which is a separate concern.
   const entry = await prisma.scheduleEntry.findUnique({
     where: { id: input.ctId },
     include: {

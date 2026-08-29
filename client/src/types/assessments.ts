@@ -10,15 +10,14 @@ export interface CTEntry {
   teacher: { name: string };
 }
 
+/**
+ * Server model: CT is created by converting an existing CLASS schedule slot.
+ * The teacher selects a slot (scheduleEntryId) and provides a topic.
+ */
 export interface ScheduleCTPayload {
+  scheduleEntryId: string;
   teacherId: string;
-  batchId: string;
-  courseId: string;
-  roomNumber: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  topic?: string;
+  topic: string;
   confirmSameDayConflict?: boolean;
 }
 
@@ -29,6 +28,7 @@ export interface UpdateCTPayload {
   endTime?: string;
   roomNumber?: string;
   topic?: string | null;
+  confirmSameDayConflict?: boolean; // needed to break same-day warning loop on edit
 }
 
 export interface Assignment {
@@ -55,3 +55,4 @@ export interface UpdateAssignmentPayload {
   description?: string;
   dueDate?: string;
 }
+
