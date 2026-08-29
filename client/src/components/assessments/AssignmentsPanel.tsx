@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { assignmentApi } from "../../api/assessments.js";
-import type { Assignment, CreateAssignmentPayload, UpdateAssignmentPayload } from "../../types/assessments.js";
+import { Alert } from "../Alert.js";
+import type { Assignment } from "../../types/assessments.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtDate(iso: string) {
@@ -8,8 +9,43 @@ function fmtDate(iso: string) {
     weekday: "short",
     month: "short",
     day: "numeric",
-    year: "numeric"
+    year: "numeric",
   });
+}
+
+// ── Lightweight confirm dialog (replaces browser confirm/alert) ───────────────
+interface ConfirmDialogProps {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+}
+
+function ConfirmDialog({ message, onConfirm, onCancel, loading }: ConfirmDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-surface w-full max-w-sm rounded-[20px] shadow-soft overflow-hidden">
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-text leading-relaxed">{message}</p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-sm font-medium text-text-muted hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-bold text-white bg-error hover:bg-error/80 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -18,11 +54,14 @@ export function AssignmentsPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Forms State
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<Assignment | null>(null);
 
-  // Hardcoded for now until proper auth context provides this
+  // Confirm dialog state
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // TODO: replace hardcoded IDs with values from the auth context once wired up
   const teacherId = "teacher-1";
   const batchId = "batch-1";
   const courseId = "course-1";
@@ -31,26 +70,32 @@ export function AssignmentsPanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await assignmentApi.list();
+      // batchId is required by the server validator — must always be passed
+      const res = await assignmentApi.list(batchId);
       setAssignments(res.data || []);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load assignments");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [batchId]);
 
   useEffect(() => {
     loadAssignments();
   }, [loadAssignments]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this assignment?")) return;
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await assignmentApi.delete(id, teacherId);
+      await assignmentApi.delete(deleteTarget, teacherId);
+      setDeleteTarget(null);
       loadAssignments();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete assignment");
+      setError(err.response?.data?.message || "Failed to delete assignment");
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -70,9 +115,7 @@ export function AssignmentsPanel() {
       </div>
 
       {error && (
-        <div className="bg-error/10 text-error p-4 rounded-md text-sm font-medium">
-          {error}
-        </div>
+        <Alert type="error" message={error} onClose={() => setError(null)} />
       )}
 
       {loading ? (
@@ -113,7 +156,7 @@ export function AssignmentsPanel() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(assignment.id)}
+                    onClick={() => setDeleteTarget(assignment.id)}
                     className="text-sm font-medium text-error hover:text-error/80 transition-colors"
                   >
                     Delete
@@ -123,6 +166,16 @@ export function AssignmentsPanel() {
             ))
           )}
         </div>
+      )}
+
+      {/* DELETE CONFIRMATION */}
+      {deleteTarget && (
+        <ConfirmDialog
+          message="Are you sure you want to delete this assignment? This cannot be undone."
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
       )}
 
       {/* CREATE MODAL */}
@@ -172,9 +225,12 @@ interface FormProps {
 function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, onClose, onSuccess }: FormProps) {
   const [title, setTitle] = useState(assignment?.title || "");
   const [description, setDescription] = useState(assignment?.description || "");
+  // Only pre-fill dueDate in edit mode; leave blank in create mode so the
+  // user must consciously pick a future date
   const [dueDate, setDueDate] = useState(
     assignment?.dueDate ? new Date(assignment.dueDate).toISOString().slice(0, 16) : ""
   );
+  const [dueDateChanged, setDueDateChanged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,7 +253,11 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           teacherId,
           title,
           description,
-          dueDate: new Date(dueDate).toISOString(),
+          // Fix #7: only send dueDate if the user actually changed it.
+          // Sending the old dueDate on a past-due assignment would cause a 400.
+          ...(dueDateChanged && dueDate
+            ? { dueDate: new Date(dueDate).toISOString() }
+            : {}),
         });
       }
       onSuccess();
@@ -215,14 +275,18 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           <h3 className="font-heading text-lg font-semibold text-text">
             {mode === "create" ? "Create Assignment" : "Edit Assignment"}
           </h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-text-muted hover:text-text"
+          >
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-error/10 text-error p-3 rounded text-sm">{error}</div>
+            <Alert type="error" message={error} onClose={() => setError(null)} />
           )}
 
           <div>
@@ -250,12 +314,20 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text mb-1">Due Date & Time</label>
+            <label className="block text-sm font-medium text-text mb-1">
+              Due Date &amp; Time
+              {mode === "edit" && !dueDateChanged && (
+                <span className="text-text-muted font-normal ml-2 text-xs">(leave unchanged to keep current)</span>
+              )}
+            </label>
             <input
-              required
+              required={mode === "create"}
               type="datetime-local"
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(e) => {
+                setDueDate(e.target.value);
+                setDueDateChanged(true);
+              }}
               className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
             />
           </div>

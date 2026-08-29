@@ -33,9 +33,9 @@ export const createAssignmentSchema = z.object({
   dueDate: z.coerce.date(),
 });
 
+// courseId filter is intentionally omitted until the service implements it
 export const listAssignmentsQuerySchema = z.object({
   batchId: z.string().uuid(),
-  courseId: z.string().uuid().optional(),
 });
 
 export const updateAssignmentParamsSchema = z.object({ assignmentId: z.string().uuid() });
