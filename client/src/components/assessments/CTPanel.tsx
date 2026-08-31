@@ -5,6 +5,43 @@ import { Alert } from "../Alert.js";
 import type { ScheduleEntry } from "../../api/scheduleApi.js";
 import type { UpdateCTPayload } from "../../types/assessments.js";
 
+// ── Type-safe error message extractor ────────────────────────────────────────
+function getApiMessage(err: unknown, fallback: string): string {
+  if (
+    err !== null &&
+    typeof err === "object" &&
+    "response" in err &&
+    err.response !== null &&
+    typeof err.response === "object" &&
+    "data" in err.response &&
+    err.response.data !== null &&
+    typeof err.response.data === "object" &&
+    "message" in err.response.data &&
+    typeof (err.response.data as Record<string, unknown>).message === "string"
+  ) {
+    return (err.response.data as Record<string, unknown>).message as string;
+  }
+  return fallback;
+}
+
+function getApiCode(err: unknown): string | undefined {
+  if (
+    err !== null &&
+    typeof err === "object" &&
+    "response" in err &&
+    err.response !== null &&
+    typeof err.response === "object" &&
+    "data" in err.response &&
+    err.response.data !== null &&
+    typeof err.response.data === "object" &&
+    "code" in err.response.data &&
+    typeof (err.response.data as Record<string, unknown>).code === "string"
+  ) {
+    return (err.response.data as Record<string, unknown>).code as string;
+  }
+  return undefined;
+}
+
 // ── Helpers (module scope — not recreated on each render) ─────────────────────
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -93,8 +130,8 @@ export function CTPanel() {
       // Split by type — no cast needed since both use ScheduleEntry
       setCts(entries.filter((e) => e.type === "CT"));
       setClassSlots(entries.filter((e) => e.type === "CLASS" && e.status === "SCHEDULED"));
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to load schedule");
+    } catch (err: unknown) {
+      setError(getApiMessage(err, "Failed to load schedule"));
     } finally {
       setLoading(false);
     }
@@ -111,8 +148,8 @@ export function CTPanel() {
       await ctApi.cancel(cancelTarget, teacherId);
       setCancelTarget(null);
       loadData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to cancel CT");
+    } catch (err: unknown) {
+      setError(getApiMessage(err, "Failed to cancel CT"));
       setCancelTarget(null);
     } finally {
       setCancelling(false);
@@ -280,12 +317,12 @@ function CTCreateModal({ teacherId, classSlots, onClose, onSuccess }: CreateProp
         return; // Modal stays open so user can acknowledge the warning
       }
       onSuccess();
-    } catch (err: any) {
-      if (err.response?.data?.code === "CT_SAME_DAY_WARNING") {
-        setWarning(err.response.data.message);
+    } catch (err: unknown) {
+      if (getApiCode(err) === "CT_SAME_DAY_WARNING") {
+        setWarning(getApiMessage(err, "Same-day conflict detected."));
         setRequiresConfirmation(true);
       } else {
-        setError(err.response?.data?.message || "An error occurred");
+        setError(getApiMessage(err, "An error occurred"));
       }
     } finally {
       setSubmitting(false);
@@ -432,12 +469,12 @@ function CTEditModal({ ct, teacherId, onClose, onSuccess }: EditProps) {
         return;
       }
       onSuccess();
-    } catch (err: any) {
-      if (err.response?.data?.code === "CT_SAME_DAY_WARNING") {
-        setWarning(err.response.data.message);
+    } catch (err: unknown) {
+      if (getApiCode(err) === "CT_SAME_DAY_WARNING") {
+        setWarning(getApiMessage(err, "Same-day conflict detected."));
         setRequiresConfirmation(true);
       } else {
-        setError(err.response?.data?.message || "An error occurred");
+        setError(getApiMessage(err, "An error occurred"));
       }
     } finally {
       setSubmitting(false);
