@@ -10,6 +10,14 @@ export interface CreateAssignmentInput {
   dueDate: Date;
 }
 
+export interface UpdateAssignmentInput {
+  assignmentId: string;
+  teacherId: string;
+  title?: string;
+  description?: string;
+  dueDate?: Date;
+}
+
 export interface AssignmentListItem {
   id: string;
   courseId: string;
@@ -95,4 +103,57 @@ export async function listAssignments(batchId: string): Promise<AssignmentListIt
     ...assignment,
     status: computeStatus(assignment.dueDate),
   }));
+}
+
+export async function updateAssignment(input: UpdateAssignmentInput) {
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: input.assignmentId },
+  });
+
+  if (!assignment) {
+    throw new AppError("Assignment not found", 404, "ASSIGNMENT_NOT_FOUND");
+  }
+
+  if (assignment.teacherId !== input.teacherId) {
+    throw new AppError("You can only update your own assignments", 403, "FORBIDDEN");
+  }
+
+  if (input.dueDate && input.dueDate.getTime() <= Date.now()) {
+    throw new AppError("Assignment due date must be in the future", 400, "INVALID_DUE_DATE");
+  }
+
+  const updated = await prisma.assignment.update({
+    where: { id: input.assignmentId },
+    data: {
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.description !== undefined ? { description: input.description } : {}),
+      ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
+    },
+    include: {
+      course: { select: { id: true, code: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+      batch: { select: { id: true, name: true } },
+    },
+  });
+
+  return {
+    ...updated,
+    status: computeStatus(updated.dueDate),
+  };
+}
+
+export async function deleteAssignment(assignmentId: string, teacherId: string): Promise<void> {
+  const assignment = await prisma.assignment.findUnique({
+    where: { id: assignmentId },
+  });
+
+  if (!assignment) {
+    throw new AppError("Assignment not found", 404, "ASSIGNMENT_NOT_FOUND");
+  }
+
+  if (assignment.teacherId !== teacherId) {
+    throw new AppError("You can only delete your own assignments", 403, "FORBIDDEN");
+  }
+
+  await prisma.assignment.delete({ where: { id: assignmentId } });
 }
