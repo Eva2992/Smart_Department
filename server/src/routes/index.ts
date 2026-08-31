@@ -11,6 +11,7 @@ import { batchRouter } from "./batch.route.js";
 import { semesterRouter } from "./semester.route.js";
 import { promotionRouter } from "./promotion.route.js";
 import { adminRouter } from "./admin.route.js";
+import { resourceRouter } from "./resource.route.js";
 
 const apiV1Router = Router();
 
@@ -27,6 +28,6 @@ apiV1Router.use("/semesters", semesterRouter);
 apiV1Router.use("/promotions", promotionRouter);
 apiV1Router.use("/admin", adminRouter);
 apiV1Router.use("/assessments", assessmentsRouter);
+apiV1Router.use("/resources", resourceRouter);
 
 export { apiV1Router };
-

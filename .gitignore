@@ -11,3 +11,5 @@ server/docs
 dist
 coverage
 .scratch/tmp
+server/uploads
+uploads

@@ -91,9 +91,7 @@ describe("Result Integration Routes (/api/v1/results)", () => {
     };
 
     it("returns 401 Unauthorized when no auth token is provided", async () => {
-      const res = await request(app)
-        .post("/api/v1/results/upload")
-        .send(validPayload);
+      const res = await request(app).post("/api/v1/results/upload").send(validPayload);
 
       expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
@@ -285,9 +283,7 @@ describe("Result Integration Routes (/api/v1/results)", () => {
         },
       ] as any);
 
-      const res = await request(app).get(
-        "/api/v1/results/batch/batch-52/semester/sem-1"
-      );
+      const res = await request(app).get("/api/v1/results/batch/batch-52/semester/sem-1");
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

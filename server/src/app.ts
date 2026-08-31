@@ -1,3 +1,4 @@
+import path from "node:path";
 import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
@@ -16,6 +17,9 @@ app.use(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Static file serving for uploads
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // API routes mounting
 app.use("/api/v1", apiV1Router);

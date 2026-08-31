@@ -6,14 +6,9 @@ import { Role } from "@prisma/client";
 const resultRouter = Router();
 
 // Upload & publish semester final results (CR or ADMIN only)
-resultRouter.post(
-  "/upload",
-  authenticate,
-  authorize(Role.CR, Role.ADMIN),
-  (req, res, next) => {
-    resultController.uploadResults(req, res).catch(next);
-  }
-);
+resultRouter.post("/upload", authenticate, authorize(Role.CR, Role.ADMIN), (req, res, next) => {
+  resultController.uploadResults(req, res).catch(next);
+});
 
 // Public result search and query
 resultRouter.get("/query", (req, res, next) => {

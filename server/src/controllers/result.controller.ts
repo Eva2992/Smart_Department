@@ -71,8 +71,12 @@ export class ResultController {
    * Fetches batch and semester analytics and summary.
    */
   async getBatchSemesterSummary(req: Request, res: Response): Promise<void> {
-    const batchId = typeof req.params.batchId === "string" ? req.params.batchId : req.params.batchId?.[0];
-    const semesterId = typeof req.params.semesterId === "string" ? req.params.semesterId : req.params.semesterId?.[0];
+    const batchId =
+      typeof req.params.batchId === "string" ? req.params.batchId : req.params.batchId?.[0];
+    const semesterId =
+      typeof req.params.semesterId === "string"
+        ? req.params.semesterId
+        : req.params.semesterId?.[0];
 
     if (!batchId || !semesterId) {
       throw new AppError("batchId and semesterId are required", 400, "INVALID_PARAMS");

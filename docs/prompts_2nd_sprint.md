@@ -107,6 +107,7 @@ Implement the complete vertical tracer bullet for CR study resource uploading (P
 ### Existing Implementation Context
 
 Sprint 1 already delivered:
+
 - `Resource` Prisma model with fields: `id`, `title`, `courseName`, `semesterLabel`, `year`, `type` (NOTES/SLIDES/PAST_PAPER/OTHER), `fileUrl`, `fileSizeBytes`, `uploaderId`, `downloadCount`.
 - API routes: `POST /api/resources` (CR), `GET /api/resources` (Public), `DELETE /api/resources/:id` (CR owner / Admin).
 - No frontend pages or components exist yet for resource sharing.
@@ -195,6 +196,7 @@ Implement the complete vertical tracer bullet for Admin room allocation manageme
 ### Existing Implementation Context
 
 Sprint 1 already delivered:
+
 - `Room` Prisma model seeded with 8 fixed rooms (R-101, R-102, R-103, R-201, R-203, R-302, R-105, R-202).
 - `ScheduleEntry` model with `roomId` foreign key and composite index `(roomId, date)`.
 - `conflictService.checkOverlap` performing 3-way conflict detection (Room, Teacher, Batch) with self-exclusion support.
@@ -282,6 +284,7 @@ Implement the complete vertical tracer bullet for Admin weekly routine template 
 ### Existing Implementation Context
 
 Sprint 1 already delivered:
+
 - `ScheduleEntry` model with all scheduling fields (type, status, courseId, batchId, teacherId, roomId, date, startTime, endTime).
 - `scheduleService.ts` with class rescheduling and cancellation logic.
 - `conflictService.ts` / `conflictService.checkOverlap` for 3-way conflict detection.
@@ -373,6 +376,7 @@ Implement the complete vertical tracer bullet for Admin holiday declaration (dat
 ### Existing Implementation Context
 
 Sprint 1 already delivered:
+
 - `Holiday` Prisma model with fields: `id`, `date`, `reason`, `scope` (ALL / BATCH), `batchId?`, index on `(date)`.
 - `holidayService.ts` with basic declaration and deletion logic.
 - Routes: `POST /api/holidays` (Admin), `DELETE /api/holidays/:id` (Admin), `GET /api/holidays` (Public authenticated).
@@ -463,6 +467,7 @@ Implement the complete vertical tracer bullet for Admin semester final exam rout
 ### Existing Implementation Context
 
 Sprint 1 already delivered:
+
 - `ScheduleEntry` model supports `type: EXAM` and `type: SEMINAR`.
 - `conflictService.checkOverlap` supports all `ScheduleEntry` types including EXAM.
 - Routes: `POST /api/exams/routine` (Admin), `PATCH /api/exams/routine/:id` (Admin), `GET /api/exams/routine` (Student/Teacher).
@@ -552,6 +557,7 @@ Implement the complete vertical tracer bullet for three role-specific dashboards
 ### Existing Implementation Context
 
 Sprint 1 already delivered:
+
 - `Notification` Prisma model with fields: `id`, `userId`, `type`, `message`, `relatedEntityType?`, `relatedEntityId?`, `isRead`, `createdAt`, index on `(userId, isRead)`.
 - `AuditLog` Prisma model for operation tracking.
 - Routes: `GET /api/dashboard/student`, `GET /api/dashboard/teacher`, `GET /api/dashboard/admin`, `GET /api/notifications`, `PATCH /api/notifications/:id/read`.
@@ -572,6 +578,7 @@ Your task: Build out comprehensive role-specific dashboard UIs aggregating all r
 Adhere strictly to `docs/frontend_color_palate.md`:
 
 #### Student Dashboard (`FR-28`)
+
 - **Today's Schedule Section**: Card list of today's classes with time, room, course, teacher. Active/next class highlighted with Crimson Red `#DC143C` left-border accent.
 - **Calendar View**: Day-wise / week-wise toggle. Today: Crimson Red `#DC143C` circle. Classes use status color coding (Scheduled: gray, Cancelled: Rose Red, Rescheduled: Amber, CT: Warm Orange, Holiday: Amber).
 - **Upcoming CTs Widget**: Card list with Warm Orange `#DA532C` CT badge, showing course, date, time, room, topic.
@@ -582,6 +589,7 @@ Adhere strictly to `docs/frontend_color_palate.md`:
 - **Personalization**: Dashboard filtered to student's own batch and current semester ONLY.
 
 #### Teacher Dashboard (`FR-29`)
+
 - **General Board**: Consolidated upcoming classes across all assigned batches, sorted by date/time. Next class highlighted with Crimson Red `#DC143C` accent.
 - **Batch-Wise Tabs**: Horizontal tabs for each assigned batch. Each tab shows: batch schedule, class count per course, upcoming CTs/assignments.
 - **Class Count Stats**: Number of classes taken per batch for the current semester, displayed as stat counter cards with Poppins bold numbers.
@@ -589,6 +597,7 @@ Adhere strictly to `docs/frontend_color_palate.md`:
 - **Teacher Unique ID Display**: Teacher's unique system ID shown in profile/header area.
 
 #### Admin Dashboard (`FR-30`)
+
 - **System Overview Cards**: Total students, teachers, active batches, current semesters, upcoming events — stat cards with Crimson Red `#DC143C` Admin accent.
 - **Pending Actions Panel**: Semester promotion requests (Amber `#F59E0B` badges with count), unverified registrations, flagged conflicts.
 - **Room Allocation Matrix Preview**: Mini grid showing room occupancy for current day/week (links to full Room Matrix page).
@@ -597,6 +606,7 @@ Adhere strictly to `docs/frontend_color_palate.md`:
 - **Audit Log Feed**: Recent system activities (schedule changes, promotions, role changes) with timestamps, user IDs, and action descriptions. Scrollable feed with Slate Gray `#6B7280` timestamps.
 
 #### Notification System (`FR-31`)
+
 - **Notification Bell (Navbar)**: Bell icon with unread badge count in Crimson Red `#DC143C` circle. Badge hidden when count is 0.
 - **Notification Panel (Dropdown/Slide-Out)**:
   - Unread notifications: Bold text with Crimson Red `#DC143C` left-border accent.
@@ -684,28 +694,33 @@ Audit the entire codebase against the SRS (all FR and NFR requirements), identif
 The following areas are known to have potential gaps or missing integrations from Sprint 1 and Sprint 2. Audit each one and implement what's missing:
 
 #### 1. Authentication & Session Gaps
+
 - **FR-02 Unverified Account Purge**: Ensure the `node-cron` job that purges accounts unverified for >7 days is implemented and running (`server/src/jobs/`).
 - **FR-03 Account Lockout**: Verify the 5-attempt lockout with 15-minute cooldown is fully working end-to-end with proper error messaging.
 - **Resend Verification Email**: Expired verification links should offer a "resend verification email" option (FR-02 confirmation criteria).
 
 #### 2. Preloaded Data Management (AN-01, AN-02)
+
 - **Admin Preloaded Student/Teacher Upload Interface**: Ensure Admin can bulk-import or manually enter student and teacher verification rosters via the UI.
 - **Routes**: `POST /api/admin/preloaded-students` (bulk CSV upload), `POST /api/admin/preloaded-teachers`, `GET /api/admin/preloaded-students`, `GET /api/admin/preloaded-teachers`.
 - Frontend Admin panel for managing preloaded rosters.
 
 #### 3. CR Role Management (AN-10)
+
 - **Promote Student → CR / Demote CR → Student**: Admin ability to change a student's role between STUDENT and CR for any batch.
 - Route: `PATCH /api/admin/users/:id/role`.
 - Enforce constraint: only one active CR per batch (`C-05`).
 - Promotion must include validation that the user belongs to the target batch.
 
 #### 4. Audit Logging (NFR-12, R-02, R-06)
+
 - Ensure all sensitive operations log to `AuditLog` table:
   - Login attempts (success + failure), password changes, schedule modifications, role changes, semester promotions, result uploads, resource uploads.
 - Each log entry includes: userId, action, entityType, entityId, ipAddress, details (JSON), createdAt.
 - Admin Audit Log viewer on the Admin Dashboard (searchable, filterable by action type, user, date range).
 
 #### 5. Assignment Submission Support (FR-21, ADR-0005)
+
 - **Dual Submission Mode**: Ensure assignments support both external URL submissions (GitHub/Google Drive links) and direct document file attachments.
 - `AssignmentSubmission` model may need to be added to Prisma schema if missing.
 - Routes: `POST /api/assignments/:id/submissions`, `GET /api/assignments/:id/submissions`.
@@ -713,21 +728,25 @@ The following areas are known to have potential gaps or missing integrations fro
 - Teacher UI: Assignment submissions list view.
 
 #### 6. CT Marks Aggregation Display (FR-27, ADR-0005)
+
 - **Student CT Marks Dashboard Section**: Ensure students see marks organized by course with CT number, date, topic, marks obtained, and max marks.
 - **"Pending" State**: If marks for a CT have not been uploaded, display "Pending."
 - **Class Statistics**: Optional aggregate view showing class average, highest, lowest per CT.
 
 #### 7. Class Count Tracking (SN-05, TN-10)
+
 - **Student View**: Total number of classes conducted per course per teacher for the current semester (batch-wise count).
 - **Teacher View**: Total classes taken per batch for the current semester.
 - Routes: `GET /api/schedules/class-count?batchId=&semesterId=`.
 
 #### 8. Responsive Design Verification (NFR-17)
+
 - Verify all pages and components are fully responsive across breakpoints: desktop (1920px), laptop (1366px), tablet (768px), mobile (320–480px).
 - Test and fix any overflow, truncation, or layout-breaking issues.
 - Ensure consistent spacing, card radii, and shadow tokens at all sizes.
 
 #### 9. Security Hardening (NFR-06 to NFR-12)
+
 - **Helmet middleware** for security headers (`helmet`).
 - **Rate limiting** on auth routes (`express-rate-limit`).
 - **CSRF protection** considerations (if using cookies).
@@ -735,6 +754,7 @@ The following areas are known to have potential gaps or missing integrations fro
 - **Error handling**: Ensure no stack traces, internal paths, or database details leak to the client (NFR-15).
 
 #### 10. Cross-Module Navigation & UI Polish
+
 - Ensure all navigation links work correctly between modules:
   - Student Dashboard → Resource Page, Result Page, CT Marks, Assignment Tracker.
   - Teacher Dashboard → Class Management, CT Scheduling, Assignment Management, Marks Upload.

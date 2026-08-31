@@ -152,13 +152,11 @@ describe("Result Service Unit Tests", () => {
       const invalidCsv = `University ID,Student Name,CSE 401 Marks
 ,Rahim Ahmed,85`;
 
-      const courseCatalog = [
-        { code: "CSE 401", title: "Distributed Systems", creditHours: 3.0 },
-      ];
+      const courseCatalog = [{ code: "CSE 401", title: "Distributed Systems", creditHours: 3.0 }];
 
-      expect(() =>
-        resultService.parseAndValidateGradeSheet(invalidCsv, courseCatalog)
-      ).toThrow(AppError);
+      expect(() => resultService.parseAndValidateGradeSheet(invalidCsv, courseCatalog)).toThrow(
+        AppError
+      );
     });
   });
 
@@ -175,9 +173,7 @@ describe("Result Service Unit Tests", () => {
       batchId: "batch-52",
     };
 
-    const mockStudents = [
-      { id: "user-1", universityId: "2020101", name: "Rahim Ahmed" },
-    ];
+    const mockStudents = [{ id: "user-1", universityId: "2020101", name: "Rahim Ahmed" }];
 
     it("allows CR to upload and publish results for their own batch", async () => {
       vi.mocked(prisma.batch.findUnique).mockResolvedValue(mockBatch as any);
@@ -239,9 +235,7 @@ describe("Result Service Unit Tests", () => {
         batchId: "batch-52",
       };
 
-      await expect(
-        resultService.publishResult(payload, crUser)
-      ).rejects.toThrow(AppError);
+      await expect(resultService.publishResult(payload, crUser)).rejects.toThrow(AppError);
     });
 
     it("allows ADMIN to publish results for any batch", async () => {

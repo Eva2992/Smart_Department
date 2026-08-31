@@ -21,7 +21,12 @@ vi.mock("../../src/lib/prisma.js", () => ({
   prisma: prismaMock,
 }));
 
-import { cancelCT, listStudentCTMarks, scheduleCT, updateCT } from "../../src/services/ct.service.js";
+import {
+  cancelCT,
+  listStudentCTMarks,
+  scheduleCT,
+  updateCT,
+} from "../../src/services/ct.service.js";
 
 describe("CT service", () => {
   beforeEach(() => {

@@ -14,7 +14,12 @@ import {
   deleteAssignmentParamsSchema,
   deleteAssignmentSchema,
 } from "../validators/assessment.validator.js";
-import { createAssignment, listAssignments, updateAssignment, deleteAssignment } from "../services/assignment.service.js";
+import {
+  createAssignment,
+  listAssignments,
+  updateAssignment,
+  deleteAssignment,
+} from "../services/assignment.service.js";
 import { listStudentCTMarks, scheduleCT, updateCT, cancelCT } from "../services/ct.service.js";
 
 export const assessmentsController = {

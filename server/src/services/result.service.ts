@@ -286,7 +286,9 @@ export class ResultService {
             year: new Date().getFullYear(),
             type: ResourceType.OTHER,
             fileUrl,
-            fileSizeBytes: payload.fileSizeBytes || (payload.rawContent ? Buffer.byteLength(payload.rawContent) : 1024),
+            fileSizeBytes:
+              payload.fileSizeBytes ||
+              (payload.rawContent ? Buffer.byteLength(payload.rawContent) : 1024),
             uploaderId: uploader.id,
           },
         });
@@ -375,10 +377,7 @@ export class ResultService {
   async getStudentResults(universityIdOrStudentId: string) {
     const results = await prisma.result.findMany({
       where: {
-        OR: [
-          { universityId: universityIdOrStudentId },
-          { studentId: universityIdOrStudentId },
-        ],
+        OR: [{ universityId: universityIdOrStudentId }, { studentId: universityIdOrStudentId }],
       },
       orderBy: { publishedAt: "desc" },
       include: {
@@ -412,8 +411,11 @@ export class ResultService {
       return null;
     }
 
-    const gpas = results.map((r) => r.gpa).filter((g): g is number => g !== null && g !== undefined);
-    const avgGpa = gpas.length > 0 ? Number((gpas.reduce((a, b) => a + b, 0) / gpas.length).toFixed(2)) : 0;
+    const gpas = results
+      .map((r) => r.gpa)
+      .filter((g): g is number => g !== null && g !== undefined);
+    const avgGpa =
+      gpas.length > 0 ? Number((gpas.reduce((a, b) => a + b, 0) / gpas.length).toFixed(2)) : 0;
     const maxGpa = gpas.length > 0 ? Math.max(...gpas) : 0;
     const passCount = gpas.filter((g) => g >= 2.0).length;
     const passRate = Number(((passCount / results.length) * 100).toFixed(1));
