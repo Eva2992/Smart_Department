@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CTPanel } from "../components/assessments/CTPanel";
+import type { ScheduleEntry } from "../api/scheduleApi.js";
+import type { ApiResponse } from "../types/auth.js";
+import type { CTEntry } from "../types/assessments.js";
 
 // ── Mock the API modules so no real HTTP calls are made ───────────────────────
 vi.mock("../api/assessments.js", () => ({
@@ -20,33 +23,55 @@ import { getSchedules } from "../api/scheduleApi.js";
 
 const mockGetSchedules = vi.mocked(getSchedules);
 
-// ── Shared fixtures ───────────────────────────────────────────────────────────
-const mockCT = {
+// ── Shared fixtures (typed to match ScheduleEntry exactly) ────────────────────
+const mockCT: ScheduleEntry = {
   id: "ct-1",
   type: "CT",
   status: "SCHEDULED",
+  batchId: "batch-1",
+  teacherId: "teacher-1",
+  roomId: "room-1",
   topic: "Midterm Revision",
   date: "2026-09-10T00:00:00.000Z",
   startTime: "2026-09-10T09:00:00.000Z",
   endTime: "2026-09-10T10:30:00.000Z",
-  course: { code: "CSE301", name: "Algorithms" },
-  room: { roomNumber: "R-101" },
-  batch: { name: "Batch 51" },
-  teacher: { name: "Dr. Anup" },
+  course: { id: "c-1", code: "CSE301", name: "Algorithms" },
+  room: { id: "room-1", roomNumber: "R-101", type: "CLASSROOM" },
+  batch: { id: "batch-1", name: "Batch 51" },
+  teacher: { id: "teacher-1", name: "Dr. Anup", email: "anup@uni.edu" },
 };
 
-const mockClassSlot = {
+const mockClassSlot: ScheduleEntry = {
   id: "slot-1",
   type: "CLASS",
   status: "SCHEDULED",
-  topic: null,
+  batchId: "batch-1",
+  teacherId: "teacher-1",
+  roomId: "room-2",
+  topic: undefined,
   date: "2026-09-15T00:00:00.000Z",
   startTime: "2026-09-15T11:00:00.000Z",
   endTime: "2026-09-15T12:30:00.000Z",
-  course: { code: "CSE401", name: "OS" },
-  room: { roomNumber: "R-202" },
-  batch: { name: "Batch 51" },
-  teacher: { name: "Dr. Anup" },
+  course: { id: "c-2", code: "CSE401", name: "OS" },
+  room: { id: "room-2", roomNumber: "R-202", type: "CLASSROOM" },
+  batch: { id: "batch-1", name: "Batch 51" },
+  teacher: { id: "teacher-1", name: "Dr. Anup", email: "anup@uni.edu" },
+};
+
+// A minimal ApiResponse<CTEntry> for the cancel mock
+const cancelOkResponse: ApiResponse<CTEntry> = {
+  success: true,
+  data: {
+    id: "ct-1",
+    topic: "Midterm Revision",
+    date: "2026-09-10T00:00:00.000Z",
+    startTime: "2026-09-10T09:00:00.000Z",
+    endTime: "2026-09-10T10:30:00.000Z",
+    room: { roomNumber: "R-101" },
+    course: { code: "CSE301", name: "Algorithms" },
+    batch: { name: "Batch 51" },
+    teacher: { name: "Dr. Anup" },
+  },
 };
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -56,7 +81,6 @@ describe("CTPanel Component", () => {
   });
 
   it("shows a loading indicator while fetching data", async () => {
-    // Never resolves — keeps panel in loading state
     mockGetSchedules.mockReturnValue(new Promise(() => {}));
     render(<CTPanel />);
     expect(screen.getByText(/loading ct schedule/i)).toBeInTheDocument();
@@ -100,7 +124,6 @@ describe("CTPanel Component", () => {
       ).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole("button", { name: /\+ schedule ct/i }));
-    // The modal heading is "Schedule CT" inside an h3
     expect(screen.getByRole("heading", { name: /^schedule ct$/i })).toBeInTheDocument();
   });
 
@@ -130,19 +153,17 @@ describe("CTPanel Component", () => {
   });
 
   it("calls ctApi.cancel and reloads data on confirm", async () => {
-    vi.mocked(ctApi.cancel).mockResolvedValue(undefined);
+    vi.mocked(ctApi.cancel).mockResolvedValue(cancelOkResponse);
     mockGetSchedules
-      .mockResolvedValueOnce([mockCT]) // initial load
-      .mockResolvedValueOnce([]); // after cancel
+      .mockResolvedValueOnce([mockCT])
+      .mockResolvedValueOnce([]);
 
     render(<CTPanel />);
-    // Open the cancel dialog from the card's Cancel CT button
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /cancel ct/i })).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole("button", { name: /cancel ct/i }));
-    // Click the confirm button inside the dialog (distinct text: "Cancelling..." / "Cancel CT")
-    // Use getAllByRole and pick the last one (dialog button)
+    // Both the card button and dialog button match "cancel ct" — pick the last one
     const allCancelButtons = screen.getAllByRole("button", { name: /cancel ct/i });
     fireEvent.click(allCancelButtons[allCancelButtons.length - 1]);
 
@@ -151,7 +172,6 @@ describe("CTPanel Component", () => {
   });
 
   it("shows an error alert when the API call fails", async () => {
-    // Must be a plain object with nested structure that our extractor can read
     const apiError = Object.assign(new Error("Server error"), {
       response: { data: { message: "Server error" } },
     });

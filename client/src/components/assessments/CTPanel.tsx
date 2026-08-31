@@ -306,16 +306,12 @@ function CTCreateModal({ teacherId, classSlots, onClose, onSuccess }: CreateProp
     setWarning(null);
 
     try {
-      const res = await ctApi.schedule({
+      await ctApi.schedule({
         scheduleEntryId: selectedSlotId,
         teacherId,
         topic,
         confirmSameDayConflict: requiresConfirmation,
       });
-      if (res.warnings && res.warnings.length > 0) {
-        setWarning(res.warnings[0]);
-        return; // Modal stays open so user can acknowledge the warning
-      }
       onSuccess();
     } catch (err: unknown) {
       if (getApiCode(err) === "CT_SAME_DAY_WARNING") {
@@ -463,11 +459,7 @@ function CTEditModal({ ct, teacherId, onClose, onSuccess }: EditProps) {
     };
 
     try {
-      const res = await ctApi.update(ct.id, payload);
-      if (res.warnings && res.warnings.length > 0) {
-        setWarning(res.warnings[0]);
-        return;
-      }
+      await ctApi.update(ct.id, payload);
       onSuccess();
     } catch (err: unknown) {
       if (getApiCode(err) === "CT_SAME_DAY_WARNING") {

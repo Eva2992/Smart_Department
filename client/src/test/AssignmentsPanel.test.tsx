@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AssignmentsPanel } from "../components/assessments/AssignmentsPanel";
+import type { ApiResponse } from "../types/auth.js";
+import type { Assignment } from "../types/assessments.js";
 
 // ── Mock the API module ───────────────────────────────────────────────────────
 vi.mock("../api/assessments.js", () => ({
@@ -17,8 +19,8 @@ import { assignmentApi } from "../api/assessments.js";
 const mockList   = vi.mocked(assignmentApi.list);
 const mockDelete = vi.mocked(assignmentApi.delete);
 
-// ── Shared fixtures ───────────────────────────────────────────────────────────
-const mockAssignment = {
+// ── Shared fixtures (fully typed) ─────────────────────────────────────────────
+const mockAssignment: Assignment = {
   id: "assign-1",
   title: "Project Phase 1",
   description: "Implement the authentication module.",
@@ -26,6 +28,14 @@ const mockAssignment = {
   course: { code: "CSE301", name: "Algorithms" },
   batch: { name: "Batch 51" },
 };
+
+// Helper to build a typed ApiResponse<Assignment[]>
+function listResponse(items: Assignment[]): ApiResponse<Assignment[]> {
+  return { success: true, data: items };
+}
+
+// Typed response for delete (ApiResponse<null>)
+const deleteOkResponse: ApiResponse<null> = { success: true, data: null };
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 describe("AssignmentsPanel Component", () => {
@@ -40,7 +50,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("renders the Assignments heading and Create Assignment button", async () => {
-    mockList.mockResolvedValue({ data: [] });
+    mockList.mockResolvedValue(listResponse([]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByText(/^assignments$/i)).toBeInTheDocument()
@@ -51,7 +61,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("shows empty state message when no assignments exist", async () => {
-    mockList.mockResolvedValue({ data: [] });
+    mockList.mockResolvedValue(listResponse([]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByText(/no assignments found/i)).toBeInTheDocument()
@@ -59,7 +69,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("renders an assignment card with title, description and course code", async () => {
-    mockList.mockResolvedValue({ data: [mockAssignment] });
+    mockList.mockResolvedValue(listResponse([mockAssignment]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByText("Project Phase 1")).toBeInTheDocument()
@@ -71,7 +81,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("opens the Create Assignment modal when button is clicked", async () => {
-    mockList.mockResolvedValue({ data: [] });
+    mockList.mockResolvedValue(listResponse([]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(
@@ -83,7 +93,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("opens the Edit Assignment modal when Edit is clicked", async () => {
-    mockList.mockResolvedValue({ data: [mockAssignment] });
+    mockList.mockResolvedValue(listResponse([mockAssignment]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /^edit$/i })).toBeInTheDocument()
@@ -93,7 +103,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("opens the delete confirmation dialog when Delete is clicked", async () => {
-    mockList.mockResolvedValue({ data: [mockAssignment] });
+    mockList.mockResolvedValue(listResponse([mockAssignment]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /^delete$/i })).toBeInTheDocument()
@@ -105,7 +115,7 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("closes the delete dialog when Cancel is clicked", async () => {
-    mockList.mockResolvedValue({ data: [mockAssignment] });
+    mockList.mockResolvedValue(listResponse([mockAssignment]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /^delete$/i })).toBeInTheDocument()
@@ -118,17 +128,17 @@ describe("AssignmentsPanel Component", () => {
   });
 
   it("calls assignmentApi.delete and reloads data on confirm", async () => {
-    mockDelete.mockResolvedValue(undefined);
+    mockDelete.mockResolvedValue(deleteOkResponse);
     mockList
-      .mockResolvedValueOnce({ data: [mockAssignment] }) // initial load
-      .mockResolvedValueOnce({ data: [] }); // after delete
+      .mockResolvedValueOnce(listResponse([mockAssignment]))
+      .mockResolvedValueOnce(listResponse([]));
 
     render(<AssignmentsPanel />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: /^delete$/i })).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
-    // Dialog now also has a "Delete" button — pick the last one
+    // Both card and dialog now have a "Delete" button — pick the last one
     const allDeleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
     fireEvent.click(allDeleteButtons[allDeleteButtons.length - 1]);
 
