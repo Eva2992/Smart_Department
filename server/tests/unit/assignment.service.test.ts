@@ -199,16 +199,14 @@ describe("Assignment service", () => {
       teacherId: "teacher-2",
     });
 
-    await expect(
-      deleteAssignment("assignment-1", "teacher-1")
-    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(deleteAssignment("assignment-1", "teacher-1")).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 
   it("throws when the assignment to delete does not exist", async () => {
     prismaMock.assignment.findUnique.mockResolvedValue(null);
 
-    await expect(
-      deleteAssignment("missing-id", "teacher-1")
-    ).rejects.toBeInstanceOf(AppError);
+    await expect(deleteAssignment("missing-id", "teacher-1")).rejects.toBeInstanceOf(AppError);
   });
 });

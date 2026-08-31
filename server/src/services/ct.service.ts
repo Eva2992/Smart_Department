@@ -63,8 +63,6 @@ export interface StudentCTMarksResponse {
   groups: StudentCTMarksGroup[];
 }
 
-
-
 function startOfToday(): Date {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -91,7 +89,6 @@ function ensureDateRange(startTime: Date, endTime: Date): void {
     throw new AppError("CT end time must be after the start time", 400, "INVALID_TIME_RANGE");
   }
 }
-
 
 function groupMarks(items: StudentCTMarkItem[]): StudentCTMarksGroup[] {
   const groups = new Map<string, StudentCTMarksGroup>();
@@ -323,7 +320,8 @@ export async function updateCT(input: UpdateCTInput) {
 
   return {
     ctEntry,
-    warnings: sameDayCTs.length > 0 ? ["Another CT already exists on this date for the same batch."] : [],
+    warnings:
+      sameDayCTs.length > 0 ? ["Another CT already exists on this date for the same batch."] : [],
   };
 }
 

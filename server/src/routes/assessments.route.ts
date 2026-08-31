@@ -37,4 +37,3 @@ assessmentsRouter.delete("/assignments/:assignmentId", (req, res, next) => {
 });
 
 export { assessmentsRouter };
-

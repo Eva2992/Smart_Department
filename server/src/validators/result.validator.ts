@@ -1,27 +1,26 @@
 import { z } from "zod";
 
-export const validLetterGrades = [
-  "A+",
-  "A",
-  "A-",
-  "B+",
-  "B",
-  "B-",
-  "C+",
-  "C",
-  "D",
-  "F",
-] as const;
+export const validLetterGrades = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "D", "F"] as const;
 
 export const courseMarkItemSchema = z.object({
   courseCode: z.string().trim().min(2, "Course code is required (min 2 chars)"),
   courseTitle: z.string().trim().min(2, "Course title is required"),
   creditHours: z.number().positive("Credit hours must be positive"),
-  marks: z.number().min(0, "Marks cannot be negative").max(100, "Marks cannot exceed 100").optional(),
-  letterGrade: z.string().trim().refine((val) => (validLetterGrades as readonly string[]).includes(val.toUpperCase()), {
-    message: "Invalid letter grade. Must be one of: A+, A, A-, B+, B, B-, C+, C, D, F",
-  }),
-  gradePoint: z.number().min(0, "Grade point cannot be negative").max(4.0, "Grade point cannot exceed 4.0"),
+  marks: z
+    .number()
+    .min(0, "Marks cannot be negative")
+    .max(100, "Marks cannot exceed 100")
+    .optional(),
+  letterGrade: z
+    .string()
+    .trim()
+    .refine((val) => (validLetterGrades as readonly string[]).includes(val.toUpperCase()), {
+      message: "Invalid letter grade. Must be one of: A+, A, A-, B+, B, B-, C+, C, D, F",
+    }),
+  gradePoint: z
+    .number()
+    .min(0, "Grade point cannot be negative")
+    .max(4.0, "Grade point cannot exceed 4.0"),
 });
 
 export const studentResultItemSchema = z.object({
@@ -35,7 +34,9 @@ export const studentResultItemSchema = z.object({
 export const uploadResultSchema = z.object({
   batchId: z.string().trim().min(1, "Batch ID is required"),
   semesterId: z.string().trim().min(1, "Semester ID is required"),
-  results: z.array(studentResultItemSchema).min(1, "At least one student result record is required"),
+  results: z
+    .array(studentResultItemSchema)
+    .min(1, "At least one student result record is required"),
   rawContent: z.string().optional(),
   fileName: z.string().optional(),
   fileSizeBytes: z.number().int().nonnegative().optional(),
