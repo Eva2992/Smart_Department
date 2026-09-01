@@ -3,6 +3,25 @@ import { assignmentApi } from "../../api/assessments.js";
 import { Alert } from "../Alert.js";
 import type { Assignment } from "../../types/assessments.js";
 
+// ── Type-safe error message extractor ────────────────────────────────────────
+function getApiMessage(err: unknown, fallback: string): string {
+  if (
+    err !== null &&
+    typeof err === "object" &&
+    "response" in err &&
+    err.response !== null &&
+    typeof err.response === "object" &&
+    "data" in err.response &&
+    err.response.data !== null &&
+    typeof err.response.data === "object" &&
+    "message" in err.response.data &&
+    typeof (err.response.data as Record<string, unknown>).message === "string"
+  ) {
+    return (err.response.data as Record<string, unknown>).message as string;
+  }
+  return fallback;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -74,10 +93,7 @@ export function AssignmentsPanel() {
       const res = await assignmentApi.list(batchId);
       setAssignments(res.data || []);
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Failed to load assignments";
-      setError(errorMsg);
+      setError(getApiMessage(err, "Failed to load assignments"));
     } finally {
       setLoading(false);
     }
@@ -95,10 +111,7 @@ export function AssignmentsPanel() {
       setDeleteTarget(null);
       loadAssignments();
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Failed to delete assignment";
-      setError(errorMsg);
+      setError(getApiMessage(err, "Failed to delete assignment"));
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
@@ -272,10 +285,7 @@ function AssignmentFormModal({
       }
       onSuccess();
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "An error occurred";
-      setError(errorMsg);
+      setError(getApiMessage(err, "An error occurred"));
     } finally {
       setSubmitting(false);
     }
