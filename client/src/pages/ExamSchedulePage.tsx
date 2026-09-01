@@ -16,8 +16,14 @@ import type { ApiResponse } from "../types/auth.js";
 
 // ─── tiny helpers ──────────────────────────────────────────────────────────────
 
+function parseDateOnly(dateStr: string) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+  const date = parseDateOnly(iso);
+  return date.toLocaleDateString("en-GB", {
     weekday: "short",
     day: "2-digit",
     month: "short",
@@ -36,16 +42,16 @@ function formatTime(iso: string) {
 function daysUntil(dateStr: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
+  const target = parseDateOnly(dateStr);
   target.setHours(0, 0, 0, 0);
   return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
 }
 
 function countdownColor(days: number) {
-  if (days < 0) return "#6B7280"; // past
-  if (days <= 2) return "#E11D48"; // ≤2 days — Rose Red
-  if (days <= 7) return "#F59E0B"; // ≤7 days — Amber
-  return "#16A34A"; // green — plenty of time
+  if (days < 0) return "var(--color-text-muted)";
+  if (days <= 2) return "var(--color-error)";
+  if (days <= 7) return "var(--color-gold)";
+  return "var(--color-success)";
 }
 
 function countdownLabel(days: number) {
@@ -366,17 +372,17 @@ export function ExamSchedulePage() {
 
               return (
                 <div key={exam.id} style={{
-                  background: "#fff",
+                  background: "var(--color-surface)",
                   borderRadius: 16,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                  boxShadow: "var(--shadow-soft)",
                   padding: "1.25rem",
                   opacity: isPast || isCancelled ? 0.65 : 1,
                   position: "relative",
-                  borderTop: `4px solid ${isCancelled ? "#E11D48" : "#DC143C"}`,
+                  borderTop: `4px solid ${isCancelled ? "var(--color-error)" : "var(--color-primary)"}`,
                 }}>
                   {/* Status badge */}
                   {isCancelled && (
-                    <span style={{ position: "absolute", top: "1rem", right: "1rem", background: "#FFF1F2", color: "#E11D48", borderRadius: 999, padding: "2px 10px", fontSize: "0.72rem", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
+                    <span style={{ position: "absolute", top: "1rem", right: "1rem", background: "var(--color-error)", color: "var(--color-surface)", borderRadius: 999, padding: "2px 10px", fontSize: "0.72rem", fontWeight: 700, fontFamily: "Inter, sans-serif" }}>
                       CANCELLED
                     </span>
                   )}
@@ -399,7 +405,7 @@ export function ExamSchedulePage() {
                   {!isCancelled && (
                     <div style={{
                       display: "inline-block",
-                      background: countdownColor(days) + "18",
+                      background: days < 0 ? "rgba(107,114,128,0.12)" : days <= 2 ? "rgba(225,29,72,0.12)" : days <= 7 ? "rgba(245,158,11,0.12)" : "rgba(22,163,74,0.12)",
                       color: countdownColor(days),
                       borderRadius: 999,
                       padding: "3px 12px",
@@ -418,7 +424,7 @@ export function ExamSchedulePage() {
                       <button id={`exam-edit-${exam.id}`} onClick={() => openEdit(exam)} style={{ ...ghostBtnStyle, flex: 1, justifyContent: "center" }}>
                         ✏️ Edit
                       </button>
-                      <button id={`exam-cancel-${exam.id}`} onClick={() => handleCancel(exam.id)} style={{ background: "none", border: "1.5px solid #E11D48", color: "#E11D48", borderRadius: 8, padding: "0.35rem 0.75rem", cursor: "pointer", fontFamily: "Inter, sans-serif", fontSize: "0.82rem", flex: 1 }}>
+                      <button id={`exam-cancel-${exam.id}`} onClick={() => handleCancel(exam.id)} style={{ background: "none", border: "1.5px solid var(--color-error)", color: "var(--color-error)", borderRadius: 8, padding: "0.35rem 0.75rem", cursor: "pointer", fontFamily: "Inter, sans-serif", fontSize: "0.82rem", flex: 1 }}>
                         ✕ Cancel
                       </button>
                     </div>
@@ -432,7 +438,7 @@ export function ExamSchedulePage() {
         {/* ── Edit Modal ─────────────────────────────────────────────────── */}
         {editTarget && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}>
-            <div style={{ background: "#fff", borderRadius: 20, padding: "2rem", width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+            <div style={{ background: "var(--color-surface)", borderRadius: 20, padding: "2rem", width: "100%", maxWidth: 480, boxShadow: "var(--shadow-soft)" }}>
               <h3 style={{ fontFamily: "Poppins, sans-serif", fontWeight: 700, color: "#1F2937", marginTop: 0 }}>
                 ✏️ Edit Exam Entry
               </h3>
@@ -485,17 +491,17 @@ const inputStyle: React.CSSProperties = {
   fontSize: "0.85rem",
   padding: "0.45rem 0.6rem",
   borderRadius: 8,
-  border: "1.5px solid #E5E7EB",
+  border: "1.5px solid var(--color-text-muted)",
   outline: "none",
   width: "100%",
   boxSizing: "border-box",
-  background: "#FFFBFA",
-  color: "#1F2937",
+  background: "var(--color-bg)",
+  color: "var(--color-text)",
 };
 
 const primaryBtnStyle: React.CSSProperties = {
-  background: "#DC143C",
-  color: "#fff",
+  background: "var(--color-primary)",
+  color: "var(--color-surface)",
   border: "none",
   borderRadius: 10,
   padding: "0.55rem 1.25rem",
@@ -511,8 +517,8 @@ const primaryBtnStyle: React.CSSProperties = {
 
 const ghostBtnStyle: React.CSSProperties = {
   background: "none",
-  border: "1.5px solid #DC143C",
-  color: "#DC143C",
+  border: "1.5px solid var(--color-primary)",
+  color: "var(--color-primary)",
   borderRadius: 10,
   padding: "0.45rem 1rem",
   cursor: "pointer",
