@@ -51,6 +51,13 @@ describe("Schedule & Holiday API Integration Tests", () => {
     "x-user-teacher-id": "T-002",
   };
 
+  const chairmanHeaders = {
+    "x-user-id": "teacher-chair",
+    "x-user-role": Role.TEACHER,
+    "x-user-teacher-id": "T-CHAIR",
+    "x-user-is-chairman": "true",
+  };
+
   const adminHeaders = {
     "x-user-id": "admin-1",
     "x-user-role": Role.ADMIN,
@@ -124,6 +131,106 @@ describe("Schedule & Holiday API Integration Tests", () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
+    });
+  });
+
+  describe("GET /api/v1/rooms/schedule", () => {
+    it("should return multi-day room schedule grid", async () => {
+      (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
+
+      const res = await request(app).get(
+        "/api/v1/rooms/schedule?startDate=2026-09-01&endDate=2026-09-03"
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.rooms).toBeDefined();
+      expect(res.body.data.dates).toEqual(["2026-09-01", "2026-09-02", "2026-09-03"]);
+      expect(res.body.data.grid).toBeDefined();
+    });
+  });
+
+  describe("POST /api/v1/schedules/seminar", () => {
+    it("should reject unauthenticated request with 401", async () => {
+      const res = await request(app).post("/api/v1/schedules/seminar").send({
+        title: "AI Workshop",
+        date: "2026-09-05",
+        startTime: "10:00",
+        endTime: "11:30",
+        roomId: "r-202",
+        teacherId: "teacher-1",
+        batchId: "batch-52",
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    it("should reject student request with 403", async () => {
+      const res = await request(app)
+        .post("/api/v1/schedules/seminar")
+        .set(studentHeaders)
+        .send({
+          title: "AI Workshop",
+          date: "2026-09-05",
+          startTime: "10:00",
+          endTime: "11:30",
+          roomId: "r-202",
+          teacherId: "student-1",
+          batchId: "batch-52",
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("should reject non-chairman teacher request with 403", async () => {
+      const res = await request(app)
+        .post("/api/v1/schedules/seminar")
+        .set(teacherHeaders)
+        .send({
+          title: "AI Workshop",
+          date: "2026-09-05",
+          startTime: "10:00",
+          endTime: "11:30",
+          roomId: "r-202",
+          teacherId: "teacher-1",
+          batchId: "batch-52",
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("should allow chairman to schedule seminar when no conflicts exist", async () => {
+      (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
+      (prisma.scheduleEntry.create as any).mockResolvedValue({
+        id: "seminar-1",
+        type: "SEMINAR",
+        topic: "AI Workshop",
+        date: new Date("2026-09-05"),
+        startTime: new Date("2026-09-05T10:00:00Z"),
+        endTime: new Date("2026-09-05T11:30:00Z"),
+        roomId: "r-202",
+        teacherId: "teacher-chair",
+        batchId: "batch-52",
+        status: "SCHEDULED",
+        room: { id: "r-202", roomNumber: "R-202" },
+      });
+
+      const res = await request(app)
+        .post("/api/v1/schedules/seminar")
+        .set(chairmanHeaders)
+        .send({
+          title: "AI Workshop",
+          date: "2026-09-05",
+          startTime: "10:00",
+          endTime: "11:30",
+          roomId: "r-202",
+          teacherId: "teacher-chair",
+          batchId: "batch-52",
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.type).toBe("SEMINAR");
     });
   });
 

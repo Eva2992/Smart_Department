@@ -5,6 +5,7 @@ import { RescheduleModal } from "../components/RescheduleModal";
 import { CancelModal } from "../components/CancelModal";
 import { HolidayManager } from "../components/HolidayManager";
 import { RoomMatrix } from "../components/RoomMatrix";
+import { SeminarBookingForm } from "../components/SeminarBookingForm";
 import { ConflictTester } from "../components/ConflictTester";
 import { useAuth } from "../context/useAuth.js";
 
@@ -232,7 +233,14 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
         </div>
       )}
 
-      {activeTab === "rooms" && <RoomMatrix />}
+      {activeTab === "rooms" && (
+        <div className="space-y-6">
+          <RoomMatrix />
+          {(user?.isChairman || user?.role === 'ADMIN') && (
+            <SeminarBookingForm onSuccess={fetchScheduleData} />
+          )}
+        </div>
+      )}
 
       {activeTab === "holidays" && (
         <HolidayManager userRole={userRole} onHolidayChanged={fetchScheduleData} />
