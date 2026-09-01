@@ -74,7 +74,13 @@ interface ConfirmDialogProps {
   loading?: boolean;
 }
 
-function ConfirmDialog({ message, confirmLabel = "Confirm", onConfirm, onCancel, loading }: ConfirmDialogProps) {
+function ConfirmDialog({
+  message,
+  confirmLabel = "Confirm",
+  onConfirm,
+  onCancel,
+  loading,
+}: ConfirmDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-surface w-full max-w-sm rounded-[20px] shadow-soft overflow-hidden">
@@ -173,9 +179,7 @@ export function CTPanel() {
         </button>
       </div>
 
-      {error && (
-        <Alert type="error" message={error} onClose={() => setError(null)} />
-      )}
+      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
 
       {loading ? (
         <div className="text-text-muted animate-pulse">Loading CT schedule...</div>
@@ -206,13 +210,23 @@ export function CTPanel() {
                 <div className="text-sm text-text-muted flex flex-col gap-1 mb-6">
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     {fmtTime(ct.startTime)} - {fmtTime(ct.endTime)}
                   </div>
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m3-4h1m-1 4h1m-5 8h8" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m3-4h1m-1 4h1m-5 8h8"
+                      />
                     </svg>
                     Room {ct.room?.roomNumber || "TBD"}
                   </div>
@@ -330,11 +344,7 @@ function CTCreateModal({ teacherId, classSlots, onClose, onSuccess }: CreateProp
       <div className="bg-surface w-full max-w-lg rounded-[20px] shadow-soft overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h3 className="font-heading text-lg font-semibold text-text">Schedule CT</h3>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-text-muted hover:text-text"
-          >
+          <button onClick={onClose} aria-label="Close" className="text-text-muted hover:text-text">
             ✕
           </button>
         </div>
@@ -370,8 +380,8 @@ function CTCreateModal({ teacherId, classSlots, onClose, onSuccess }: CreateProp
                 <option value="">— Choose a slot —</option>
                 {classSlots.map((slot) => (
                   <option key={slot.id} value={slot.id}>
-                    {fmtDate(slot.date)} {fmtTime(slot.startTime)}–{fmtTime(slot.endTime)}{" "}
-                    | {slot.course?.code ?? "No course"} | Room {slot.room?.roomNumber ?? "TBD"}
+                    {fmtDate(slot.date)} {fmtTime(slot.startTime)}–{fmtTime(slot.endTime)} |{" "}
+                    {slot.course?.code ?? "No course"} | Room {slot.room?.roomNumber ?? "TBD"}
                   </option>
                 ))}
               </select>
@@ -406,8 +416,8 @@ function CTCreateModal({ teacherId, classSlots, onClose, onSuccess }: CreateProp
               {submitting
                 ? "Saving..."
                 : requiresConfirmation
-                ? "Confirm & Schedule"
-                : "Schedule CT"}
+                  ? "Confirm & Schedule"
+                  : "Schedule CT"}
             </button>
           </div>
         </form>
@@ -478,11 +488,7 @@ function CTEditModal({ ct, teacherId, onClose, onSuccess }: EditProps) {
       <div className="bg-surface w-full max-w-lg rounded-[20px] shadow-soft overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h3 className="font-heading text-lg font-semibold text-text">Edit CT</h3>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-text-muted hover:text-text"
-          >
+          <button onClick={onClose} aria-label="Close" className="text-text-muted hover:text-text">
             ✕
           </button>
         </div>
@@ -571,11 +577,7 @@ function CTEditModal({ ct, teacherId, onClose, onSuccess }: EditProps) {
               disabled={submitting}
               className="bg-primary text-surface px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
             >
-              {submitting
-                ? "Saving..."
-                : requiresConfirmation
-                ? "Confirm & Save"
-                : "Save CT"}
+              {submitting ? "Saving..." : requiresConfirmation ? "Confirm & Save" : "Save CT"}
             </button>
           </div>
         </form>

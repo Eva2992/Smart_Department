@@ -25,6 +25,7 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
+  warnings?: string[];
   error?: {
     code?: string;
     details?: unknown;

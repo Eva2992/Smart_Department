@@ -85,7 +85,10 @@ export function GradeSheetTable({
           </thead>
           <tbody className="divide-y divide-gray-100 text-gray-700">
             {courseMarks.map((course, idx) => (
-              <tr key={`${course.courseCode}-${idx}`} className="hover:bg-gray-50/60 transition-colors">
+              <tr
+                key={`${course.courseCode}-${idx}`}
+                className="hover:bg-gray-50/60 transition-colors"
+              >
                 <td className="py-3 px-4 font-semibold text-gray-900">{course.courseCode}</td>
                 <td className="py-3 px-4">{course.courseTitle}</td>
                 <td className="py-3 px-4 text-center">{course.creditHours.toFixed(1)}</td>

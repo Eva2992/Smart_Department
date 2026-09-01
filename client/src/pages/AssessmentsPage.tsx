@@ -9,10 +9,8 @@ export function AssessmentsPage() {
     <div className="flex h-screen bg-bg text-text">
       {/* Sidebar for Navigation between CT and Assignments */}
       <aside className="w-64 bg-surface border-r border-gray-100 flex flex-col p-6 shadow-soft">
-        <h1 className="font-heading text-2xl font-bold text-primary mb-8">
-          Assessments
-        </h1>
-        
+        <h1 className="font-heading text-2xl font-bold text-primary mb-8">Assessments</h1>
+
         <nav className="flex-1 space-y-2">
           <button
             onClick={() => setActiveTab("ct")}
@@ -24,7 +22,7 @@ export function AssessmentsPage() {
           >
             Class Tests
           </button>
-          
+
           <button
             onClick={() => setActiveTab("assignment")}
             className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${

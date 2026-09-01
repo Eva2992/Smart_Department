@@ -16,7 +16,7 @@ vi.mock("../api/assessments.js", () => ({
 
 import { assignmentApi } from "../api/assessments.js";
 
-const mockList   = vi.mocked(assignmentApi.list);
+const mockList = vi.mocked(assignmentApi.list);
 const mockDelete = vi.mocked(assignmentApi.delete);
 
 // ── Shared fixtures (fully typed) ─────────────────────────────────────────────
@@ -52,31 +52,21 @@ describe("AssignmentsPanel Component", () => {
   it("renders the Assignments heading and Create Assignment button", async () => {
     mockList.mockResolvedValue(listResponse([]));
     render(<AssignmentsPanel />);
-    await waitFor(() =>
-      expect(screen.getByText(/^assignments$/i)).toBeInTheDocument()
-    );
-    expect(
-      screen.getByRole("button", { name: /\+ create assignment/i })
-    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/^assignments$/i)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /\+ create assignment/i })).toBeInTheDocument();
   });
 
   it("shows empty state message when no assignments exist", async () => {
     mockList.mockResolvedValue(listResponse([]));
     render(<AssignmentsPanel />);
-    await waitFor(() =>
-      expect(screen.getByText(/no assignments found/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText(/no assignments found/i)).toBeInTheDocument());
   });
 
   it("renders an assignment card with title, description and course code", async () => {
     mockList.mockResolvedValue(listResponse([mockAssignment]));
     render(<AssignmentsPanel />);
-    await waitFor(() =>
-      expect(screen.getByText("Project Phase 1")).toBeInTheDocument()
-    );
-    expect(
-      screen.getByText("Implement the authentication module.")
-    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Project Phase 1")).toBeInTheDocument());
+    expect(screen.getByText("Implement the authentication module.")).toBeInTheDocument();
     expect(screen.getByText("CSE301")).toBeInTheDocument();
   });
 
@@ -84,9 +74,7 @@ describe("AssignmentsPanel Component", () => {
     mockList.mockResolvedValue(listResponse([]));
     render(<AssignmentsPanel />);
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /\+ create assignment/i })
-      ).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /\+ create assignment/i })).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole("button", { name: /\+ create assignment/i }));
     expect(screen.getByText("Create Assignment")).toBeInTheDocument();
@@ -142,12 +130,8 @@ describe("AssignmentsPanel Component", () => {
     const allDeleteButtons = screen.getAllByRole("button", { name: /^delete$/i });
     fireEvent.click(allDeleteButtons[allDeleteButtons.length - 1]);
 
-    await waitFor(() =>
-      expect(assignmentApi.delete).toHaveBeenCalledWith("assign-1", "teacher-1")
-    );
-    await waitFor(() =>
-      expect(screen.getByText(/no assignments found/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(assignmentApi.delete).toHaveBeenCalledWith("assign-1", "teacher-1"));
+    await waitFor(() => expect(screen.getByText(/no assignments found/i)).toBeInTheDocument());
   });
 
   it("shows an error alert when the list API call fails", async () => {
@@ -156,8 +140,6 @@ describe("AssignmentsPanel Component", () => {
     });
     mockList.mockRejectedValue(apiError);
     render(<AssignmentsPanel />);
-    await waitFor(() =>
-      expect(screen.getByText("Failed to fetch")).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText("Failed to fetch")).toBeInTheDocument());
   });
 });

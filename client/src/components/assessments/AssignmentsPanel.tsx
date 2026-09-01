@@ -133,9 +133,7 @@ export function AssignmentsPanel() {
         </button>
       </div>
 
-      {error && (
-        <Alert type="error" message={error} onClose={() => setError(null)} />
-      )}
+      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
 
       {loading ? (
         <div className="text-text-muted animate-pulse">Loading assignments...</div>
@@ -241,7 +239,15 @@ interface FormProps {
   onSuccess: () => void;
 }
 
-function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, onClose, onSuccess }: FormProps) {
+function AssignmentFormModal({
+  mode,
+  assignment,
+  teacherId,
+  batchId,
+  courseId,
+  onClose,
+  onSuccess,
+}: FormProps) {
   const [title, setTitle] = useState(assignment?.title || "");
   const [description, setDescription] = useState(assignment?.description || "");
   // Only pre-fill dueDate in edit mode; leave blank in create mode so the
@@ -274,9 +280,7 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           description,
           // Fix #7: only send dueDate if the user actually changed it.
           // Sending the old dueDate on a past-due assignment would cause a 400.
-          ...(dueDateChanged && dueDate
-            ? { dueDate: new Date(dueDate).toISOString() }
-            : {}),
+          ...(dueDateChanged && dueDate ? { dueDate: new Date(dueDate).toISOString() } : {}),
         });
       }
       onSuccess();
@@ -294,19 +298,13 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           <h3 className="font-heading text-lg font-semibold text-text">
             {mode === "create" ? "Create Assignment" : "Edit Assignment"}
           </h3>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-text-muted hover:text-text"
-          >
+          <button onClick={onClose} aria-label="Close" className="text-text-muted hover:text-text">
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <Alert type="error" message={error} onClose={() => setError(null)} />
-          )}
+          {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
 
           <div>
             <label className="block text-sm font-medium text-text mb-1">Title</label>
@@ -336,7 +334,9 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
             <label className="block text-sm font-medium text-text mb-1">
               Due Date &amp; Time
               {mode === "edit" && !dueDateChanged && (
-                <span className="text-text-muted font-normal ml-2 text-xs">(leave unchanged to keep current)</span>
+                <span className="text-text-muted font-normal ml-2 text-xs">
+                  (leave unchanged to keep current)
+                </span>
               )}
             </label>
             <input

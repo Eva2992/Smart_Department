@@ -13,6 +13,7 @@ import { useAuth } from "./context/useAuth.js";
 import { AssessmentsPage } from "./pages/AssessmentsPage.js";
 
 import { ResultsPage } from "./pages/ResultsPage.js";
+import { ResourcesPage } from "./pages/ResourcesPage.js";
 
 function HomeRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,6 +32,7 @@ export function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/results" element={<ResultsPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
