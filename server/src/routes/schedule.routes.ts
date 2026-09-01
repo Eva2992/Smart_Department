@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { scheduleController } from "../controllers/schedule.controller.js";
 import { authenticate, optionalAuthenticate } from "../middleware/auth.js";
-import { authorize } from "../middleware/rbac.js";
+import { authorize, requireChairman } from "../middleware/rbac.js";
 import { Role } from "@prisma/client";
 
 const scheduleRouter = Router();
@@ -10,6 +10,16 @@ const scheduleRouter = Router();
 scheduleRouter.post("/check-conflict", optionalAuthenticate, (req, res, next) => {
   scheduleController.checkConflict(req, res, next);
 });
+
+scheduleRouter.post(
+  "/seminar",
+  authenticate,
+  authorize(Role.TEACHER, Role.ADMIN),
+  requireChairman,
+  (req, res, next) => {
+    scheduleController.createSeminar(req, res, next);
+  }
+);
 
 // Get schedule list (public or authenticated)
 scheduleRouter.get("/", optionalAuthenticate, (req, res, next) => {

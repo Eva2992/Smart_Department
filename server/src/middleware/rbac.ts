@@ -4,6 +4,14 @@ import { AppError } from "./errorHandler.js";
 
 /**
  * Role-based access control middleware.
+ *
+ * @param allowedRoles - List of roles that are allowed to access the route
+ * @returns Express middleware function
+ *
+ * @example
+ * ```ts
+ * authorize(Role.ADMIN, Role.TEACHER)
+ * ```
  */
 export function authorize(...allowedRoles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -27,6 +35,15 @@ export function authorize(...allowedRoles: Role[]) {
 
 /**
  * Chairman role check middleware.
+ * 
+ * @param req - Express request
+ * @param _res - Express response
+ * @param next - Express next function
+ * 
+ * @example
+ * ```ts
+ * requireChairman(req, res, next)
+ * ```
  */
 export function requireChairman(req: Request, _res: Response, next: NextFunction): void {
   if (!req.user) {

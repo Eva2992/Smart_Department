@@ -226,3 +226,50 @@ export async function deleteHoliday(
   return res.data.data;
 }
 
+// New types for Slice 3
+export interface RoomScheduleSlot {
+  startTime: string;
+  endTime: string;
+  label: string;
+  isAvailable: boolean;
+  booking: {
+    id: string;
+    courseName?: string;
+    courseCode?: string;
+    teacherName?: string;
+    batchName?: string;
+    title?: string;
+    type: string;
+  } | null;
+}
+
+export interface RoomScheduleGrid {
+  rooms: Array<{ id: string; roomNumber: string; type: string; description?: string }>;
+  dates: string[];
+  grid: Record<string, Record<string, RoomScheduleSlot[]>>;
+}
+
+export interface CreateSeminarInput {
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  roomId: string;
+  teacherId: string;
+  batchId: string;
+  courseId?: string;
+}
+
+// New API functions for Slice 3 & 4
+export async function getRoomScheduleGrid(
+  startDate: string,
+  endDate: string
+): Promise<RoomScheduleGrid> {
+  const res = await api.get("/rooms/schedule", { params: { startDate, endDate } });
+  return res.data.data;
+}
+
+export async function createSeminar(data: CreateSeminarInput): Promise<ScheduleEntry> {
+  const res = await api.post("/schedules/seminar", data);
+  return res.data.data;
+}

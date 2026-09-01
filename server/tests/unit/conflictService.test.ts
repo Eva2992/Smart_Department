@@ -192,6 +192,54 @@ describe("conflictService", () => {
       expect(result.hasConflict).toBe(false);
       expect(result.conflicts).toHaveLength(0);
     });
+
+    it("should detect conflict between a proposed SEMINAR and an existing CLASS in the same room", () => {
+      const result = evaluateInMemConflicts(sampleEntries, {
+        date: "2026-09-01",
+        startTime: "09:00",
+        endTime: "10:30",
+        roomId: "room-101",
+        teacherId: "teacher-chairman",
+        batchId: "batch-52",
+      });
+
+      expect(result.hasConflict).toBe(true);
+      expect(result.conflicts.some((c) => c.type === "ROOM")).toBe(true);
+      expect(result.conflicts.some((c) => c.type === "BATCH")).toBe(true);
+    });
+
+    it("should detect conflict when two SEMINARS attempt to book the same room concurrently", () => {
+      const seminarEntries: ExistingScheduleEntryItem[] = [
+        {
+          id: "sem-1",
+          date: "2026-09-03",
+          startTime: "10:00",
+          endTime: "11:30",
+          roomId: "room-202",
+          teacherId: "teacher-chairman",
+          batchId: "batch-52",
+          type: "SEMINAR",
+          status: ScheduleEntryStatus.SCHEDULED,
+          room: { roomNumber: "R-202" },
+          teacher: { name: "Prof. Chairman" },
+          batch: { name: "52nd Batch" },
+        },
+      ];
+
+      const result = evaluateInMemConflicts(seminarEntries, {
+        date: "2026-09-03",
+        startTime: "10:30",
+        endTime: "12:00",
+        roomId: "room-202",
+        teacherId: "teacher-guest",
+        batchId: "batch-51",
+      });
+
+      expect(result.hasConflict).toBe(true);
+      expect(result.conflicts).toHaveLength(1);
+      expect(result.conflicts[0].type).toBe("ROOM");
+      expect(result.conflicts[0].message).toContain("Room R-202 is already occupied");
+    });
   });
 
   describe("ConflictService checkConflict with mock database client", () => {
