@@ -52,7 +52,7 @@ function toExamDTO(raw: {
     type: "EXAM",
     status: String(raw.status),
     courseId: raw.courseId,
-    courseName: raw.course?.name ?? null,
+    courseName: raw.course?.name ?? raw.topic ?? null,
     batchId: raw.batchId,
     batchName: raw.batch?.name ?? null,
     teacherId: raw.teacherId,
@@ -101,14 +101,16 @@ export async function createExamRoutine(
   // Validate every entry inside a transaction so partial inserts never persist
   await prisma.$transaction(async (tx) => {
     for (const entry of input.entries) {
-      // Build required check
+      const teacherId = entry.teacherId ?? adminId;
+
+      // Build required check using the same teacher ID that will be persisted.
       const conflict = await conflictService.checkConflict(
         {
           date: entry.date,
           startTime: entry.startTime,
           endTime: entry.endTime,
           roomId: entry.roomId,
-          teacherId: entry.teacherId,
+          teacherId,
           batchId: entry.batchId,
         },
         tx
@@ -121,9 +123,6 @@ export async function createExamRoutine(
           "EXAM_CONFLICT"
         );
       }
-
-      // Resolve teacher: if not provided, fall back to admin ID as proctor placeholder
-      const teacherId = entry.teacherId ?? adminId;
 
       const raw = await (tx as typeof prisma).scheduleEntry.create({
         data: {

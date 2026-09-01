@@ -17,7 +17,7 @@ import { AppError } from "../middleware/errorHandler.js";
 export class ExamController {
   /**
    * POST /api/v1/exams/routine
-   * Admin creates / bulk-upserts the semester final exam routine.
+   * Admin creates the semester final exam routine entries.
    */
   async createExamRoutine(req: Request, res: Response): Promise<void> {
     if (!req.user) {
