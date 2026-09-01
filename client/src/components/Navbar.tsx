@@ -45,6 +45,12 @@ export function Navbar() {
           {/* Navigation Items */}
           <div className="flex items-center gap-4">
             <Link
+              to="/resources"
+              className="text-sm font-medium text-[#1F2937] hover:text-[#DC143C] transition-colors"
+            >
+              Resources
+            </Link>
+            <Link
               to="/results"
               className="text-sm font-medium text-[#1F2937] hover:text-[#DC143C] transition-colors"
             >

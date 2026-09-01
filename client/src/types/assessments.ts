@@ -55,4 +55,3 @@ export interface UpdateAssignmentPayload {
   description?: string;
   dueDate?: string;
 }
-

@@ -13,10 +13,7 @@ import type {
 
 export const ctApi = {
   schedule: async (payload: ScheduleCTPayload) => {
-    const response = await apiClient.post<ApiResponse<CTEntry>>(
-      "/assessments/ct",
-      payload
-    );
+    const response = await apiClient.post<ApiResponse<CTEntry>>("/assessments/ct", payload);
     return response.data;
   },
 
@@ -29,10 +26,9 @@ export const ctApi = {
   },
 
   cancel: async (ctId: string, teacherId: string) => {
-    const response = await apiClient.delete<ApiResponse<CTEntry>>(
-      `/assessments/ct/${ctId}`,
-      { data: { teacherId } }
-    );
+    const response = await apiClient.delete<ApiResponse<CTEntry>>(`/assessments/ct/${ctId}`, {
+      data: { teacherId },
+    });
     return response.data;
   },
 
@@ -84,10 +80,9 @@ export const assignmentApi = {
   },
 
   list: async (batchId?: string, courseId?: string) => {
-    const response = await apiClient.get<ApiResponse<Assignment[]>>(
-      "/assessments/assignments",
-      { params: { batchId, courseId } }
-    );
+    const response = await apiClient.get<ApiResponse<Assignment[]>>("/assessments/assignments", {
+      params: { batchId, courseId },
+    });
     return response.data;
   },
 
