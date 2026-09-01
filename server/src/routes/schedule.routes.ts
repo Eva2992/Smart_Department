@@ -1,10 +1,17 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { scheduleController } from "../controllers/schedule.controller.js";
 import { authenticate, optionalAuthenticate } from "../middleware/auth.js";
 import { authorize, requireChairman } from "../middleware/rbac.js";
 import { Role } from "@prisma/client";
 
 const scheduleRouter = Router();
+const scheduleWriteLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Conflict checking can be checked interactively with optional or required auth
 scheduleRouter.post("/check-conflict", optionalAuthenticate, (req, res, next) => {
@@ -13,6 +20,7 @@ scheduleRouter.post("/check-conflict", optionalAuthenticate, (req, res, next) =>
 
 scheduleRouter.post(
   "/seminar",
+  scheduleWriteLimiter,
   authenticate,
   authorize(Role.TEACHER, Role.ADMIN),
   requireChairman,
