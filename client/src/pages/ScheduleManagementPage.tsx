@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { type ScheduleEntry, getSchedules, getRooms } from "../api/scheduleApi";
+import { type ScheduleEntry, type Holiday, getSchedules, getRooms, getHolidays } from "../api/scheduleApi";
 import { ScheduleGrid } from "../components/ScheduleGrid";
 import { RescheduleModal } from "../components/RescheduleModal";
 import { CancelModal } from "../components/CancelModal";
 import { HolidayManager } from "../components/HolidayManager";
+import { HolidayBanner } from "../components/HolidayBanner";
 import { RoomMatrix } from "../components/RoomMatrix";
 import { SeminarBookingForm } from "../components/SeminarBookingForm";
 import { ConflictTester } from "../components/ConflictTester";
@@ -40,17 +41,21 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
   // Modals state
   const [selectedForReschedule, setSelectedForReschedule] = useState<ScheduleEntry | null>(null);
   const [selectedForCancel, setSelectedForCancel] = useState<ScheduleEntry | null>(null);
+  const [activeHoliday, setActiveHoliday] = useState<Holiday | null>(null);
 
   const fetchScheduleData = useCallback(async () => {
     setLoading(true);
     try {
-      const [scheduleData, roomData] = await Promise.allSettled([
+      const [scheduleData, roomData, holidayData] = await Promise.allSettled([
         getSchedules({
           batchId: batchFilter || undefined,
           status: statusFilter ? (statusFilter as ScheduleEntry["status"]) : undefined,
           date: dateFilter || undefined,
         }),
         getRooms(),
+        dateFilter
+          ? getHolidays({ date: dateFilter, batchId: batchFilter || undefined })
+          : Promise.resolve([]),
       ]);
 
       if (scheduleData.status === "fulfilled") {
@@ -58,6 +63,11 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
       }
       if (roomData.status === "fulfilled" && roomData.value.length > 0) {
         setRooms(roomData.value);
+      }
+      if (holidayData.status === "fulfilled" && holidayData.value.length > 0) {
+        setActiveHoliday(holidayData.value[0]);
+      } else {
+        setActiveHoliday(null);
       }
     } catch (err) {
       console.error("Failed to load schedule data:", err);
@@ -220,6 +230,11 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
               )}
             </div>
           </div>
+
+          {/* Active Holiday Banner on Selected Date */}
+          {activeHoliday && (
+            <HolidayBanner holiday={activeHoliday} />
+          )}
 
           {/* Schedule Grid */}
           <ScheduleGrid

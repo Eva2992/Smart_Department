@@ -4,12 +4,25 @@ import { holidayService } from "../services/holidayService.js";
 import { sendSuccess, sendCreated } from "../utils/response.js";
 import { AppError } from "../middleware/errorHandler.js";
 
-const declareHolidaySchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  reason: z.string().min(1, "Holiday reason is required"),
-  scope: z.enum(["ALL", "BATCH"]).optional(),
-  batchId: z.string().optional(),
-});
+const declareHolidaySchema = z
+  .object({
+    date: z.string().min(1, "Date is required"),
+    reason: z.string().min(1, "Holiday reason is required"),
+    scope: z.enum(["ALL", "BATCH"]).optional(),
+    batchId: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.scope === "BATCH" && !data.batchId) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "batchId is required when holiday scope is BATCH.",
+      path: ["batchId"],
+    }
+  );
 
 export class HolidayController {
   async declareHoliday(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -51,6 +64,34 @@ export class HolidayController {
       next(err);
     }
   }
+
+  async getUpcomingHolidays(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 5;
+      const batchId = req.query.batchId as string | undefined;
+      const data = await holidayService.getUpcomingHolidays(limit, batchId);
+      sendSuccess(res, data, "Upcoming holidays retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async checkHolidayDate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { date, batchId } = req.query;
+      if (!date) {
+        throw new AppError("date query parameter is required", 400, "VALIDATION_ERROR");
+      }
+      const isHoliday = await holidayService.isHolidayDate(
+        date as string,
+        batchId as string | undefined
+      );
+      sendSuccess(res, { isHoliday }, "Holiday status checked successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const holidayController = new HolidayController();
+

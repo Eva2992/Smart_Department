@@ -3,6 +3,7 @@ import { useAuth } from "../context/useAuth.js";
 import { StudentResultCard } from "../components/StudentResultCard.js";
 import { Link } from "react-router-dom";
 import { ChangePasswordModal } from "../components/ChangePasswordModal.js";
+import { UpcomingHolidaysWidget } from "../components/UpcomingHolidaysWidget.js";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -152,6 +153,9 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Upcoming Holidays & Off-Days Widget */}
+      <UpcomingHolidaysWidget batchId={user.batchId || undefined} />
 
       {/* Quick Action Modules */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">

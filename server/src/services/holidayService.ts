@@ -172,6 +172,13 @@ export class HolidayService {
   }
 
   /**
+   * Alias for deleteHoliday for convenience and ubiquitous language.
+   */
+  async removeHoliday(id: string, actor: AuthUser) {
+    return this.deleteHoliday(id, actor);
+  }
+
+  /**
    * Gets list of declared holidays.
    */
   async getHolidays(filters: GetHolidaysFilter = {}) {
@@ -198,6 +205,57 @@ export class HolidayService {
       },
     });
   }
+
+  /**
+   * Gets holidays in a specific date range.
+   */
+  async getHolidaysByDateRange(startDate: string, endDate: string, batchId?: string) {
+    return this.getHolidays({ startDate, endDate, batchId });
+  }
+
+  /**
+   * Checks whether a specific date is a declared holiday.
+   * If batchId is provided, checks if it is a holiday for that batch or department-wide.
+   */
+  async isHolidayDate(date: string | Date, batchId?: string): Promise<boolean> {
+    const holidayDate = new Date(normalizeDateString(date));
+    const where: any = {
+      date: holidayDate,
+    };
+
+    if (batchId) {
+      where.OR = [{ scope: HolidayScope.ALL }, { batchId }];
+    } else {
+      where.scope = HolidayScope.ALL;
+    }
+
+    const count = await prisma.holiday.count({ where });
+    return count > 0;
+  }
+
+  /**
+   * Gets the upcoming holidays from today onwards.
+   */
+  async getUpcomingHolidays(limit = 5, batchId?: string) {
+    const today = new Date(normalizeDateString(new Date()));
+    const where: any = {
+      date: { gte: today },
+    };
+
+    if (batchId) {
+      where.OR = [{ scope: HolidayScope.ALL }, { batchId }];
+    }
+
+    return await prisma.holiday.findMany({
+      where,
+      orderBy: { date: "asc" },
+      take: limit,
+      include: {
+        batch: { select: { id: true, name: true } },
+      },
+    });
+  }
 }
 
 export const holidayService = new HolidayService();
+
