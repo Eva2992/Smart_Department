@@ -184,8 +184,28 @@ export async function getRoomAvailability(
   return res.data.data;
 }
 
-export async function getHolidays(): Promise<Holiday[]> {
-  const res = await api.get("/holidays");
+export interface GetHolidaysParams {
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+  batchId?: string;
+}
+
+export async function getHolidays(params?: GetHolidaysParams): Promise<Holiday[]> {
+  const res = await api.get("/holidays", { params });
+  return res.data.data;
+}
+
+export async function getUpcomingHolidays(limit = 5, batchId?: string): Promise<Holiday[]> {
+  const res = await api.get("/holidays/upcoming", { params: { limit, batchId } });
+  return res.data.data;
+}
+
+export async function checkIsHoliday(
+  date: string,
+  batchId?: string
+): Promise<{ isHoliday: boolean }> {
+  const res = await api.get("/holidays/check", { params: { date, batchId } });
   return res.data.data;
 }
 
@@ -205,3 +225,4 @@ export async function deleteHoliday(
   const res = await api.delete(`/holidays/${id}`);
   return res.data.data;
 }
+

@@ -11,6 +11,16 @@ holidayRouter.get("/", optionalAuthenticate, (req, res, next) => {
   holidayController.getHolidays(req, res, next);
 });
 
+// Upcoming holidays
+holidayRouter.get("/upcoming", optionalAuthenticate, (req, res, next) => {
+  holidayController.getUpcomingHolidays(req, res, next);
+});
+
+// Check if date is holiday
+holidayRouter.get("/check", optionalAuthenticate, (req, res, next) => {
+  holidayController.checkHolidayDate(req, res, next);
+});
+
 // Declare holiday (Admin only)
 holidayRouter.post("/", authenticate, authorize(Role.ADMIN), (req, res, next) => {
   holidayController.declareHoliday(req, res, next);
@@ -22,3 +32,4 @@ holidayRouter.delete("/:id", authenticate, authorize(Role.ADMIN), (req, res, nex
 });
 
 export { holidayRouter };
+

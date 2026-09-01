@@ -3,6 +3,7 @@ import { ScheduleEntryStatus, ScheduleEntryType, Role } from "@prisma/client";
 import { AppError } from "../middleware/errorHandler.js";
 import { AuthUser } from "../middleware/auth.js";
 import { conflictService } from "./conflictService.js";
+import { holidayService } from "./holidayService.js";
 import {
   normalizeDateString,
   timeToMinutes,
@@ -428,13 +429,12 @@ export class ScheduleService {
       throw new AppError("startDate cannot be after endDate", 400, "VALIDATION_ERROR");
     }
 
-    // Fetch pre-declared holidays in date range
-    const holidays = await prisma.holiday.findMany({
-      where: {
-        date: { gte: start, lte: end },
-        OR: [{ scope: "ALL" }, { batchId: input.batchId }],
-      },
-    });
+    // Fetch pre-declared holidays in date range via holidayService
+    const holidays = await holidayService.getHolidaysByDateRange(
+      normalizeDateString(input.startDate),
+      normalizeDateString(input.endDate),
+      input.batchId
+    );
 
     const holidayDateSet = new Set(holidays.map((h) => normalizeDateString(h.date)));
 

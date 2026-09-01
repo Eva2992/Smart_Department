@@ -50,5 +50,10 @@
     "typedoc": "^0.28.20",
     "typescript": "^5.8.2",
     "vitest": "^4.1.11"
+  },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "^0.28.2",
+    "@rolldown/binding-win32-x64-msvc": "^1.2.6",
+    "@rollup/rollup-win32-x64-msvc": "^4.63.1"
   }
 }
