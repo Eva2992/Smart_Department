@@ -7,6 +7,7 @@ export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -24,6 +25,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     setIsDropdownOpen(false);
+    setIsMobileOpen(false);
     await logout();
     navigate("/login");
   };
@@ -53,6 +55,11 @@ export function Navbar() {
         : "text-[#1F2937] hover:text-[#DC143C] hover:bg-gray-50"
     }`;
 
+  const mobileNavLinkClass = (path: string) =>
+    `block py-2 px-3 text-sm font-semibold rounded-xl transition-colors ${
+      isActive(path) ? "bg-rose-50 text-[#DC143C]" : "text-[#1F2937] hover:bg-gray-50"
+    }`;
+
   const userInitials = user?.name
     ? user.name
         .split(" ")
@@ -68,7 +75,7 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo & Department Brand */}
-            <Link to="/" className="flex items-center gap-3 group">
+            <Link to="/" className="flex items-center gap-3 group shrink-0">
               <img
                 src="/smart-department-icon.svg"
                 alt="Smart Department"
@@ -84,8 +91,8 @@ export function Navbar() {
               </div>
             </Link>
 
-            {/* Navigation Items */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            {/* Desktop Navigation Items */}
+            <div className="hidden md:flex items-center gap-2 lg:gap-3">
               <Link to="/resources" className={navLinkClass("/resources")}>
                 Resources
               </Link>
@@ -95,17 +102,17 @@ export function Navbar() {
 
               {isAuthenticated && user ? (
                 <>
-                  <Link to="/dashboard" className={`${navLinkClass("/dashboard")} hidden sm:block`}>
+                  <Link to="/dashboard" className={navLinkClass("/dashboard")}>
                     Dashboard
                   </Link>
-                  <Link to="/schedules" className={`${navLinkClass("/schedules")} hidden sm:block`}>
+                  <Link to="/schedules" className={navLinkClass("/schedules")}>
                     Routine &amp; Schedules
                   </Link>
+                  <Link to="/assessments" className={navLinkClass("/assessments")}>
+                    Assessments
+                  </Link>
                   {user.role === "ADMIN" && (
-                    <Link
-                      to="/admin/batches"
-                      className={`${navLinkClass("/admin/batches")} hidden sm:block`}
-                    >
+                    <Link to="/admin/batches" className={navLinkClass("/admin/batches")}>
                       Batch &amp; Semesters
                     </Link>
                   )}
@@ -186,11 +193,148 @@ export function Navbar() {
                 </div>
               )}
             </div>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <div className="flex items-center gap-2 md:hidden">
+              {isAuthenticated && user && (
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#DC143C] to-[#B01030] text-white font-bold text-xs shadow-sm flex items-center justify-center font-[Poppins]"
+                  aria-label="User profile menu"
+                >
+                  {userInitials}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsMobileOpen(!isMobileOpen)}
+                className="p-2 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                aria-label="Toggle navigation menu"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  {isMobileOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu Drawer */}
+        {isMobileOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white/98 backdrop-blur-lg px-4 pt-3 pb-5 shadow-lg animate-in slide-in-from-top-2 duration-200">
+            <nav className="space-y-1">
+              <Link
+                to="/resources"
+                onClick={() => setIsMobileOpen(false)}
+                className={mobileNavLinkClass("/resources")}
+              >
+                Academic Resources
+              </Link>
+              <Link
+                to="/results"
+                onClick={() => setIsMobileOpen(false)}
+                className={mobileNavLinkClass("/results")}
+              >
+                Semester Results
+              </Link>
+
+              {isAuthenticated && user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setIsMobileOpen(false)}
+                    className={mobileNavLinkClass("/dashboard")}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/schedules"
+                    onClick={() => setIsMobileOpen(false)}
+                    className={mobileNavLinkClass("/schedules")}
+                  >
+                    Routine &amp; Schedules
+                  </Link>
+                  <Link
+                    to="/assessments"
+                    onClick={() => setIsMobileOpen(false)}
+                    className={mobileNavLinkClass("/assessments")}
+                  >
+                    Assessments (CT &amp; Assignments)
+                  </Link>
+                  {user.role === "ADMIN" && (
+                    <Link
+                      to="/admin/batches"
+                      onClick={() => setIsMobileOpen(false)}
+                      className={mobileNavLinkClass("/admin/batches")}
+                    >
+                      Batch &amp; Semesters
+                    </Link>
+                  )}
+                  <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">{user.name}</p>
+                      <p className="text-[10px] text-gray-500">{user.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMobileOpen(false);
+                          setIsChangePasswordOpen(true);
+                        }}
+                        className="px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        Change Password
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="px-2.5 py-1 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-3 mt-3 border-t border-gray-100 grid grid-cols-2 gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMobileOpen(false)}
+                    className="text-center py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setIsMobileOpen(false)}
+                    className="text-center py-2 text-xs font-bold text-white bg-[#DC143C] hover:bg-[#B01030] rounded-xl shadow-xs"
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
+            </nav>
+          </div>
+        )}
       </header>
 
-      {/* Global Change Password Modal triggered from Navbar Avatar */}
+      {/* Global Change Password Modal */}
       <ChangePasswordModal
         isOpen={isChangePasswordOpen}
         onClose={() => setIsChangePasswordOpen(false)}
@@ -198,4 +342,3 @@ export function Navbar() {
     </>
   );
 }
-

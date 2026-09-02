@@ -146,6 +146,22 @@ export class ScheduleController {
       next(err);
     }
   }
+  async getClassCounts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const { batchId, teacherId } = req.query;
+      const data = await scheduleService.getClassCounts(req.user, {
+        batchId: batchId as string,
+        teacherId: teacherId as string,
+      });
+      sendSuccess(res, data, "Class counts retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
   /**
    * Creates a new seminar schedule entry.
    *

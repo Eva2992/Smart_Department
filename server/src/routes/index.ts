@@ -30,6 +30,10 @@ apiV1Router.use("/semesters", semesterRouter);
 apiV1Router.use("/promotions", promotionRouter);
 apiV1Router.use("/admin", adminRouter);
 apiV1Router.use("/assessments", assessmentsRouter);
+apiV1Router.use("/assignments", (req, res, next) => {
+  req.url = "/assignments" + req.url;
+  assessmentsRouter(req, res, next);
+});
 apiV1Router.use("/resources", resourceRouter);
 apiV1Router.use("/exams", examRouter);
 

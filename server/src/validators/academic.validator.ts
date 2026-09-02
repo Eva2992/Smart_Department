@@ -63,3 +63,33 @@ export const assignCRSchema = z.object({
   studentId: z.string().min(1, "Student ID is required"),
   reason: z.string().max(500).optional(),
 });
+
+export const preloadedStudentItemSchema = z.object({
+  universityId: z.string().min(1, "University ID is required"),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email format"),
+  batchId: z.string().min(1, "Batch ID is required"),
+  program: ProgramEnum,
+});
+
+export const bulkPreloadedStudentsSchema = z.object({
+  students: z.array(preloadedStudentItemSchema).min(1, "At least one student record is required"),
+});
+
+export const preloadedTeacherItemSchema = z.object({
+  uniqueId: z.string().min(1, "Teacher Unique ID is required"),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email format"),
+  designation: z.string().min(1, "Designation is required"),
+  isChairman: z.boolean().optional().default(false),
+});
+
+export const bulkPreloadedTeachersSchema = z.object({
+  teachers: z.array(preloadedTeacherItemSchema).min(1, "At least one teacher record is required"),
+});
+
+export const updateUserRoleSchema = z.object({
+  role: z.enum(["STUDENT", "CR"], {
+    message: "Role must be either STUDENT or CR",
+  }),
+});

@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
+import { auditService } from "./audit.service.js";
 import { Role, ResourceType } from "@prisma/client";
 import type {
   CourseMarkItem,
@@ -296,6 +297,18 @@ export class ResultService {
       }
 
       return { count: records.length, resourceCreated };
+    });
+
+    await auditService.logAction({
+      userId: uploader.id,
+      action: "RESULT_UPLOAD",
+      entityType: "RESULT",
+      entityId: payload.semesterId,
+      details: {
+        batchId: payload.batchId,
+        semesterId: payload.semesterId,
+        recordCount: createdResults.count,
+      },
     });
 
     return {

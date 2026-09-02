@@ -62,8 +62,7 @@ export function errorHandler(
     ? "A database connection or system error occurred. Please try again shortly."
     : "An unexpected system error occurred. Please try again shortly.";
 
-  const details =
-    env.NODE_ENV === "development" && err instanceof Error ? err.stack : undefined;
+  const details = env.NODE_ENV === "development" && err instanceof Error ? err.stack : undefined;
 
   sendError(res, userFriendlyMessage, 500, "INTERNAL_SERVER_ERROR", details);
 }

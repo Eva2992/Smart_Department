@@ -41,6 +41,10 @@ export interface StudentCTMarkItem {
   marksObtained: number | null;
   maxMarks: number | null;
   status: "PENDING" | "RECORDED";
+  classAverage?: number | null;
+  highestMark?: number | null;
+  lowestMark?: number | null;
+  totalSubmissions?: number;
 }
 
 export interface StudentCTMarksGroup {
@@ -48,6 +52,10 @@ export interface StudentCTMarksGroup {
   courseCode: string | null;
   courseName: string | null;
   marks: StudentCTMarkItem[];
+  totalConducted?: number;
+  totalRecorded?: number;
+  bestOfThreeSum?: number | null;
+  averageScore?: number | null;
 }
 
 export interface StudentCTMarksResponse {
@@ -110,10 +118,33 @@ function groupMarks(items: StudentCTMarkItem[]): StudentCTMarksGroup[] {
     });
   }
 
-  return Array.from(groups.values()).map((group) => ({
-    ...group,
-    marks: group.marks.sort((left, right) => left.date.getTime() - right.date.getTime()),
-  }));
+  return Array.from(groups.values()).map((group) => {
+    const sortedMarks = group.marks.sort(
+      (left, right) => left.date.getTime() - right.date.getTime()
+    );
+    const recordedScores = sortedMarks
+      .filter((m) => m.marksObtained !== null)
+      .map((m) => m.marksObtained as number);
+
+    // Calculate Best 3 of 4 (ADR-0005, JU CSE departmental grading policy)
+    const descScores = [...recordedScores].sort((a, b) => b - a);
+    const bestThree = descScores.slice(0, 3);
+    const bestOfThreeSum =
+      bestThree.length > 0 ? parseFloat(bestThree.reduce((a, b) => a + b, 0).toFixed(2)) : null;
+    const averageScore =
+      recordedScores.length > 0
+        ? parseFloat((recordedScores.reduce((a, b) => a + b, 0) / recordedScores.length).toFixed(2))
+        : null;
+
+    return {
+      ...group,
+      marks: sortedMarks,
+      totalConducted: sortedMarks.length,
+      totalRecorded: recordedScores.length,
+      bestOfThreeSum,
+      averageScore,
+    };
+  });
 }
 
 export async function scheduleCT(input: ScheduleCTInput) {
@@ -422,15 +453,32 @@ export async function listStudentCTMarks(studentId: string): Promise<StudentCTMa
       teacher: { select: { name: true } },
       room: { select: { roomNumber: true } },
       ctMarks: {
-        where: { studentId },
-        select: { marksObtained: true, maxMarks: true },
+        select: { studentId: true, marksObtained: true, maxMarks: true },
       },
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
   });
 
   const items: StudentCTMarkItem[] = ctEntries.map((entry) => {
-    const mark = entry.ctMarks[0];
+    // Match current student's mark; fall back to first if mock doesn't have studentId
+    const myMark =
+      entry.ctMarks.find((m: any) => m.studentId === studentId) ||
+      (entry.ctMarks.length > 0 && !entry.ctMarks[0].studentId ? entry.ctMarks[0] : null);
+
+    const numericMarks = entry.ctMarks
+      .map((m: any) => m.marksObtained)
+      .filter((v: any) => typeof v === "number");
+
+    const classAverage =
+      numericMarks.length > 0
+        ? parseFloat(
+            (numericMarks.reduce((a: number, b: number) => a + b, 0) / numericMarks.length).toFixed(
+              2
+            )
+          )
+        : null;
+    const highestMark = numericMarks.length > 0 ? Math.max(...numericMarks) : null;
+    const lowestMark = numericMarks.length > 0 ? Math.min(...numericMarks) : null;
 
     return {
       scheduleEntryId: entry.id,
@@ -444,9 +492,13 @@ export async function listStudentCTMarks(studentId: string): Promise<StudentCTMa
       endTime: entry.endTime,
       roomNumber: entry.room.roomNumber,
       teacherName: entry.teacher.name,
-      marksObtained: mark?.marksObtained ?? null,
-      maxMarks: mark?.maxMarks ?? null,
-      status: mark ? "RECORDED" : "PENDING",
+      marksObtained: myMark?.marksObtained ?? null,
+      maxMarks: myMark?.maxMarks ?? entry.ctMarks[0]?.maxMarks ?? null,
+      status: myMark ? "RECORDED" : "PENDING",
+      classAverage,
+      highestMark,
+      lowestMark,
+      totalSubmissions: numericMarks.length,
     };
   });
 

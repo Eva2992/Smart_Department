@@ -49,6 +49,11 @@ scheduleRouter.get("/me", authenticate, (req, res, next) => {
   scheduleController.getMySchedule(req, res, next);
 });
 
+// Class count tracking (SN-05, TN-10)
+scheduleRouter.get("/class-count", authenticate, (req, res, next) => {
+  scheduleController.getClassCounts(req, res, next);
+});
+
 // Get single schedule entry
 scheduleRouter.get("/:id", optionalAuthenticate, (req, res, next) => {
   scheduleController.getScheduleById(req, res, next);

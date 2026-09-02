@@ -1,6 +1,7 @@
 import { useAuth } from "../context/useAuth.js";
 import { StudentResultCard } from "../components/StudentResultCard.js";
 import { Link } from "react-router-dom";
+import { ClassCountWidget } from "../components/ClassCountWidget.js";
 import { UpcomingHolidaysWidget } from "../components/UpcomingHolidaysWidget.js";
 
 export function DashboardPage() {
@@ -57,6 +58,9 @@ export function DashboardPage() {
       {/* Student Result Widget for Student / CR */}
       {isStudentOrCr && <StudentResultCard />}
 
+      {/* Class Attendance & Conducted Tracking Widget (SN-05, TN-10) */}
+      <ClassCountWidget />
+
       {/* Profile & Metadata Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Account Details Card */}
@@ -107,9 +111,7 @@ export function DashboardPage() {
           <div className="space-y-3 text-xs">
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Department</span>
-              <span className="font-semibold text-gray-900">
-                Computer Science & Engineering
-              </span>
+              <span className="font-semibold text-gray-900">Computer Science & Engineering</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Institution</span>
@@ -122,6 +124,9 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Class Syllabus Completion Progress */}
+      <ClassCountWidget />
 
       {/* Upcoming Holidays & Off-Days Widget */}
       <UpcomingHolidaysWidget batchId={user.batchId || undefined} />

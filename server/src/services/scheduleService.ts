@@ -964,6 +964,167 @@ export class ScheduleService {
       "FORBIDDEN"
     );
   }
+
+  /**
+   * Tracks class counts for students and teachers (SN-05, TN-10).
+   * - Student/CR view: Classes conducted per course per teacher (SN-05).
+   * - Teacher view: Classes taken per batch (TN-10).
+   */
+  async getClassCounts(actor: AuthUser, query: { batchId?: string; teacherId?: string } = {}) {
+    const isStudentOrCr = actor.role === Role.STUDENT || actor.role === Role.CR;
+
+    if (isStudentOrCr) {
+      let targetBatchId = query.batchId;
+      let batchName = "Batch";
+
+      if (!targetBatchId) {
+        const user = await prisma.user.findUnique({
+          where: { id: actor.userId || actor.id },
+          include: { batch: true },
+        });
+        targetBatchId = user?.batchId || undefined;
+        batchName = user?.batch?.name || "Batch";
+      }
+
+      if (!targetBatchId) {
+        return {
+          role: actor.role,
+          batchId: null,
+          batchName: null,
+          courses: [],
+          totalConducted: 0,
+        };
+      }
+
+      const entries = await prisma.scheduleEntry.findMany({
+        where: {
+          batchId: targetBatchId,
+          status: { notIn: [ScheduleEntryStatus.CANCELLED, ScheduleEntryStatus.HOLIDAY] },
+        },
+        include: {
+          course: { select: { id: true, code: true, name: true } },
+          teacher: { select: { id: true, name: true } },
+          batch: { select: { id: true, name: true } },
+        },
+      });
+
+      if (entries.length > 0 && entries[0].batch?.name) {
+        batchName = entries[0].batch.name;
+      }
+
+      const courseMap = new Map<
+        string,
+        {
+          courseId: string;
+          courseCode: string;
+          courseName: string;
+          teacherMap: Map<string, { teacherId: string; teacherName: string; classCount: number }>;
+          totalClasses: number;
+        }
+      >();
+
+      for (const entry of entries) {
+        const courseId = entry.courseId || "__no_course__";
+        const courseCode = entry.course?.code || "N/A";
+        const courseName = entry.course?.name || "Unassigned Course";
+
+        if (!courseMap.has(courseId)) {
+          courseMap.set(courseId, {
+            courseId,
+            courseCode,
+            courseName,
+            teacherMap: new Map(),
+            totalClasses: 0,
+          });
+        }
+
+        const courseData = courseMap.get(courseId)!;
+        courseData.totalClasses++;
+
+        const teacherId = entry.teacherId || "__no_teacher__";
+        const teacherName = entry.teacher?.name || "Unassigned Teacher";
+
+        if (!courseData.teacherMap.has(teacherId)) {
+          courseData.teacherMap.set(teacherId, {
+            teacherId,
+            teacherName,
+            classCount: 0,
+          });
+        }
+        courseData.teacherMap.get(teacherId)!.classCount++;
+      }
+
+      const courses = Array.from(courseMap.values()).map((c) => ({
+        courseId: c.courseId,
+        courseCode: c.courseCode,
+        courseName: c.courseName,
+        totalClasses: c.totalClasses,
+        teachers: Array.from(c.teacherMap.values()),
+      }));
+
+      return {
+        role: actor.role,
+        batchId: targetBatchId,
+        batchName,
+        courses,
+        totalConducted: entries.length,
+      };
+    }
+
+    // Teacher View (TN-10) or Admin View
+    const targetTeacherId =
+      actor.role === Role.TEACHER ? actor.userId || actor.id : query.teacherId;
+
+    const whereClause: any = {
+      status: { notIn: [ScheduleEntryStatus.CANCELLED, ScheduleEntryStatus.HOLIDAY] },
+    };
+    if (targetTeacherId) {
+      whereClause.teacherId = targetTeacherId;
+    }
+    if (query.batchId) {
+      whereClause.batchId = query.batchId;
+    }
+
+    const entries = await prisma.scheduleEntry.findMany({
+      where: whereClause,
+      include: {
+        batch: { select: { id: true, name: true } },
+        course: { select: { id: true, code: true, name: true } },
+      },
+    });
+
+    const batchMap = new Map<
+      string,
+      {
+        batchId: string;
+        batchName: string;
+        courseCode: string;
+        courseName: string;
+        classCount: number;
+      }
+    >();
+
+    for (const entry of entries) {
+      const key = `${entry.batchId}_${entry.courseId}`;
+      if (!batchMap.has(key)) {
+        batchMap.set(key, {
+          batchId: entry.batchId,
+          batchName: entry.batch?.name || "N/A",
+          courseCode: entry.course?.code || "N/A",
+          courseName: entry.course?.name || "N/A",
+          classCount: 0,
+        });
+      }
+      batchMap.get(key)!.classCount++;
+    }
+
+    return {
+      role: actor.role,
+      teacherId: targetTeacherId,
+      batches: Array.from(batchMap.values()),
+      totalClassesTaken: entries.length,
+    };
+  }
 }
 
 export const scheduleService = new ScheduleService();

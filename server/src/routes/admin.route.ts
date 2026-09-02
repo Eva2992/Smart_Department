@@ -3,6 +3,7 @@ import { batchController } from "../controllers/batch.controller.js";
 import { semesterController } from "../controllers/semester.controller.js";
 import { promotionController } from "../controllers/promotion.controller.js";
 import { studentController } from "../controllers/student.controller.js";
+import { adminController } from "../controllers/admin.controller.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 
 const adminRouter = Router();
@@ -58,6 +59,30 @@ adminRouter.patch("/students/:id/semester-override", (req, res, next) => {
 });
 adminRouter.patch("/students/:id/semester", (req, res, next) => {
   studentController.overrideSemester(req, res).catch(next);
+});
+
+// Role Management (AN-10, C-05)
+adminRouter.patch("/users/:id/role", (req, res, next) => {
+  adminController.updateUserRole(req, res).catch(next);
+});
+
+// Preloaded Student & Teacher Rosters (AN-01, AN-02)
+adminRouter.post("/preloaded-students", (req, res, next) => {
+  adminController.importPreloadedStudents(req, res).catch(next);
+});
+adminRouter.get("/preloaded-students", (req, res, next) => {
+  adminController.getPreloadedStudents(req, res).catch(next);
+});
+adminRouter.post("/preloaded-teachers", (req, res, next) => {
+  adminController.importPreloadedTeachers(req, res).catch(next);
+});
+adminRouter.get("/preloaded-teachers", (req, res, next) => {
+  adminController.getPreloadedTeachers(req, res).catch(next);
+});
+
+// Audit Logging (NFR-12, R-02, R-06)
+adminRouter.get("/audit-logs", (req, res, next) => {
+  adminController.getAuditLogs(req, res).catch(next);
 });
 
 export { adminRouter };

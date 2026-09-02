@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { preloadedService } from "./preloaded.service.js";
 import { emailService } from "./email.service.js";
+import { auditService } from "./audit.service.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -193,7 +194,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppError("The email or password you entered is incorrect.", 401, "INVALID_CREDENTIALS");
+      throw new AppError(
+        "The email or password you entered is incorrect.",
+        401,
+        "INVALID_CREDENTIALS"
+      );
     }
 
     // Check account lockout
@@ -220,6 +225,13 @@ export class AuthService {
             lockedUntil: new Date(Date.now() + lockoutDuration),
           },
         });
+        await auditService.logAction({
+          userId: user.id,
+          action: "LOGIN_LOCKOUT",
+          entityType: "USER",
+          entityId: user.id,
+          details: { attempts: newAttempts },
+        });
         throw new AppError(
           "Too many failed login attempts. Your account has been temporarily locked for 15 minutes.",
           403,
@@ -230,7 +242,18 @@ export class AuthService {
           where: { id: user.id },
           data: { failedAttempts: newAttempts },
         });
-        throw new AppError("The email or password you entered is incorrect.", 401, "INVALID_CREDENTIALS");
+        await auditService.logAction({
+          userId: user.id,
+          action: "LOGIN_FAILURE",
+          entityType: "USER",
+          entityId: user.id,
+          details: { reason: "INVALID_PASSWORD", attempts: newAttempts },
+        });
+        throw new AppError(
+          "The email or password you entered is incorrect.",
+          401,
+          "INVALID_CREDENTIALS"
+        );
       }
     }
 
@@ -241,6 +264,15 @@ export class AuthService {
         data: { failedAttempts: 0, lockedUntil: null },
       });
     }
+
+    // Log successful authentication
+    await auditService.logAction({
+      userId: user.id,
+      action: "LOGIN_SUCCESS",
+      entityType: "USER",
+      entityId: user.id,
+      details: { role: user.role },
+    });
 
     // Issue tokens
     const accessPayload: AccessTokenPayload = {
@@ -365,8 +397,6 @@ export class AuthService {
     return { success: true };
   }
 
-
-
   /**
    * Retrieves user profile by ID.
    */
@@ -417,6 +447,13 @@ export class AuthService {
 
     // Revoke all active sessions (NFR-08)
     await this.revokeAllUserTokens(userId);
+
+    await auditService.logAction({
+      userId,
+      action: "PASSWORD_CHANGE",
+      entityType: "USER",
+      entityId: userId,
+    });
 
     return {
       success: true,
@@ -511,6 +548,13 @@ export class AuthService {
 
     // Revoke all active sessions (NFR-08)
     await this.revokeAllUserTokens(user.id);
+
+    await auditService.logAction({
+      userId: user.id,
+      action: "PASSWORD_RESET",
+      entityType: "USER",
+      entityId: user.id,
+    });
 
     return {
       success: true,
