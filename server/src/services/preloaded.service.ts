@@ -9,8 +9,8 @@ export interface VerifyStudentParams {
 }
 
 export interface VerifyTeacherParams {
-  teacherUniqueId: string;
   email: string;
+  teacherUniqueId?: string;
 }
 
 export interface VerificationResult<T> {
@@ -21,57 +21,67 @@ export interface VerificationResult<T> {
 
 export class PreloadedService {
   /**
-   * Verifies if a student exists in the preloaded roster and is not yet registered.
+   * Verifies if a student exists in the preloaded roster and matches the admin-provided email.
    */
   async verifyStudentRoster(
     params: VerifyStudentParams
   ): Promise<VerificationResult<PreloadedStudent>> {
     const { universityId, email, batchId, program } = params;
+    const normalizedEmail = email ? email.trim().toLowerCase() : undefined;
 
     const preloaded = await prisma.preloadedStudent.findUnique({
-      where: { universityId },
+      where: { universityId: universityId.trim() },
     });
 
     if (!preloaded) {
       return {
         valid: false,
-        error: "Your information does not match our records. Please contact the department admin.",
+        error: "Your University ID was not found in the department roster. Please contact the department admin.",
       };
     }
 
-    // Check if already registered
-    const existingUser = await prisma.user.findUnique({
-      where: { universityId },
+    // Check if university ID or email is already registered
+    const orConditions: Array<{ universityId: string } | { email: string }> = [
+      { universityId: universityId.trim() },
+    ];
+    if (normalizedEmail) {
+      orConditions.push({ email: normalizedEmail });
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: orConditions,
+      },
     });
 
     if (existingUser) {
       return {
         valid: false,
-        error: "An account is already registered with this university ID.",
+        error: "An account is already registered with this University ID or Email address.",
       };
     }
 
-    // Verify email match if provided
-    if (email && email.trim().toLowerCase() !== preloaded.email.trim().toLowerCase()) {
+    // Verify email matches the one provided by admin
+    if (normalizedEmail && normalizedEmail !== preloaded.email.trim().toLowerCase()) {
       return {
         valid: false,
-        error: "Email does not match preloaded record for this university ID.",
+        error: "The provided email does not match the official department roster for this University ID.",
       };
     }
 
-    // Verify batch match if provided
+    // Optional batch check if provided
     if (batchId && batchId !== preloaded.batchId) {
       return {
         valid: false,
-        error: "Batch does not match preloaded record.",
+        error: "Selected batch does not match the department roster.",
       };
     }
 
-    // Verify program match if provided
+    // Optional program check if provided
     if (program && program !== preloaded.program) {
       return {
         valid: false,
-        error: "Program does not match preloaded record.",
+        error: "Selected program does not match the department roster.",
       };
     }
 
@@ -82,39 +92,38 @@ export class PreloadedService {
   }
 
   /**
-   * Verifies if a teacher exists in the preloaded roster and is not yet registered.
+   * Verifies if a teacher exists in the preloaded roster by institutional email.
    */
   async verifyTeacherRoster(
     params: VerifyTeacherParams
   ): Promise<VerificationResult<PreloadedTeacher>> {
-    const { teacherUniqueId, email } = params;
+    const { email } = params;
+    const normalizedEmail = email.trim().toLowerCase();
 
-    const preloaded = await prisma.preloadedTeacher.findUnique({
-      where: { uniqueId: teacherUniqueId },
+    const preloaded = await prisma.preloadedTeacher.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: "insensitive",
+        },
+      },
     });
 
     if (!preloaded) {
       return {
         valid: false,
-        error: "Teacher ID not found in department roster. Please contact the department admin.",
+        error: "This email address is not registered in the department faculty directory. Please contact the department admin.",
       };
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { teacherUniqueId },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
       return {
         valid: false,
-        error: "An account is already registered with this Teacher ID.",
-      };
-    }
-
-    if (email.trim().toLowerCase() !== preloaded.email.trim().toLowerCase()) {
-      return {
-        valid: false,
-        error: "Email does not match the official teacher record.",
+        error: "An account is already registered with this faculty email address.",
       };
     }
 

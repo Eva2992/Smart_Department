@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Navbar } from "./components/Navbar.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { RegisterPage } from "./pages/RegisterPage.js";
-import { VerifyEmailPage } from "./pages/VerifyEmailPage.js";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.js";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
@@ -30,7 +29,6 @@ export function App() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

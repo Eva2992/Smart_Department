@@ -78,19 +78,29 @@ describe("Auth Integration Routes (/api/v1/auth)", () => {
         batchId: "batch-52",
         program: "HONOURS",
         isChairman: false,
-        isVerified: false,
-        verificationToken: "token-abc-123",
-        verificationTokenExpiry: new Date(Date.now() + 24 * 3600 * 1000),
+        isVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
         failedAttempts: 0,
         lockedUntil: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any);
 
+      vi.mocked(prisma.refreshToken.create).mockResolvedValue({
+        id: "rt-1",
+        userId: "user-uuid-1",
+        tokenHash: "token-hash",
+        expiresAt: new Date(),
+        revoked: false,
+        createdAt: new Date(),
+      });
+
       const res = await request(app).post("/api/v1/auth/register").send({
         name: "Tahmid Hasan",
         email: "student52_1@juniv.edu",
         password: "StrongPassword123!",
+        confirmPassword: "StrongPassword123!",
         role: "STUDENT",
         universityId: "2021-1-60-001",
         batchId: "batch-52",
@@ -100,75 +110,8 @@ describe("Auth Integration Routes (/api/v1/auth)", () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.user.email).toBe("student52_1@juniv.edu");
-      expect(res.body.data.verificationToken).toBeDefined();
-    });
-  });
-
-  describe("POST & GET /api/v1/auth/verify-email", () => {
-    it("verifies user account via POST /verify-email", async () => {
-      const mockUser = {
-        id: "user-uuid-1",
-        name: "Tahmid Hasan",
-        email: "student52_1@juniv.edu",
-        role: "STUDENT",
-        universityId: "2021-1-60-001",
-        teacherUniqueId: null,
-        batchId: "batch-52",
-        program: "HONOURS",
-        isChairman: false,
-        isVerified: false,
-        verificationToken: "valid-token-123",
-        verificationTokenExpiry: new Date(Date.now() + 3600 * 1000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
-      vi.mocked(prisma.user.update).mockResolvedValue({
-        ...mockUser,
-        isVerified: true,
-        verificationToken: null,
-        verificationTokenExpiry: null,
-      } as any);
-
-      const res = await request(app)
-        .post("/api/v1/auth/verify-email")
-        .send({ token: "valid-token-123" });
-
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.isVerified).toBe(true);
-    });
-
-    it("verifies user account via GET /verify-email/:token", async () => {
-      const mockUser = {
-        id: "user-uuid-1",
-        name: "Tahmid Hasan",
-        email: "student52_1@juniv.edu",
-        role: "STUDENT",
-        universityId: "2021-1-60-001",
-        teacherUniqueId: null,
-        batchId: "batch-52",
-        program: "HONOURS",
-        isChairman: false,
-        isVerified: false,
-        verificationToken: "link-token-456",
-        verificationTokenExpiry: new Date(Date.now() + 3600 * 1000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
-      vi.mocked(prisma.user.update).mockResolvedValue({
-        ...mockUser,
-        isVerified: true,
-      } as any);
-
-      const res = await request(app).get("/api/v1/auth/verify-email/link-token-456");
-
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.isVerified).toBe(true);
+      expect(res.body.data.accessToken).toBeDefined();
+      expect(res.body.data.refreshToken).toBeDefined();
     });
   });
 

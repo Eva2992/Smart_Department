@@ -15,8 +15,7 @@
   - **Teacher / Faculty**: Academic instructors who manage class schedules, conduct assessments, record marks, and request room/slot changes.
   - **Class Representative (CR)**: Designated student liaison elected per batch who coordinates routines, logs daily actuals, uploads study resources, and posts semester results.
   - **Student**: Enrolled undergraduate or graduate scholar viewing personalized schedules, notices, CT marks, and study materials.
-- **Chairman**: Head of the CSE Department with administrative oversight and priority scheduling privileges.
-- **Preloaded Student / Teacher**: Authoritative roster maintained by Admin for zero-friction account verification during registration.
+- **Preloaded Student / Teacher**: Authoritative roster maintained by Admin for zero-friction account verification during registration. Students verify via University ID and matched institutional email (auto-resolving batch and program); teachers verify via preloaded institutional email (without needing a teacher unique ID).
 
 ### 2. Academic Structure & Hierarchy
 
@@ -75,7 +74,7 @@ Fixed department facilities allocated for lectures and laboratories:
 
 ### 7. Communication & Email Delivery
 
-- **Email Delivery Service**: Zero-friction adapter logging verification URLs and OTPs directly to console during local development and testing (`NODE_ENV !== "production"`), switching to SMTP transport in production.
+- **Email Delivery Service**: Zero-friction adapter used for system alerts and password reset links, logging OTPs/URLs directly to console during local development and testing (`NODE_ENV !== "production"`), switching to SMTP transport in production. (User registration does not require email verification; accounts activate immediately).
 
 ---
 
@@ -91,7 +90,7 @@ graph TD
     Assessment --> Notification
 ```
 
-1. **Identity & Access Management (IAM)**: Registration, email verification, preloaded roster validation, JWT auth (access/refresh), and role-based access control.
+1. **Identity & Access Management (IAM)**: Single-step registration with preloaded roster validation, immediate account activation with JWT auth (access/refresh), password reset, and role-based access control. Public Admin registration is disabled (seeded only).
 2. **Academic Structure & Batch Management**: Program, Batch, Semester, Course catalog, Student status lifecycle (Active, Promoted, Demoted, Graduated).
 3. **Routine & Conflict Detection Engine**: Master timetable generation, daily slot instances, ACID-compliant 3-way conflict checking with row-level locks, room booking.
 4. **Assessment & Grading**: CT scheduling, assignment management, marks distribution, and grade entry.
