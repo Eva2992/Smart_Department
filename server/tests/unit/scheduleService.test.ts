@@ -201,4 +201,121 @@ describe("scheduleService", () => {
       expect(r101?.slots[1].isAvailable).toBe(true); // 10:00-11:30 is free
     });
   });
+
+  describe("createSeminarEntry", () => {
+    const chairmanActor = {
+      id: "chairman-1",
+      email: "chairman@juniv.edu",
+      role: Role.TEACHER,
+      isChairman: true,
+      teacherUniqueId: "T-CHAIR",
+    };
+
+    const adminActor = {
+      id: "admin-1",
+      email: "admin@juniv.edu",
+      role: Role.ADMIN,
+    };
+
+    const regularTeacherActor = {
+      id: "teacher-1",
+      email: "teacher1@juniv.edu",
+      role: Role.TEACHER,
+      isChairman: false,
+    };
+
+    it("should reject non-chairman teacher from creating seminar", async () => {
+      await expect(
+        scheduleService.createSeminarEntry(
+          {
+            title: "Quantum Computing Seminar",
+            date: "2026-09-03",
+            startTime: "10:00",
+            endTime: "11:30",
+            roomId: "r-202",
+            teacherId: "teacher-1",
+            batchId: "batch-52",
+          },
+          regularTeacherActor as any
+        )
+      ).rejects.toThrow("Only the Chairman or Admin can create seminars");
+    });
+
+    it("should block seminar creation if conflictService detects a clash", async () => {
+      vi.spyOn(conflictService, "checkConflict").mockResolvedValueOnce({
+        hasConflict: true,
+        conflicts: [
+          {
+            type: "ROOM",
+            message: "Room R-202 is already occupied",
+            conflictingEntry: {} as any,
+          },
+        ],
+        summaryMessage: "Room conflict detected",
+      });
+
+      await expect(
+        scheduleService.createSeminarEntry(
+          {
+            title: "Quantum Computing Seminar",
+            date: "2026-09-03",
+            startTime: "10:00",
+            endTime: "11:30",
+            roomId: "r-202",
+            teacherId: "chairman-1",
+            batchId: "batch-52",
+          },
+          chairmanActor as any
+        )
+      ).rejects.toThrow("Room conflict detected");
+    });
+
+    it("should successfully create seminar entry, log audit, and notify students", async () => {
+      vi.spyOn(conflictService, "checkConflict").mockResolvedValueOnce({
+        hasConflict: false,
+        conflicts: [],
+      });
+
+      const createdSeminar = {
+        id: "seminar-1",
+        type: "SEMINAR",
+        topic: "Quantum Computing Seminar",
+        date: new Date("2026-09-03"),
+        startTime: new Date("2026-09-03T10:00:00Z"),
+        endTime: new Date("2026-09-03T11:30:00Z"),
+        roomId: "r-202",
+        teacherId: "chairman-1",
+        batchId: "batch-52",
+        status: ScheduleEntryStatus.SCHEDULED,
+        room: { roomNumber: "R-202" },
+      };
+
+      (prisma.scheduleEntry.create as any).mockResolvedValue(createdSeminar);
+
+      const result = await scheduleService.createSeminarEntry(
+        {
+          title: "Quantum Computing Seminar",
+          date: "2026-09-03",
+          startTime: "10:00",
+          endTime: "11:30",
+          roomId: "r-202",
+          teacherId: "chairman-1",
+          batchId: "batch-52",
+        },
+        chairmanActor as any
+      );
+
+      expect(prisma.scheduleEntry.create).toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: "CREATE_SEMINAR",
+            entityType: "ScheduleEntry",
+          }),
+        })
+      );
+      expect(prisma.notification.createMany).toHaveBeenCalled();
+      expect(result.type).toBe("SEMINAR");
+    });
+  });
 });

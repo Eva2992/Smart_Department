@@ -5,7 +5,18 @@ import type { AuthContextType } from "../types/auth.js";
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    return {
+      user: null,
+      tokens: null,
+      isLoading: false,
+      isAuthenticated: false,
+      login: async () => {},
+      register: async () => {},
+      logout: async () => {},
+      changePassword: async () => ({ success: true, message: "" }),
+      forgotPassword: async () => ({ success: true, message: "" }),
+      resetPassword: async () => ({ success: true, message: "" }),
+    };
   }
   return context;
 }

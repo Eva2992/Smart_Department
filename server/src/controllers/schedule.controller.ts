@@ -6,6 +6,29 @@ import { sendSuccess, sendCreated } from "../utils/response.js";
 import { AppError } from "../middleware/errorHandler.js";
 
 // Validation Schemas
+const createSeminarSchema = z.object({
+  title: z.string().min(1, "Seminar title is required"),
+  date: z.string().min(1, "Date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  roomId: z.string().min(1, "Room selection is required"),
+  teacherId: z.string().optional().default(""),
+  batchId: z.string().optional().default(""),
+  courseId: z.string().optional(),
+});
+
+const createScheduleSchema = z.object({
+  courseId: z.string().min(1, "Course is required"),
+  teacherId: z.string().min(1, "Teacher is required"),
+  roomId: z.string().min(1, "Room is required"),
+  batchId: z.string().optional().default(""),
+  date: z.string().min(1, "Date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  topic: z.string().optional(),
+  type: z.enum(["CLASS", "LAB", "MAKEUP", "SEMINAR", "EXAM", "CT"]).optional(),
+});
+
 const checkConflictSchema = z.object({
   date: z.string().min(1, "Date is required"),
   startTime: z.string().min(1, "startTime is required"),
@@ -123,7 +146,6 @@ export class ScheduleController {
       next(err);
     }
   }
-
   async getClassCounts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
@@ -135,6 +157,42 @@ export class ScheduleController {
         teacherId: teacherId as string,
       });
       sendSuccess(res, data, "Class counts retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Creates a new seminar schedule entry.
+   *
+   * @param req - Express request object
+   * @param res - Express response object
+   * @param next - Express next function
+   */
+  async createSeminar(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const body = createSeminarSchema.parse(req.body);
+      const data = await scheduleService.createSeminarEntry(body, req.user);
+      sendCreated(res, data, "Seminar scheduled successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Creates an ad-hoc class schedule (e.g. makeup or extra class).
+   */
+  async createScheduleEntry(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const body = createScheduleSchema.parse(req.body);
+      const data = await scheduleService.createScheduleEntry(body as any, req.user);
+      sendCreated(res, data, "Class session scheduled successfully");
     } catch (err) {
       next(err);
     }

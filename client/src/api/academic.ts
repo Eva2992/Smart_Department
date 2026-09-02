@@ -9,6 +9,7 @@ import type {
   CreateSemesterPayload,
   PromoteBatchPayload,
   OverrideSemesterPayload,
+  Course,
   Program,
   BatchStatus,
   SemesterStatus,
@@ -50,6 +51,21 @@ export const academicApi = {
 
   createSemester: async (data: CreateSemesterPayload) => {
     const res = await apiClient.post<ApiResponse<Semester>>("/admin/semesters", data);
+    return res.data.data;
+  },
+
+  addCourseToSemester: async (
+    semesterId: string,
+    data: { name: string; code: string; creditHours: number; teacherId: string }
+  ) => {
+    const res = await apiClient.post<ApiResponse<Course>>(`/semesters/${semesterId}/courses`, data);
+    return res.data.data;
+  },
+
+  deleteCourse: async (semesterId: string, courseId: string) => {
+    const res = await apiClient.delete<ApiResponse<unknown>>(
+      `/semesters/${semesterId}/courses/${courseId}`
+    );
     return res.data.data;
   },
 
@@ -196,5 +212,12 @@ export const academicApi = {
       }>
     >("/admin/audit-logs", { params });
     return res.data.data;
+  },
+
+  getTeachers: async () => {
+    const res = await apiClient.get<
+      ApiResponse<Array<{ id: string; name: string; email: string }>>
+    >("/semesters/teachers/list");
+    return res.data.data ?? [];
   },
 };

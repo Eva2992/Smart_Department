@@ -50,20 +50,16 @@ export function ResetPasswordPage() {
       <div className="max-w-md w-full">
         <div className="bg-[#FFFFFF] p-8 sm:p-10 rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#DC143C] text-white font-black text-xl flex items-center justify-center mx-auto shadow-xs mb-3 font-[Poppins]">
-              JU
-            </div>
+            <img
+              src="/smart-department-icon.svg"
+              alt="Smart Department"
+              className="w-14 h-14 object-contain mx-auto mb-3"
+            />
             <h1 className="text-2xl font-bold text-[#1F2937] tracking-tight font-[Poppins]">
               Reset Password
             </h1>
             <p className="text-xs text-[#6B7280] mt-1.5">Enter your new password below</p>
           </div>
-
-          {error && (
-            <div className="mb-5">
-              <Alert type="error" message={error} onClose={() => setError(null)} />
-            </div>
-          )}
 
           {success && (
             <div className="mb-5">
@@ -123,6 +119,13 @@ export function ResetPasswordPage() {
                 className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm text-[#1F2937] focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] transition-colors"
               />
             </div>
+
+            {/* Error Message: Placed EXACTLY above submit button */}
+            {error && (
+              <div className="pt-2">
+                <Alert type="error" message={error} onClose={() => setError(null)} />
+              </div>
+            )}
 
             <button
               type="submit"

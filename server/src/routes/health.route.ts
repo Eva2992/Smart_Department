@@ -14,7 +14,7 @@ router.get("/", (_req: Request, res: Response) => {
     version: "1.0.0",
   };
 
-  sendSuccess(res, healthData, "JU CSE Smart Schedular API is healthy");
+  sendSuccess(res, healthData, "JU CSE Smart Department API is healthy");
 });
 
 export const healthRouter = router;

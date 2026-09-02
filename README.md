@@ -1,6 +1,6 @@
-# Smart_Schedular
+# Smart Department
 
-Smart Scheduler is an Academic Management and Routine Scheduling System designed for departmental course management, routine scheduling, batch coordination, and academic tracking.
+Smart Department is a comprehensive Academic Operations Platform designed for departmental course management, routine scheduling, batch coordination, academic tracking, continuous assessments, and resource/results distribution for the Department of Computer Science and Engineering (CSE) at Jahangirnagar University (JU).
 
 ---
 

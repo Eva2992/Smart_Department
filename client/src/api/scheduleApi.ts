@@ -1,13 +1,6 @@
-import axios from "axios";
+import { apiClient } from "./client.js";
 
-const API_BASE_URL = "http://localhost:5000/api/v1";
-
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export const api = apiClient;
 
 // Set user context headers for role simulation & auth
 export function setAuthHeaders(headers: {
@@ -169,9 +162,14 @@ export async function cancelClass(id: string, data?: { reason?: string }): Promi
   return res.data.data;
 }
 
-export async function getRooms(): Promise<
-  Array<{ id: string; roomNumber: string; type: string; description?: string }>
-> {
+export interface Room {
+  id: string;
+  roomNumber: string;
+  type: string;
+  description?: string;
+}
+
+export async function getRooms(): Promise<Room[]> {
   const res = await api.get("/rooms");
   return res.data.data;
 }
@@ -184,8 +182,28 @@ export async function getRoomAvailability(
   return res.data.data;
 }
 
-export async function getHolidays(): Promise<Holiday[]> {
-  const res = await api.get("/holidays");
+export interface GetHolidaysParams {
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+  batchId?: string;
+}
+
+export async function getHolidays(params?: GetHolidaysParams): Promise<Holiday[]> {
+  const res = await api.get("/holidays", { params });
+  return res.data.data;
+}
+
+export async function getUpcomingHolidays(limit = 5, batchId?: string): Promise<Holiday[]> {
+  const res = await api.get("/holidays/upcoming", { params: { limit, batchId } });
+  return res.data.data;
+}
+
+export async function checkIsHoliday(
+  date: string,
+  batchId?: string
+): Promise<{ isHoliday: boolean }> {
+  const res = await api.get("/holidays/check", { params: { date, batchId } });
   return res.data.data;
 }
 
@@ -196,6 +214,19 @@ export async function declareHoliday(data: {
   batchId?: string;
 }): Promise<{ holiday: Holiday; affectedClassesCount: number; message: string }> {
   const res = await api.post("/holidays", data);
+  return res.data.data;
+}
+
+export async function updateHoliday(
+  id: string,
+  data: {
+    date?: string;
+    reason?: string;
+    scope?: "ALL" | "BATCH";
+    batchId?: string;
+  }
+): Promise<{ holiday: Holiday; affectedClassesCount: number; message: string }> {
+  const res = await api.patch(`/holidays/${id}`, data);
   return res.data.data;
 }
 
@@ -210,5 +241,68 @@ export async function getClassCounts(params?: { batchId?: string; teacherId?: st
   const token = localStorage.getItem("accessToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
   const res = await api.get("/schedules/class-count", { params, headers });
+  return res.data.data;
+}
+
+export async function createScheduleEntry(data: {
+  courseId: string;
+  teacherId: string;
+  roomId: string;
+  batchId?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  topic?: string;
+  type?: string;
+}): Promise<ScheduleEntry> {
+  const res = await api.post("/schedules", data);
+  return res.data.data;
+}
+
+// New types for Slice 3
+export interface RoomScheduleSlot {
+  startTime: string;
+  endTime: string;
+  label: string;
+  isAvailable: boolean;
+  booking: {
+    id: string;
+    courseName?: string;
+    courseCode?: string;
+    teacherName?: string;
+    batchName?: string;
+    title?: string;
+    type: string;
+  } | null;
+}
+
+export interface RoomScheduleGrid {
+  rooms: Array<{ id: string; roomNumber: string; type: string; description?: string }>;
+  dates: string[];
+  grid: Record<string, Record<string, RoomScheduleSlot[]>>;
+}
+
+export interface CreateSeminarInput {
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  roomId: string;
+  teacherId: string;
+  batchId: string;
+  courseId?: string;
+}
+
+// New API functions for Slice 3 & 4
+export async function getRoomScheduleGrid(
+  startDate: string,
+  endDate: string
+): Promise<RoomScheduleGrid> {
+  const res = await api.get("/rooms/schedule", { params: { startDate, endDate } });
+  return res.data.data;
+}
+
+export async function createSeminar(data: CreateSeminarInput): Promise<ScheduleEntry> {
+  const res = await api.post("/schedules/seminar", data);
   return res.data.data;
 }

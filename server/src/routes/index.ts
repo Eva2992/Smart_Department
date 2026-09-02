@@ -12,6 +12,8 @@ import { semesterRouter } from "./semester.route.js";
 import { promotionRouter } from "./promotion.route.js";
 import { adminRouter } from "./admin.route.js";
 import { resourceRouter } from "./resource.route.js";
+import { examRouter } from "./exam.routes.js";
+
 
 const apiV1Router = Router();
 
@@ -33,5 +35,7 @@ apiV1Router.use("/assignments", (req, res, next) => {
   assessmentsRouter(req, res, next);
 });
 apiV1Router.use("/resources", resourceRouter);
+apiV1Router.use("/exams", examRouter);
 
 export { apiV1Router };
+

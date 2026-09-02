@@ -3,9 +3,7 @@ import { authService } from "../services/auth.service.js";
 import {
   registerSchema,
   loginSchema,
-  verifyEmailSchema,
   refreshTokenSchema,
-  resendVerificationSchema,
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
@@ -21,21 +19,8 @@ export class AuthController {
     sendCreated(
       res,
       result,
-      "Registration successful! Please check your email to activate your account."
+      "Account created successfully! You are now logged in."
     );
-  }
-
-  async verifyEmail(req: Request, res: Response): Promise<void> {
-    const token = req.params.token || req.body.token || (req.query.token as string);
-
-    if (!token) {
-      throw new AppError("Verification token is required", 400, "INVALID_TOKEN");
-    }
-
-    const validated = verifyEmailSchema.parse({ token });
-    const result = await authService.verifyEmail(validated.token);
-
-    sendSuccess(res, result.user, result.message);
   }
 
   async login(req: Request, res: Response): Promise<void> {
@@ -60,12 +45,7 @@ export class AuthController {
     sendSuccess(res, { success: true }, "Logged out successfully");
   }
 
-  async resendVerification(req: Request, res: Response): Promise<void> {
-    const validatedData = resendVerificationSchema.parse(req.body);
-    const result = await authService.resendVerificationEmail(validatedData.email);
 
-    sendSuccess(res, result, result.message);
-  }
 
   async getMe(req: Request, res: Response): Promise<void> {
     if (!req.user?.userId) {

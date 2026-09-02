@@ -13,8 +13,6 @@ function renderRegisterPage(authOverrides: Partial<AuthContextType> = {}) {
     isAuthenticated: false,
     login: vi.fn(),
     register: vi.fn(),
-    verifyEmail: vi.fn(),
-    resendVerification: vi.fn(),
     logout: vi.fn(),
     changePassword: vi.fn(),
     forgotPassword: vi.fn(),
@@ -39,37 +37,57 @@ describe("RegisterForm (React Testing Library Component Seam)", () => {
     vi.clearAllMocks();
   });
 
-  it("renders role selector tabs (Student, CR, Teacher, Admin)", () => {
+  it("renders role selector tabs for Student, CR, Teacher (Admin excluded)", () => {
     renderRegisterPage();
 
     expect(screen.getByRole("button", { name: "Student" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "CR" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Teacher" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Admin" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument();
   });
 
-  it("switches to Teacher role and renders Teacher Unique ID input", () => {
+  it("switches to Teacher role and hides University ID without Teacher Unique ID", () => {
     renderRegisterPage();
 
     const teacherTab = screen.getByRole("button", { name: "Teacher" });
     fireEvent.click(teacherTab);
 
-    expect(screen.getByPlaceholderText("e.g. T-JU-001")).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("e.g. 2021-1-60-001")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("20220654955")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("e.g. T-JU-001")).not.toBeInTheDocument();
   });
 
-  it("switches to Student role and renders University ID and batch dropdowns", () => {
+  it("switches to Student role and renders University ID with placeholder 20220654955", () => {
     renderRegisterPage();
 
-    expect(screen.getByPlaceholderText("e.g. 2021-1-60-001")).toBeInTheDocument();
-    expect(screen.getByText("Batch 52")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("20220654955")).toBeInTheDocument();
   });
 
-  it("submits student registration with preloaded credentials", async () => {
-    const registerMock = vi.fn().mockResolvedValue({
-      verificationToken: "sample-token-12345",
-      message: "Registration successful",
+  it("validates password match and shows error above submit button", async () => {
+    renderRegisterPage();
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. Tahmid Hasan"), {
+      target: { value: "Tahmid Hasan" },
     });
+    fireEvent.change(screen.getByPlaceholderText("student@juniv.edu"), {
+      target: { value: "student52_1@juniv.edu" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("20220654955"), {
+      target: { value: "20220654955" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("At least 8 characters"), {
+      target: { value: "Password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Re-enter your password"), {
+      target: { value: "DifferentPass123" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByText(/Passwords do not match/i)).toBeInTheDocument();
+  });
+
+  it("submits student registration with preloaded credentials and confirm password", async () => {
+    const registerMock = vi.fn().mockResolvedValue(undefined);
 
     renderRegisterPage({ register: registerMock });
 
@@ -79,11 +97,14 @@ describe("RegisterForm (React Testing Library Component Seam)", () => {
     fireEvent.change(screen.getByPlaceholderText("student@juniv.edu"), {
       target: { value: "student52_1@juniv.edu" },
     });
-    fireEvent.change(screen.getByPlaceholderText("e.g. 2021-1-60-001"), {
-      target: { value: "2021-1-60-001" },
+    fireEvent.change(screen.getByPlaceholderText("20220654955"), {
+      target: { value: "20220654955" },
     });
     fireEvent.change(screen.getByPlaceholderText("At least 8 characters"), {
-      target: { value: "StrongPass123!" },
+      target: { value: "Password123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Re-enter your password"), {
+      target: { value: "Password123" },
     });
 
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
@@ -93,13 +114,12 @@ describe("RegisterForm (React Testing Library Component Seam)", () => {
         expect.objectContaining({
           name: "Tahmid Hasan",
           email: "student52_1@juniv.edu",
-          universityId: "2021-1-60-001",
+          universityId: "20220654955",
           role: "STUDENT",
-          password: "StrongPass123!",
+          password: "Password123",
+          confirmPassword: "Password123",
         })
       );
-      expect(screen.getByText(/Registration Successful!/i)).toBeInTheDocument();
-      expect(screen.getByText("sample-token-12345")).toBeInTheDocument();
     });
   });
 });

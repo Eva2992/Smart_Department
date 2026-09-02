@@ -21,7 +21,7 @@ Agents MUST consult [`CONTEXT.md`](file:///CONTEXT.md) and [`docs/frontend_color
 ### Tracker Configuration
 
 - **Primary Tracker**: GitHub Issues (`gh issue` CLI / GitHub API)
-  - Remote repository: `https://github.com/Eva2992/Smart_Schedular.git`
+  - Remote repository: `https://github.com/Eva2992/Smart_Department.git`
 - **Fallback / Local Tracker**: `.scratch/tickets/`
   - When offline or working locally without GitHub credentials, store tickets as numbered markdown files (e.g., `.scratch/tickets/001-auth-flow.md`).
 

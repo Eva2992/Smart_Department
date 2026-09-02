@@ -1,4 +1,4 @@
-// Prisma Schema for Smart_Schedular (JU CSE Academic Management System)
+// Prisma Schema for Smart Department (JU CSE Academic Operations Platform)
 
 generator client {
   provider = "prisma-client-js"

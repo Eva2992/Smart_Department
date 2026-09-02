@@ -1,4 +1,5 @@
 import { type ScheduleEntry } from "../api/scheduleApi";
+import { useAuth } from "../context/useAuth";
 
 interface ScheduleGridProps {
   schedules: ScheduleEntry[];
@@ -17,6 +18,7 @@ export function ScheduleGrid({
   onOpenReschedule,
   onOpenCancel,
 }: ScheduleGridProps) {
+  const { user } = useAuth();
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-[#6B7280]">
@@ -78,8 +80,8 @@ export function ScheduleGrid({
         );
       case "HOLIDAY":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30">
-            ★ Holiday
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F59E0B]/15 text-[#B45309] border border-[#F59E0B]/30">
+            ★ Holiday — No Class
           </span>
         );
       default:
@@ -96,7 +98,8 @@ export function ScheduleGrid({
       {schedules.map((entry) => {
         const isOwnerOrAdmin =
           userRole === "ADMIN" ||
-          (userRole === "TEACHER" && (entry.teacherId === currentUserId || !currentUserId));
+          (userRole === "TEACHER" && (entry.teacherId === currentUserId || !currentUserId)) ||
+          (userRole === "CR" && (entry.batchId === user?.batchId || !user?.batchId));
 
         const isActionable = entry.status !== "CANCELLED" && entry.status !== "HOLIDAY";
 
@@ -127,7 +130,9 @@ export function ScheduleGrid({
               {/* Course Title */}
               <h3
                 className={`text-base font-bold font-[Poppins] line-clamp-1 ${
-                  entry.status === "CANCELLED" ? "line-through text-[#6B7280]" : "text-[#1F2937]"
+                  entry.status === "CANCELLED" || entry.status === "HOLIDAY"
+                    ? "line-through text-[#6B7280]"
+                    : "text-[#1F2937]"
                 }`}
               >
                 {entry.course?.name || "Academic Session"}

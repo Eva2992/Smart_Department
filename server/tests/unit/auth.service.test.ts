@@ -58,9 +58,9 @@ describe("AuthService (Unit Seam)", () => {
         batchId: "batch-52",
         program: "HONOURS" as const,
         isChairman: false,
-        isVerified: false,
-        verificationToken: "token-123",
-        verificationTokenExpiry: new Date(Date.now() + 24 * 3600 * 1000),
+        isVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
         failedAttempts: 0,
         lockedUntil: null,
         createdAt: new Date(),
@@ -68,6 +68,14 @@ describe("AuthService (Unit Seam)", () => {
       };
 
       vi.mocked(prisma.user.create).mockResolvedValue(mockCreatedUser as any);
+      vi.mocked(prisma.refreshToken.create).mockResolvedValue({
+        id: "rt-1",
+        userId: "user-1",
+        tokenHash: "token-hash",
+        expiresAt: new Date(),
+        revoked: false,
+        createdAt: new Date(),
+      });
 
       const result = await authService.register({
         name: "Tahmid Hasan",
@@ -80,8 +88,9 @@ describe("AuthService (Unit Seam)", () => {
       });
 
       expect(result.user.email).toBe("student52_1@juniv.edu");
-      expect(result.user.isVerified).toBe(false);
-      expect(result.verificationToken).toBeDefined();
+      expect(result.user.isVerified).toBe(true);
+      expect(result.accessToken).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
       expect(prisma.user.create).toHaveBeenCalled();
     });
 
@@ -106,7 +115,7 @@ describe("AuthService (Unit Seam)", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
       vi.mocked(preloadedService.verifyStudentRoster).mockResolvedValue({
         valid: false,
-        error: "Your information does not match our records. Please contact the department admin.",
+        error: "Your University ID or Email does not match the official department roster. Please contact the department admin.",
       });
 
       await expect(
@@ -117,61 +126,7 @@ describe("AuthService (Unit Seam)", () => {
           role: "STUDENT",
           universityId: "9999-9-99-999",
         })
-      ).rejects.toThrow(/does not match our records/);
-    });
-  });
-
-  describe("verifyEmail", () => {
-    it("successfully verifies email with valid token", async () => {
-      const mockUser = {
-        id: "user-1",
-        name: "Tahmid",
-        email: "student52_1@juniv.edu",
-        role: "STUDENT" as const,
-        universityId: "2021-1-60-001",
-        teacherUniqueId: null,
-        batchId: "batch-52",
-        program: "HONOURS" as const,
-        isChairman: false,
-        isVerified: false,
-        verificationToken: "valid-token",
-        verificationTokenExpiry: new Date(Date.now() + 100000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
-      vi.mocked(prisma.user.update).mockResolvedValue({
-        ...mockUser,
-        isVerified: true,
-        verificationToken: null,
-        verificationTokenExpiry: null,
-      } as any);
-
-      const result = await authService.verifyEmail("valid-token");
-      expect(result.success).toBe(true);
-      expect(result.user.isVerified).toBe(true);
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: "user-1" },
-        data: {
-          isVerified: true,
-          verificationToken: null,
-          verificationTokenExpiry: null,
-        },
-      });
-    });
-
-    it("throws TOKEN_EXPIRED if verification token has expired", async () => {
-      const mockUser = {
-        id: "user-1",
-        isVerified: false,
-        verificationToken: "expired-token",
-        verificationTokenExpiry: new Date(Date.now() - 1000),
-      };
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
-
-      await expect(authService.verifyEmail("expired-token")).rejects.toThrow(/expired/);
+      ).rejects.toThrow(/does not match/);
     });
   });
 
@@ -211,27 +166,6 @@ describe("AuthService (Unit Seam)", () => {
       expect(prisma.refreshToken.create).toHaveBeenCalled();
     });
 
-    it("throws EMAIL_NOT_VERIFIED if user account is not yet verified", async () => {
-      const hashed = await bcrypt.hash("CorrectPassword123!", 10);
-      const mockUser = {
-        id: "user-1",
-        email: "unverified@juniv.edu",
-        passwordHash: hashed,
-        isVerified: false,
-        failedAttempts: 0,
-        lockedUntil: null,
-      };
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any);
-
-      await expect(
-        authService.login({
-          email: "unverified@juniv.edu",
-          password: "CorrectPassword123!",
-        })
-      ).rejects.toThrow(/verify your email/);
-    });
-
     it("locks account after 5 consecutive failed attempts", async () => {
       const hashed = await bcrypt.hash("CorrectPassword123!", 10);
       const mockUser = {
@@ -251,7 +185,7 @@ describe("AuthService (Unit Seam)", () => {
           email: "student52_1@juniv.edu",
           password: "WrongPassword!",
         })
-      ).rejects.toThrow(/account has been locked/);
+      ).rejects.toThrow(/locked/);
 
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({

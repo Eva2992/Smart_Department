@@ -41,10 +41,18 @@ function toUserResponse(user: User): UserResponse {
 export class AuthService {
   /**
    * Registers a new user with preloaded roster verification (FR-01, AN-01, AN-02).
+   * Automatically activates account and issues JWT access and refresh tokens.
    */
-  async register(dto: RegisterDto): Promise<{ user: UserResponse; verificationToken: string }> {
-    const { name, email, password, role, universityId, teacherUniqueId, batchId, program } = dto;
+  async register(
+    dto: RegisterDto
+  ): Promise<{ user: UserResponse; accessToken: string; refreshToken: string }> {
+    const { name, email, password, role, universityId } = dto;
+    let { teacherUniqueId, batchId, program } = dto;
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (role === "ADMIN") {
+      throw new AppError("Admin accounts cannot be registered publicly.", 403, "FORBIDDEN");
+    }
 
     // 1. Check if email already registered
     const existingUser = await prisma.user.findUnique({
@@ -52,7 +60,11 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new AppError("A user with this email already exists", 409, "USER_ALREADY_EXISTS");
+      throw new AppError(
+        "An account is already registered with this email address.",
+        409,
+        "USER_ALREADY_EXISTS"
+      );
     }
 
     let isChairman = false;
@@ -78,38 +90,35 @@ export class AuthService {
       if (!rosterCheck.valid || !rosterCheck.preloadedRecord) {
         throw new AppError(
           rosterCheck.error ||
-            "Your information does not match our records. Please contact the department admin.",
+            "Your University ID or Email does not match the official department roster. Please contact the department admin.",
           400,
           "PRELOADED_VERIFICATION_FAILED"
         );
       }
 
+      batchId = rosterCheck.preloadedRecord.batchId;
+      program = rosterCheck.preloadedRecord.program;
+
       if (!finalName) {
         finalName = rosterCheck.preloadedRecord.name;
       }
     } else if (role === "TEACHER") {
-      if (!teacherUniqueId) {
-        throw new AppError(
-          "Teacher Unique ID is required for teacher registration",
-          400,
-          "MISSING_TEACHER_ID"
-        );
-      }
-
       const rosterCheck = await preloadedService.verifyTeacherRoster({
-        teacherUniqueId,
         email: normalizedEmail,
+        teacherUniqueId,
       });
 
       if (!rosterCheck.valid || !rosterCheck.preloadedRecord) {
         throw new AppError(
-          rosterCheck.error || "Teacher verification failed. Please contact the department admin.",
+          rosterCheck.error ||
+            "This email address is not registered in the department faculty directory. Please contact the department admin.",
           400,
           "PRELOADED_VERIFICATION_FAILED"
         );
       }
 
       isChairman = rosterCheck.preloadedRecord.isChairman;
+      teacherUniqueId = rosterCheck.preloadedRecord.uniqueId;
       if (!finalName) {
         finalName = rosterCheck.preloadedRecord.name;
       }
@@ -118,11 +127,7 @@ export class AuthService {
     // 3. Hash password (cost factor 10)
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 4. Generate 24-hour verification token
-    const { token: verificationToken, expiresAt: verificationTokenExpiry } =
-      generateVerificationToken();
-
-    // 5. Create user in inactive/unverified state
+    // 4. Create user in active and verified state immediately
     const createdUser = await prisma.user.create({
       data: {
         name: finalName,
@@ -134,73 +139,44 @@ export class AuthService {
         batchId: batchId || null,
         program: program || null,
         isChairman,
-        isVerified: false,
-        verificationToken,
-        verificationTokenExpiry,
+        isVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
         failedAttempts: 0,
       },
     });
 
-    // 6. Dispatch verification email (ADR-0005)
-    await emailService.sendVerificationEmail(
-      createdUser.email,
-      verificationToken,
-      createdUser.name
-    );
-
-    return {
-      user: toUserResponse(createdUser),
-      verificationToken,
+    // 5. Generate session tokens (auto-login)
+    const accessPayload: AccessTokenPayload = {
+      userId: createdUser.id,
+      email: createdUser.email,
+      role: createdUser.role,
+      name: createdUser.name,
+      universityId: createdUser.universityId,
+      teacherUniqueId: createdUser.teacherUniqueId,
+      batchId: createdUser.batchId,
+      program: createdUser.program,
+      isChairman: createdUser.isChairman,
     };
-  }
 
-  /**
-   * Confirms email verification via token (FR-02).
-   */
-  async verifyEmail(
-    token: string
-  ): Promise<{ success: boolean; message: string; user: UserResponse }> {
-    if (!token) {
-      throw new AppError("Verification token is required", 400, "INVALID_TOKEN");
-    }
+    const accessToken = generateAccessToken(accessPayload);
+    const rawRefreshToken = generateRefreshToken({ userId: createdUser.id });
+    const tokenHash = hashToken(rawRefreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const user = await prisma.user.findUnique({
-      where: { verificationToken: token },
-    });
-
-    if (!user) {
-      throw new AppError("Invalid or expired verification token", 400, "INVALID_TOKEN");
-    }
-
-    if (user.isVerified) {
-      return {
-        success: true,
-        message: "Email is already verified",
-        user: toUserResponse(user),
-      };
-    }
-
-    if (user.verificationTokenExpiry && user.verificationTokenExpiry < new Date()) {
-      throw new AppError(
-        "Verification token has expired. Please request a new one.",
-        400,
-        "TOKEN_EXPIRED"
-      );
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
+    await prisma.refreshToken.create({
       data: {
-        isVerified: true,
-        verificationToken: null,
-        verificationTokenExpiry: null,
+        userId: createdUser.id,
+        tokenHash,
+        expiresAt,
+        revoked: false,
       },
     });
 
     return {
-      success: true,
-      message: "Email verified successfully! You can now log in.",
-      user: toUserResponse(updatedUser),
+      user: toUserResponse(createdUser),
+      accessToken,
+      refreshToken: rawRefreshToken,
     };
   }
 
@@ -218,7 +194,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+      throw new AppError(
+        "The email or password you entered is incorrect.",
+        401,
+        "INVALID_CREDENTIALS"
+      );
     }
 
     // Check account lockout
@@ -253,7 +233,7 @@ export class AuthService {
           details: { attempts: newAttempts },
         });
         throw new AppError(
-          "Too many failed login attempts. Your account has been locked for 15 minutes.",
+          "Too many failed login attempts. Your account has been temporarily locked for 15 minutes.",
           403,
           "ACCOUNT_LOCKED"
         );
@@ -269,17 +249,12 @@ export class AuthService {
           entityId: user.id,
           details: { reason: "INVALID_PASSWORD", attempts: newAttempts },
         });
-        throw new AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+        throw new AppError(
+          "The email or password you entered is incorrect.",
+          401,
+          "INVALID_CREDENTIALS"
+        );
       }
-    }
-
-    // Check email verification status
-    if (!user.isVerified) {
-      throw new AppError(
-        "Please verify your email address before logging in.",
-        403,
-        "EMAIL_NOT_VERIFIED"
-      );
     }
 
     // Reset lockout and failed attempts upon successful login
@@ -420,53 +395,6 @@ export class AuthService {
     }
 
     return { success: true };
-  }
-
-  /**
-   * Resends verification email with a fresh 24-hour token (FR-02).
-   */
-  async resendVerificationEmail(
-    email: string
-  ): Promise<{ success: boolean; message: string; verificationToken?: string }> {
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!user) {
-      // Return generic message to prevent email enumeration
-      return {
-        success: true,
-        message:
-          "If an account with this email exists and is unverified, a verification link has been sent.",
-      };
-    }
-
-    if (user.isVerified) {
-      return {
-        success: true,
-        message: "Your email is already verified. You can log in directly.",
-      };
-    }
-
-    const { token: verificationToken, expiresAt: verificationTokenExpiry } =
-      generateVerificationToken();
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        verificationToken,
-        verificationTokenExpiry,
-      },
-    });
-
-    await emailService.sendVerificationEmail(user.email, verificationToken, user.name);
-
-    return {
-      success: true,
-      message: "Verification email sent successfully.",
-      verificationToken,
-    };
   }
 
   /**

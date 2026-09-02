@@ -38,7 +38,8 @@ export function errorHandler(
       path: issue.path.join("."),
       message: issue.message,
     }));
-    sendError(res, "Validation failed", 400, "VALIDATION_ERROR", formatted);
+    const primaryMessage = err.issues[0]?.message || "Validation failed";
+    sendError(res, primaryMessage, 400, "VALIDATION_ERROR", formatted);
     return;
   }
 
@@ -47,14 +48,21 @@ export function errorHandler(
     return;
   }
 
-  const errorMessage =
-    env.NODE_ENV === "production"
-      ? "An unexpected error occurred. Please try again later."
-      : err instanceof Error
-        ? err.message
-        : "Internal Server Error";
+  // Always log the full unexpected error on the server
+  console.error("Unhandled Error:", err);
+
+  // Friendly error message for the client - never leak database or stack internals
+  const isPrismaOrDbError =
+    err instanceof Error &&
+    (err.name.includes("Prisma") ||
+      err.message.includes("invocation in") ||
+      err.message.includes("database"));
+
+  const userFriendlyMessage = isPrismaOrDbError
+    ? "A database connection or system error occurred. Please try again shortly."
+    : "An unexpected system error occurred. Please try again shortly.";
+
   const details = env.NODE_ENV === "development" && err instanceof Error ? err.stack : undefined;
 
-  console.error("Unhandled Error:", err);
-  sendError(res, errorMessage, 500, "INTERNAL_SERVER_ERROR", details);
+  sendError(res, userFriendlyMessage, 500, "INTERNAL_SERVER_ERROR", details);
 }

@@ -9,9 +9,11 @@ vi.mock("../../src/lib/prisma.js", () => ({
     },
     preloadedTeacher: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }));
@@ -30,7 +32,7 @@ describe("PreloadedService (Unit Seam)", () => {
         batchId: "batch-52",
         program: "HONOURS",
       });
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
       const result = await preloadedService.verifyStudentRoster({
         universityId: "2021-1-60-001",
@@ -51,7 +53,7 @@ describe("PreloadedService (Unit Seam)", () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("does not match our records");
+      expect(result.error).toContain("was not found");
     });
 
     it("fails when university ID is already registered by an existing user", async () => {
@@ -62,7 +64,7 @@ describe("PreloadedService (Unit Seam)", () => {
         batchId: "batch-52",
         program: "HONOURS",
       });
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      vi.mocked(prisma.user.findFirst).mockResolvedValue({
         id: "existing-user-id",
         universityId: "2021-1-60-001",
       } as any);
@@ -83,7 +85,7 @@ describe("PreloadedService (Unit Seam)", () => {
         batchId: "batch-52",
         program: "HONOURS",
       });
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
 
       const result = await preloadedService.verifyStudentRoster({
         universityId: "2021-1-60-001",
@@ -91,13 +93,13 @@ describe("PreloadedService (Unit Seam)", () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("Email does not match");
+      expect(result.error).toContain("does not match the official");
     });
   });
 
   describe("verifyTeacherRoster", () => {
-    it("returns valid: true when teacher ID and institutional email match preloaded teacher", async () => {
-      vi.mocked(prisma.preloadedTeacher.findUnique).mockResolvedValue({
+    it("returns valid: true when institutional email matches preloaded teacher", async () => {
+      vi.mocked(prisma.preloadedTeacher.findFirst).mockResolvedValue({
         uniqueId: "T-JU-001",
         name: "Prof. Dr. Md. Golam Moazzam",
         email: "moazzam@juniv.edu",
@@ -107,7 +109,6 @@ describe("PreloadedService (Unit Seam)", () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
       const result = await preloadedService.verifyTeacherRoster({
-        teacherUniqueId: "T-JU-001",
         email: "moazzam@juniv.edu",
       });
 
@@ -115,35 +116,36 @@ describe("PreloadedService (Unit Seam)", () => {
       expect(result.preloadedRecord?.isChairman).toBe(true);
     });
 
-    it("fails when teacher ID does not exist", async () => {
-      vi.mocked(prisma.preloadedTeacher.findUnique).mockResolvedValue(null);
+    it("fails when teacher email is not in preloaded roster", async () => {
+      vi.mocked(prisma.preloadedTeacher.findFirst).mockResolvedValue(null);
 
       const result = await preloadedService.verifyTeacherRoster({
-        teacherUniqueId: "T-INVALID",
         email: "random@juniv.edu",
       });
 
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("Teacher ID not found");
+      expect(result.error).toContain("not registered in the department faculty directory");
     });
 
-    it("fails when teacher email does not match official record", async () => {
-      vi.mocked(prisma.preloadedTeacher.findUnique).mockResolvedValue({
+    it("fails when teacher email is already registered", async () => {
+      vi.mocked(prisma.preloadedTeacher.findFirst).mockResolvedValue({
         uniqueId: "T-JU-001",
         name: "Prof. Dr. Md. Golam Moazzam",
         email: "moazzam@juniv.edu",
         designation: "Professor",
         isChairman: false,
       });
-      vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "existing-user",
+        email: "moazzam@juniv.edu",
+      } as any);
 
       const result = await preloadedService.verifyTeacherRoster({
-        teacherUniqueId: "T-JU-001",
-        email: "wrong@juniv.edu",
+        email: "moazzam@juniv.edu",
       });
 
       expect(result.valid).toBe(false);
-      expect(result.error).toContain("Email does not match");
+      expect(result.error).toContain("already registered");
     });
   });
 });

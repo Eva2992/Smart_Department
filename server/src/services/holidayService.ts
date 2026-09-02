@@ -23,7 +23,7 @@ export class HolidayService {
    * Declares a holiday and retroactively updates overlapping classes to HOLIDAY status.
    */
   async declareHoliday(input: DeclareHolidayInput, actor: AuthUser) {
-    if (actor.role !== Role.ADMIN) {
+    if (actor.role !== Role.ADMIN && actor.role !== Role.CR) {
       throw new AppError(
         "Only departmental administrators can declare holidays.",
         403,
@@ -31,10 +31,21 @@ export class HolidayService {
       );
     }
 
-    const holidayDate = new Date(normalizeDateString(input.date));
-    const scope = input.scope || HolidayScope.ALL;
+    // If actor is CR, enforce batch scope for their own batch
+    let scope = input.scope || HolidayScope.ALL;
+    let batchId = input.batchId;
 
-    if (scope === HolidayScope.BATCH && !input.batchId) {
+    if (actor.role === Role.CR) {
+      if (!actor.batchId) {
+        throw new AppError("Class Representative does not have an assigned batch.", 400, "VALIDATION_ERROR");
+      }
+      scope = HolidayScope.BATCH;
+      batchId = actor.batchId;
+    }
+
+    const holidayDate = new Date(normalizeDateString(input.date));
+
+    if (scope === HolidayScope.BATCH && !batchId) {
       throw new AppError(
         "batchId is required when holiday scope is BATCH.",
         400,
@@ -49,7 +60,7 @@ export class HolidayService {
           date: holidayDate,
           reason: input.reason,
           scope,
-          batchId: scope === HolidayScope.BATCH ? input.batchId : null,
+          batchId: scope === HolidayScope.BATCH ? batchId : null,
         },
       });
 
@@ -61,8 +72,8 @@ export class HolidayService {
         },
       };
 
-      if (scope === HolidayScope.BATCH && input.batchId) {
-        scheduleWhere.batchId = input.batchId;
+      if (scope === HolidayScope.BATCH && batchId) {
+        scheduleWhere.batchId = batchId;
       }
 
       const affectedEntries = await tx.scheduleEntry.findMany({
@@ -94,7 +105,7 @@ export class HolidayService {
             reason: input.reason,
             date: normalizeDateString(holidayDate),
             scope,
-            batchId: input.batchId,
+            batchId,
             affectedClassesCount: affectedEntries.length,
           },
         },
@@ -109,10 +120,125 @@ export class HolidayService {
   }
 
   /**
+   * Updates an existing holiday and synchronizes class statuses.
+   */
+  async updateHoliday(
+    id: string,
+    input: Partial<DeclareHolidayInput>,
+    actor: AuthUser
+  ) {
+    const existingHoliday = await prisma.holiday.findUnique({
+      where: { id },
+    });
+
+    if (!existingHoliday) {
+      throw new AppError("Holiday not found", 404, "NOT_FOUND");
+    }
+
+    if (actor.role === Role.CR) {
+      if (
+        existingHoliday.scope !== HolidayScope.BATCH ||
+        existingHoliday.batchId !== actor.batchId
+      ) {
+        throw new AppError(
+          "Class Representatives can only modify off-days for their own batch.",
+          403,
+          "FORBIDDEN"
+        );
+      }
+    } else if (actor.role !== Role.ADMIN) {
+      throw new AppError(
+        "Only administrators and Class Representatives can update holidays.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    const newDate = input.date ? new Date(normalizeDateString(input.date)) : existingHoliday.date;
+    const newReason = input.reason?.trim() || existingHoliday.reason;
+    let newScope = input.scope || existingHoliday.scope;
+    let newBatchId = input.batchId !== undefined ? input.batchId : existingHoliday.batchId;
+
+    if (actor.role === Role.CR) {
+      newScope = HolidayScope.BATCH;
+      newBatchId = actor.batchId || null;
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      // If date or scope changed, restore previous date's holiday classes
+      const dateChanged =
+        normalizeDateString(existingHoliday.date) !== normalizeDateString(newDate);
+
+      if (dateChanged) {
+        const restoreWhere: any = {
+          date: existingHoliday.date,
+          status: ScheduleEntryStatus.HOLIDAY,
+        };
+        if (existingHoliday.scope === HolidayScope.BATCH && existingHoliday.batchId) {
+          restoreWhere.batchId = existingHoliday.batchId;
+        }
+        await tx.scheduleEntry.updateMany({
+          where: restoreWhere,
+          data: { status: ScheduleEntryStatus.SCHEDULED },
+        });
+      }
+
+      // Update the holiday
+      const updatedHoliday = await tx.holiday.update({
+        where: { id },
+        data: {
+          date: newDate,
+          reason: newReason,
+          scope: newScope,
+          batchId: newScope === HolidayScope.BATCH ? newBatchId : null,
+        },
+      });
+
+      // Apply HOLIDAY status to newly affected entries
+      const newScheduleWhere: any = {
+        date: newDate,
+        status: {
+          in: [ScheduleEntryStatus.SCHEDULED, ScheduleEntryStatus.RESCHEDULED],
+        },
+      };
+      if (newScope === HolidayScope.BATCH && newBatchId) {
+        newScheduleWhere.batchId = newBatchId;
+      }
+      const newlyAffected = await tx.scheduleEntry.updateMany({
+        where: newScheduleWhere,
+        data: { status: ScheduleEntryStatus.HOLIDAY },
+      });
+
+      // Audit Log
+      await tx.auditLog.create({
+        data: {
+          userId: actor.id,
+          action: "UPDATE_HOLIDAY",
+          entityType: "Holiday",
+          entityId: id,
+          ipAddress: "127.0.0.1",
+          details: {
+            reason: newReason,
+            date: normalizeDateString(newDate),
+            scope: newScope,
+            batchId: newBatchId,
+          },
+        },
+      });
+
+      return {
+        holiday: updatedHoliday,
+        affectedClassesCount: newlyAffected.count,
+        message: `Holiday "${newReason}" updated successfully.`,
+      };
+    });
+  }
+
+  /**
    * Deletes a holiday and restores affected schedule entries back to SCHEDULED.
    */
   async deleteHoliday(id: string, actor: AuthUser) {
-    if (actor.role !== Role.ADMIN) {
+    if (actor.role !== Role.ADMIN && actor.role !== Role.CR) {
       throw new AppError("Only departmental administrators can remove holidays.", 403, "FORBIDDEN");
     }
 
@@ -122,6 +248,19 @@ export class HolidayService {
 
     if (!existingHoliday) {
       throw new AppError("Holiday not found", 404, "NOT_FOUND");
+    }
+
+    if (actor.role === Role.CR) {
+      if (
+        existingHoliday.scope !== HolidayScope.BATCH ||
+        existingHoliday.batchId !== actor.batchId
+      ) {
+        throw new AppError(
+          "Class Representatives can only remove off-days for their own batch.",
+          403,
+          "FORBIDDEN"
+        );
+      }
     }
 
     return await prisma.$transaction(async (tx) => {
@@ -172,6 +311,13 @@ export class HolidayService {
   }
 
   /**
+   * Alias for deleteHoliday for convenience and ubiquitous language.
+   */
+  async removeHoliday(id: string, actor: AuthUser) {
+    return this.deleteHoliday(id, actor);
+  }
+
+  /**
    * Gets list of declared holidays.
    */
   async getHolidays(filters: GetHolidaysFilter = {}) {
@@ -198,6 +344,57 @@ export class HolidayService {
       },
     });
   }
+
+  /**
+   * Gets holidays in a specific date range.
+   */
+  async getHolidaysByDateRange(startDate: string, endDate: string, batchId?: string) {
+    return this.getHolidays({ startDate, endDate, batchId });
+  }
+
+  /**
+   * Checks whether a specific date is a declared holiday.
+   * If batchId is provided, checks if it is a holiday for that batch or department-wide.
+   */
+  async isHolidayDate(date: string | Date, batchId?: string): Promise<boolean> {
+    const holidayDate = new Date(normalizeDateString(date));
+    const where: any = {
+      date: holidayDate,
+    };
+
+    if (batchId) {
+      where.OR = [{ scope: HolidayScope.ALL }, { batchId }];
+    } else {
+      where.scope = HolidayScope.ALL;
+    }
+
+    const count = await prisma.holiday.count({ where });
+    return count > 0;
+  }
+
+  /**
+   * Gets the upcoming holidays from today onwards.
+   */
+  async getUpcomingHolidays(limit = 5, batchId?: string) {
+    const today = new Date(normalizeDateString(new Date()));
+    const where: any = {
+      date: { gte: today },
+    };
+
+    if (batchId) {
+      where.OR = [{ scope: HolidayScope.ALL }, { batchId }];
+    }
+
+    return await prisma.holiday.findMany({
+      where,
+      orderBy: { date: "asc" },
+      take: limit,
+      include: {
+        batch: { select: { id: true, name: true } },
+      },
+    });
+  }
 }
 
 export const holidayService = new HolidayService();
+

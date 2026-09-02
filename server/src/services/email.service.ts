@@ -38,7 +38,7 @@ export class EmailService {
     name = "User"
   ): Promise<{ delivered: boolean; mode: "smtp" | "console" | "test"; verificationLink: string }> {
     const verificationLink = `${env.CLIENT_URL}/verify-email?token=${encodeURIComponent(token)}`;
-    const subject = "Activate Your JU CSE Smart Schedular Account";
+    const subject = "Activate Your JU CSE Smart Department Account";
     const body = `Hello ${name},\n\nWelcome to the JU CSE Academic Management System. Please click the link below to verify your email and activate your account (valid for 24 hours):\n\n${verificationLink}\n\nVerification Token: ${token}\n\nIf you did not create this account, please ignore this email.`;
 
     const isSmtpConfigured = !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
@@ -101,7 +101,7 @@ export class EmailService {
     token: string
   ): Promise<{ delivered: boolean; mode: "smtp" | "console" | "test"; resetLink: string }> {
     const resetLink = `${env.CLIENT_URL}/reset-password?token=${encodeURIComponent(token)}`;
-    const subject = "Reset Your Smart Schedular Password";
+    const subject = "Reset Your Smart Department Password";
     const body = `Please click the link below to reset your password (valid for 1 hour):\n\n${resetLink}`;
 
     const isSmtpConfigured = !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
