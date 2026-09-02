@@ -464,26 +464,20 @@ export class AuthService {
   /**
    * Initiates password reset flow for an unauthenticated user (FR-05, Step 1).
    * Generates a cryptographically secure, single-use token (1-hour expiry) and
-   * dispatches a reset email via the email service (ADR-0005).
-   * Returns a generic message regardless of whether the email exists (anti-enumeration).
+   * dispatches a reset email via SendGrid.
+   * If email is not registered, throws an AppError with 404.
    */
   async forgotPassword(
     email: string
-  ): Promise<{ success: boolean; message: string; resetToken?: string }> {
+  ): Promise<{ success: boolean; message: string }> {
     const normalizedEmail = email.trim().toLowerCase();
-    const genericMessage =
-      "If an account with this email exists, a password reset link has been sent.";
 
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
 
     if (!user) {
-      // Return generic message to prevent email enumeration
-      return {
-        success: true,
-        message: genericMessage,
-      };
+      throw new AppError("Email not found", 404, "USER_NOT_FOUND");
     }
 
     // Generate single-use reset token (1-hour expiry)
@@ -498,13 +492,12 @@ export class AuthService {
       },
     });
 
-    // Dispatch reset email (ADR-0005: console in dev, SMTP in prod)
+    // Dispatch reset email via SendGrid
     await emailService.sendPasswordResetEmail(user.email, resetToken);
 
     return {
       success: true,
-      message: genericMessage,
-      resetToken,
+      message: "Password reset link has been sent to your email.",
     };
   }
 

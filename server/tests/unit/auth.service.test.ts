@@ -275,7 +275,7 @@ describe("AuthService (Unit Seam)", () => {
   });
 
   describe("forgotPassword", () => {
-    it("generates reset token and dispatches email for existing user", async () => {
+    it("generates reset token and dispatches email for existing user without leaking dev token", async () => {
       const mockUser = {
         id: "user-1",
         email: "student52_1@juniv.edu",
@@ -288,7 +288,8 @@ describe("AuthService (Unit Seam)", () => {
       const result = await authService.forgotPassword("student52_1@juniv.edu");
 
       expect(result.success).toBe(true);
-      expect(result.resetToken).toBeDefined();
+      expect(result.message).toBe("Password reset link has been sent to your email.");
+      expect((result as any).resetToken).toBeUndefined();
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "user-1" },
@@ -300,15 +301,13 @@ describe("AuthService (Unit Seam)", () => {
       );
     });
 
-    it("returns generic success message for non-existent email (anti-enumeration)", async () => {
+    it("throws 404 AppError when email is not found in database", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
-      const result = await authService.forgotPassword("nonexistent@juniv.edu");
+      await expect(
+        authService.forgotPassword("nonexistent@juniv.edu")
+      ).rejects.toThrow("Email not found");
 
-      expect(result.success).toBe(true);
-      expect(result.message).toContain("If an account with this email exists");
-      expect(result.resetToken).toBeUndefined();
-      // Should NOT call update
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });

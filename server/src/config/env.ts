@@ -15,11 +15,8 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   CORS_ORIGIN: z.string().default("*"),
   CLIENT_URL: z.string().default("http://localhost:5173"),
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().default("no-reply@juniv.edu"),
+  SENDGRID_API_KEY: z.string().optional(),
+  SENDGRID_FROM: z.string().default("20220654963nirob@juniv.edu"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
