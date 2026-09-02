@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { type Room, createScheduleEntry, checkConflict } from "../api/scheduleApi";
-import { academicApi } from "../api/academic";
-import { useAuth } from "../context/useAuth";
+import { academicApi } from "../api/academic.js";
+import { useAuth } from "../context/useAuth.js";
+import type { Course } from "../types/academic.js";
 
 interface MakeupClassModalProps {
   isOpen: boolean;
@@ -56,45 +57,54 @@ export function MakeupClassModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    academicApi.getBatches().then((bList) => {
-      const mapped = bList.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
-      setBatches(mapped);
-      if (!batchId && mapped.length > 0) {
-        setBatchId(user?.batchId || mapped[0].id);
-      }
-    }).catch(console.error);
+    academicApi
+      .getBatches()
+      .then((bList) => {
+        const mapped = bList.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
+        setBatches(mapped);
+        if (mapped.length > 0) {
+          setBatchId((prev) => prev || user?.batchId || mapped[0].id);
+        }
+      })
+      .catch(console.error);
 
-    academicApi.getTeachers().then((tList) => {
-      setTeachers(tList);
-      if (!teacherId && tList.length > 0) {
-        setTeacherId(tList[0].id);
-      }
-    }).catch(console.error);
+    academicApi
+      .getTeachers()
+      .then((tList) => {
+        setTeachers(tList);
+        if (tList.length > 0) {
+          setTeacherId((prev) => prev || (user?.role === "TEACHER" ? user.id : tList[0].id));
+        }
+      })
+      .catch(console.error);
 
-    if (rooms.length > 0 && !roomId) {
-      setRoomId(rooms[0].id);
+    if (rooms.length > 0) {
+      setRoomId((prev) => prev || rooms[0].id);
     }
-  }, [isOpen, user?.batchId, user?.id, rooms]);
+  }, [isOpen, user?.batchId, user?.id, user?.role, rooms]);
 
   // Load courses for selected batch
   useEffect(() => {
     const targetBatchId = user?.batchId || batchId;
     if (!targetBatchId) return;
 
-    academicApi.getSemesters({ batchId: targetBatchId, status: "ACTIVE" as any }).then((semesters) => {
-      const loadedCourses: Array<{ id: string; name: string; code: string }> = [];
-      semesters.forEach((s) => {
-        if (s.courses) {
-          s.courses.forEach((c: any) => {
-            loadedCourses.push({ id: c.id, name: c.name, code: c.code });
-          });
+    academicApi
+      .getSemesters({ batchId: targetBatchId, status: "ACTIVE" })
+      .then((semesters) => {
+        const loadedCourses: Array<{ id: string; name: string; code: string }> = [];
+        semesters.forEach((s) => {
+          if (s.courses) {
+            s.courses.forEach((c: Course) => {
+              loadedCourses.push({ id: c.id, name: c.name, code: c.code });
+            });
+          }
+        });
+        setCourses(loadedCourses);
+        if (loadedCourses.length > 0) {
+          setCourseId((prev) => prev || loadedCourses[0].id);
         }
-      });
-      setCourses(loadedCourses);
-      if (loadedCourses.length > 0 && !courseId) {
-        setCourseId(loadedCourses[0].id);
-      }
-    }).catch(console.error);
+      })
+      .catch(console.error);
   }, [batchId, user?.batchId]);
 
   // Conflict checking
@@ -274,7 +284,9 @@ export function MakeupClassModal({
                 required
                 className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
               >
-                <option value="" disabled>Select Course</option>
+                <option value="" disabled>
+                  Select Course
+                </option>
                 {courses.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.code} — {c.name}
@@ -340,7 +352,9 @@ export function MakeupClassModal({
             {isChecking ? (
               <span className="text-xs text-[#6B7280]">Checking availability...</span>
             ) : conflictMsg ? (
-              <span className={`text-xs font-bold ${hasConflict ? "text-[#E11D48]" : "text-[#16A34A]"}`}>
+              <span
+                className={`text-xs font-bold ${hasConflict ? "text-[#E11D48]" : "text-[#16A34A]"}`}
+              >
                 {conflictMsg}
               </span>
             ) : null}

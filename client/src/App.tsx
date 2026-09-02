@@ -8,17 +8,11 @@ import { DashboardPage } from "./pages/DashboardPage.js";
 import { AdminBatchManagementPage } from "./pages/AdminBatchManagementPage.js";
 import { ScheduleManagementPage } from "./pages/ScheduleManagementPage.js";
 import { ProtectedRoute } from "./components/ProtectedRoute.js";
-import { useAuth } from "./context/useAuth.js";
 import { AssessmentsPage } from "./pages/AssessmentsPage.js";
 
 import { ResultsPage } from "./pages/ResultsPage.js";
 import { ResourcesPage } from "./pages/ResourcesPage.js";
-
-function HomeRedirect() {
-  const { isAuthenticated, isLoading } = useAuth();
-  if (isLoading) return null;
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
-}
+import { HomePage } from "./pages/HomePage.js";
 
 export function App() {
   return (
@@ -26,7 +20,7 @@ export function App() {
       <Navbar />
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/results" element={<ResultsPage />} />

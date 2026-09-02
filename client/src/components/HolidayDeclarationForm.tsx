@@ -31,15 +31,16 @@ export const HolidayDeclarationForm: React.FC<HolidayDeclarationFormProps> = ({
 
   useEffect(() => {
     if (!externalBatches || externalBatches.length === 0) {
-      academicApi.getBatches().then((data) => {
-        const mapped = data.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
-        if (mapped.length > 0) {
-          setBatches(mapped);
-          if (!batchId) {
-            setBatchId(user?.batchId || mapped[0].id);
+      academicApi
+        .getBatches()
+        .then((data) => {
+          const mapped = data.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
+          if (mapped.length > 0) {
+            setBatches(mapped);
+            setBatchId((prev) => prev || user?.batchId || mapped[0].id);
           }
-        }
-      }).catch(console.error);
+        })
+        .catch(console.error);
     }
   }, [externalBatches, user?.batchId]);
 
@@ -59,7 +60,7 @@ export const HolidayDeclarationForm: React.FC<HolidayDeclarationFormProps> = ({
         date,
         reason: reason.trim(),
         scope: isCr ? "BATCH" : scope,
-        batchId: isCr ? (user?.batchId || undefined) : (scope === "BATCH" ? batchId : undefined),
+        batchId: isCr ? user?.batchId || undefined : scope === "BATCH" ? batchId : undefined,
       });
 
       setBannerMessage(res.message || "Holiday declared successfully.");
@@ -97,7 +98,8 @@ export const HolidayDeclarationForm: React.FC<HolidayDeclarationFormProps> = ({
           <span>⚠️</span> Auto-Cancellation Policy
         </div>
         <p className="text-[#6B7280] leading-relaxed">
-          Declaring an off-day will automatically cancel all scheduled classes on this date across the chosen scope.
+          Declaring an off-day will automatically cancel all scheduled classes on this date across
+          the chosen scope.
         </p>
       </div>
 
@@ -137,7 +139,11 @@ export const HolidayDeclarationForm: React.FC<HolidayDeclarationFormProps> = ({
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder={isCr ? "e.g., Batch Study Tour, Cultural Program" : "e.g., National Mourning Day, University Foundation"}
+            placeholder={
+              isCr
+                ? "e.g., Batch Study Tour, Cultural Program"
+                : "e.g., National Mourning Day, University Foundation"
+            }
             required
             className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-[#1F2937] placeholder-gray-400 focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
           />
@@ -210,7 +216,7 @@ export const HolidayDeclarationForm: React.FC<HolidayDeclarationFormProps> = ({
           disabled={isSubmitting}
           className="w-full py-3 px-4 rounded-xl text-xs font-bold bg-[#DC143C] hover:bg-[#B01030] text-white shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 font-[Poppins]"
         >
-          {isSubmitting ? "Declaring..." : (isCr ? "Declare Batch Off-Day" : "Declare Holiday")}
+          {isSubmitting ? "Declaring..." : isCr ? "Declare Batch Off-Day" : "Declare Holiday"}
         </button>
       </form>
     </div>

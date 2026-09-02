@@ -17,4 +17,21 @@ describe("Frontend Client App Component", () => {
     expect(screen.getByRole("heading", { name: /Welcome Back/i })).toBeInTheDocument();
     expect(screen.getByText(/CSE • Jahangirnagar University/i)).toBeInTheDocument();
   });
+
+  it("renders Navbar and public HomePage at root route /", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: /Smart Department/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Digital academic management for the JU CSE Department/i)
+    ).toBeInTheDocument();
+  });
 });
