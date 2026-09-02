@@ -124,15 +124,15 @@ export async function seed() {
   const studentPasswordHash = await bcrypt.hash("Student1234", 10);
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@juniv.edu" },
+    where: { email: "nirobmondal202@gmail.com" },
     update: {
       passwordHash: adminPasswordHash,
       isVerified: true,
     },
     create: {
-      id: "user-admin-1",
+      id: "user-admin-2",
       name: "Department Office Admin",
-      email: "admin@juniv.edu",
+      email: "nirobmondal202@gmail.com",
       passwordHash: adminPasswordHash,
       role: Role.ADMIN,
       isVerified: true,

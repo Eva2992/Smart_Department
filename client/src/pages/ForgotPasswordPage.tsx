@@ -9,7 +9,7 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ message: string; resetToken?: string } | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
 
     try {
       const res = await forgotPassword(email);
-      setSuccess({ message: res.message, resetToken: res.resetToken });
+      setSuccess(res.message);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to send reset link"));
     } finally {
@@ -47,13 +47,7 @@ export function ForgotPasswordPage() {
 
           {success && (
             <div className="mb-5">
-              <Alert type="success" message={success.message} onClose={() => setSuccess(null)} />
-              {success.resetToken && (
-                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs break-all">
-                  <span className="font-semibold text-gray-700">Dev token:</span>{" "}
-                  {success.resetToken}
-                </div>
-              )}
+              <Alert type="success" message={success} onClose={() => setSuccess(null)} />
             </div>
           )}
 

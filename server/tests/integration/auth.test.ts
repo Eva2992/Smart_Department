@@ -287,7 +287,7 @@ describe("Auth Integration Routes (/api/v1/auth)", () => {
   });
 
   describe("POST /api/v1/auth/forgot-password", () => {
-    it("returns 200 for existing email with generic message", async () => {
+    it("returns 200 for existing email with clear success message and no dev token", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: "user-1",
         email: "student52_1@juniv.edu",
@@ -301,19 +301,21 @@ describe("Auth Integration Routes (/api/v1/auth)", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toContain("If an account with this email exists");
+      expect(res.body.message).toBe("Password reset link has been sent to your email.");
+      expect(res.body.data?.resetToken).toBeUndefined();
     });
 
-    it("returns 200 for non-existent email with same generic message (anti-enumeration)", async () => {
+    it("returns 404 for non-existent email with Email not found error", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
       const res = await request(app)
         .post("/api/v1/auth/forgot-password")
         .send({ email: "nonexistent@juniv.edu" });
 
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.message).toContain("If an account with this email exists");
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe("Email not found");
+      expect(res.body.error.code).toBe("USER_NOT_FOUND");
     });
 
     it("returns 400 for invalid email format", async () => {

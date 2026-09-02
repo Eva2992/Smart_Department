@@ -61,10 +61,11 @@ describe("ForgotPasswordPage", () => {
     });
   });
 
-  it("shows success alert after successful submission", async () => {
+  it("shows success alert after successful submission and does not show dev token", async () => {
     vi.mocked(mockAuth.forgotPassword).mockResolvedValue({
       success: true,
-      message: "Check your email for the reset link",
+      message: "Password reset link has been sent to your email.",
+      resetToken: "some-secret-token",
     });
 
     render(
@@ -79,7 +80,32 @@ describe("ForgotPasswordPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("Check your email for the reset link")).toBeInTheDocument();
+      expect(
+        screen.getByText("Password reset link has been sent to your email.")
+      ).toBeInTheDocument();
+    });
+
+    // Dev token should NOT be displayed
+    expect(screen.queryByText(/Dev token/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("some-secret-token")).not.toBeInTheDocument();
+  });
+
+  it("shows error alert when email is not found", async () => {
+    vi.mocked(mockAuth.forgotPassword).mockRejectedValue(new Error("Email not found"));
+
+    render(
+      <BrowserRouter>
+        <ForgotPasswordPage />
+      </BrowserRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("name@juniv.edu"), {
+      target: { value: "nonexistent@juniv.edu" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send reset link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Email not found")).toBeInTheDocument();
     });
   });
 
