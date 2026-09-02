@@ -3,6 +3,7 @@ import { useAuth } from "../context/useAuth.js";
 import { StudentResultCard } from "../components/StudentResultCard.js";
 import { Link } from "react-router-dom";
 import { ChangePasswordModal } from "../components/ChangePasswordModal.js";
+import { ClassCountWidget } from "../components/ClassCountWidget.js";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -58,6 +59,9 @@ export function DashboardPage() {
 
       {/* Student Result Widget for Student / CR */}
       {isStudentOrCr && <StudentResultCard />}
+
+      {/* Class Attendance & Conducted Tracking Widget (SN-05, TN-10) */}
+      <ClassCountWidget />
 
       {/* Profile & Metadata Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

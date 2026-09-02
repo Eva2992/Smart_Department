@@ -149,3 +149,38 @@ export interface OverrideSemesterPayload {
   role?: Role;
   reason?: string;
 }
+
+export interface PreloadedStudent {
+  id?: string;
+  universityId: string;
+  name: string;
+  email: string;
+  program: Program;
+  batchId?: string;
+  batch?: { id: string; name: string };
+  isRegistered?: boolean;
+}
+
+export interface PreloadedTeacher {
+  id?: string;
+  uniqueId: string;
+  name: string;
+  email: string;
+  designation?: string | null;
+  department?: string;
+  isChairman?: boolean;
+  isRegistered?: boolean;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  userId?: string | null;
+  user?: { name: string; email: string } | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  details?: Record<string, unknown> | null;
+  createdAt: string;
+}

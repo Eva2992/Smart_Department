@@ -47,7 +47,12 @@ export function errorHandler(
     return;
   }
 
-  const errorMessage = err instanceof Error ? err.message : "Internal Server Error";
+  const errorMessage =
+    env.NODE_ENV === "production"
+      ? "An unexpected error occurred. Please try again later."
+      : err instanceof Error
+        ? err.message
+        : "Internal Server Error";
   const details = env.NODE_ENV === "development" && err instanceof Error ? err.stack : undefined;
 
   console.error("Unhandled Error:", err);

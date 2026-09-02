@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
 import type { OverrideStudentSemesterDto, SearchStudentsQuery } from "../types/academic.js";
-import type { Prisma } from "@prisma/client";
+import { Role, type Prisma } from "@prisma/client";
 
 export class StudentService {
   /**
@@ -234,6 +234,126 @@ export class StudentService {
 
       return promotedCR;
     });
+  }
+
+  /**
+   * Promotes student to CR or demotes CR to student (AN-10, C-05).
+   * Enforces single active CR per batch constraint.
+   */
+  async updateUserRole(
+    userId: string,
+    targetRole: Role,
+    adminUserId: string,
+    ipAddress = "127.0.0.1"
+  ) {
+    if (targetRole !== Role.STUDENT && targetRole !== Role.CR) {
+      throw new AppError(
+        "Only STUDENT and CR roles can be toggled via this endpoint",
+        400,
+        "INVALID_ROLE"
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    }
+
+    if (user.role !== Role.STUDENT && user.role !== Role.CR) {
+      throw new AppError("Can only modify roles for student/CR accounts", 400, "INVALID_ROLE");
+    }
+
+    if (targetRole === Role.CR) {
+      if (!user.batchId) {
+        throw new AppError(
+          "User must be enrolled in a batch to become a Class Representative (CR)",
+          400,
+          "BATCH_REQUIRED"
+        );
+      }
+
+      return prisma.$transaction(async (tx) => {
+        // Enforce C-05: Demote any other CRs in this batch
+        await tx.user.updateMany({
+          where: {
+            batchId: user.batchId!,
+            role: Role.CR,
+          },
+          data: {
+            role: Role.STUDENT,
+          },
+        });
+
+        // Promote user
+        const updated = await tx.user.update({
+          where: { id: userId },
+          data: { role: Role.CR },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            universityId: true,
+            role: true,
+            batchId: true,
+            studentStatus: true,
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId: adminUserId,
+            action: "PROMOTE_TO_CR",
+            entityType: "USER",
+            entityId: userId,
+            ipAddress,
+            details: {
+              batchId: user.batchId,
+              studentName: user.name,
+              universityId: user.universityId,
+            },
+          },
+        });
+
+        return updated;
+      });
+    } else {
+      // Demote to STUDENT
+      return prisma.$transaction(async (tx) => {
+        const updated = await tx.user.update({
+          where: { id: userId },
+          data: { role: Role.STUDENT },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            universityId: true,
+            role: true,
+            batchId: true,
+            studentStatus: true,
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId: adminUserId,
+            action: "DEMOTE_TO_STUDENT",
+            entityType: "USER",
+            entityId: userId,
+            ipAddress,
+            details: {
+              batchId: user.batchId,
+              studentName: user.name,
+              universityId: user.universityId,
+            },
+          },
+        });
+
+        return updated;
+      });
+    }
   }
 }
 

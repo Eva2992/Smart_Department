@@ -7,6 +7,7 @@ import type {
   Assignment,
   CreateAssignmentPayload,
   UpdateAssignmentPayload,
+  AssignmentSubmission,
 } from "../types/assessments.js";
 
 // ── CT API ────────────────────────────────────────────────────────────────────
@@ -48,6 +49,10 @@ export const ctApi = {
           courseId: string | null;
           courseCode: string | null;
           courseName: string | null;
+          totalConducted?: number;
+          totalRecorded?: number;
+          bestOfThreeSum?: number | null;
+          averageScore?: number | null;
           marks: Array<{
             scheduleEntryId: string;
             ctTitle: string;
@@ -60,6 +65,10 @@ export const ctApi = {
             marksObtained: number | null;
             maxMarks: number | null;
             status: "PENDING" | "RECORDED";
+            classAverage?: number | null;
+            highestMark?: number | null;
+            lowestMark?: number | null;
+            totalSubmissions?: number;
           }>;
         }>;
       }>
@@ -98,6 +107,27 @@ export const assignmentApi = {
     const response = await apiClient.delete<ApiResponse<null>>(
       `/assessments/assignments/${assignmentId}`,
       { data: { teacherId } }
+    );
+    return response.data;
+  },
+
+  // Assignment Submissions (FR-21, ADR-0005)
+  submit: async (
+    assignmentId: string,
+    payload: FormData | { submissionUrl?: string; notes?: string }
+  ) => {
+    const isFormData = payload instanceof FormData;
+    const response = await apiClient.post<ApiResponse<AssignmentSubmission>>(
+      `/assignments/${assignmentId}/submissions`,
+      payload,
+      isFormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined
+    );
+    return response.data;
+  },
+
+  getSubmissions: async (assignmentId: string) => {
+    const response = await apiClient.get<ApiResponse<AssignmentSubmission[]>>(
+      `/assignments/${assignmentId}/submissions`
     );
     return response.data;
   },

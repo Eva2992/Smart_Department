@@ -55,3 +55,20 @@ export interface UpdateAssignmentPayload {
   description?: string;
   dueDate?: string;
 }
+
+export interface AssignmentSubmission {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  submissionUrl?: string | null;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  notes?: string | null;
+  submittedAt: string;
+  student?: {
+    id: string;
+    name: string;
+    email: string;
+    universityId?: string | null;
+  };
+}

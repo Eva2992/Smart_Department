@@ -19,6 +19,8 @@ import {
   listAssignments,
   updateAssignment,
   deleteAssignment,
+  submitAssignment,
+  getAssignmentSubmissions,
 } from "../services/assignment.service.js";
 import { listStudentCTMarks, scheduleCT, updateCT, cancelCT } from "../services/ct.service.js";
 
@@ -89,5 +91,42 @@ export const assessmentsController = {
     await deleteAssignment(assignmentId, teacherId);
 
     return sendSuccess(res, null, "Assignment deleted successfully");
+  },
+
+  async submitAssignment(req: Request, res: Response): Promise<Response> {
+    const assignmentId = (req.params.id || req.params.assignmentId) as string;
+    const user = req.user!;
+    const file = req.file;
+
+    const { submissionUrl, notes, submissionType } = req.body;
+
+    const fileUrl = file ? `/uploads/assignments/${file.filename}` : undefined;
+    const fileName = file ? file.originalname : undefined;
+    const fileSizeBytes = file ? file.size : undefined;
+
+    const result = await submitAssignment({
+      assignmentId,
+      studentId: user.userId,
+      submissionType,
+      submissionUrl: submissionUrl ? String(submissionUrl).trim() : undefined,
+      fileUrl,
+      fileName,
+      fileSizeBytes,
+      notes: notes ? String(notes).trim() : undefined,
+    });
+
+    return sendSuccess(res, result, "Assignment submitted successfully");
+  },
+
+  async getAssignmentSubmissions(req: Request, res: Response): Promise<Response> {
+    const assignmentId = (req.params.id || req.params.assignmentId) as string;
+    const user = req.user!;
+
+    const result = await getAssignmentSubmissions(assignmentId, {
+      id: user.userId,
+      role: user.role,
+    });
+
+    return sendSuccess(res, result, "Assignment submissions loaded successfully");
   },
 };

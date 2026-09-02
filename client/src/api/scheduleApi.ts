@@ -205,3 +205,10 @@ export async function deleteHoliday(
   const res = await api.delete(`/holidays/${id}`);
   return res.data.data;
 }
+
+export async function getClassCounts(params?: { batchId?: string; teacherId?: string }) {
+  const token = localStorage.getItem("accessToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const res = await api.get("/schedules/class-count", { params, headers });
+  return res.data.data;
+}

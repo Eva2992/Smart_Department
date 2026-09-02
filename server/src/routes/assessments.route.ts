@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { assessmentsController } from "../controllers/assessments.controller.js";
+import { authenticate } from "../middleware/auth.js";
+import { assignmentUpload } from "../config/upload.js";
 
 const assessmentsRouter = Router();
 
@@ -34,6 +36,20 @@ assessmentsRouter.patch("/assignments/:assignmentId", (req, res, next) => {
 
 assessmentsRouter.delete("/assignments/:assignmentId", (req, res, next) => {
   assessmentsController.deleteAssignment(req, res).catch(next);
+});
+
+// Dual-mode assignment submissions (FR-21, ADR-0005)
+assessmentsRouter.post(
+  "/assignments/:id/submissions",
+  authenticate,
+  assignmentUpload.single("file"),
+  (req, res, next) => {
+    assessmentsController.submitAssignment(req, res).catch(next);
+  }
+);
+
+assessmentsRouter.get("/assignments/:id/submissions", authenticate, (req, res, next) => {
+  assessmentsController.getAssignmentSubmissions(req, res).catch(next);
 });
 
 export { assessmentsRouter };
