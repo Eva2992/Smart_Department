@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { RoomMatrix } from "../components/RoomMatrix";
 import * as scheduleApi from "../api/scheduleApi";
+import type { RoomScheduleSlot } from "../api/scheduleApi";
 
 vi.mock("../api/scheduleApi", async () => {
   const actual = await vi.importActual<typeof scheduleApi>("../api/scheduleApi");
@@ -21,7 +22,7 @@ describe("RoomMatrix Component", () => {
         return d.toISOString().split("T")[0];
       });
 
-      const dateMap: Record<string, any[]> = {};
+      const dateMap: Record<string, RoomScheduleSlot[]> = {};
       for (const d of dates) {
         dateMap[d] = [
           {

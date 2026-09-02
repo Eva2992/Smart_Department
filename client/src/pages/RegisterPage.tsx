@@ -70,11 +70,16 @@ export function RegisterPage() {
         <div className="bg-[#FFFFFF] p-8 sm:p-10 rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
           {/* Header */}
           <div className="text-center mb-8">
+            <img
+              src="/smart-department-icon.svg"
+              alt="Smart Department"
+              className="w-14 h-14 object-contain mx-auto mb-3"
+            />
             <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] font-[Poppins] tracking-tight">
               Create Account
             </h1>
             <p className="text-sm text-[#6B7280] mt-2">
-              Join the JU CSE Academic Management System
+              Join the JU CSE Smart Department Platform
             </p>
           </div>
 

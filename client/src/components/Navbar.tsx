@@ -29,12 +29,14 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo & Department Brand */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-[#DC143C] flex items-center justify-center text-white font-extrabold shadow-sm group-hover:bg-[#B01030] transition-colors">
-              JU
-            </div>
+            <img
+              src="/smart-department-icon.svg"
+              alt="Smart Department"
+              className="w-10 h-10 object-contain rounded-xl transition-transform group-hover:scale-105"
+            />
             <div>
               <span className="text-base sm:text-lg font-bold text-[#1F2937] block leading-tight font-[Poppins]">
-                Smart Schedular
+                Smart Department
               </span>
               <span className="text-[11px] text-[#6B7280] font-medium tracking-wide">
                 CSE • Jahangirnagar University

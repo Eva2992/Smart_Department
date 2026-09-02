@@ -32,9 +32,11 @@ export function ForgotPasswordPage() {
       <div className="max-w-md w-full">
         <div className="bg-[#FFFFFF] p-8 sm:p-10 rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#DC143C] text-white font-black text-xl flex items-center justify-center mx-auto shadow-xs mb-3 font-[Poppins]">
-              JU
-            </div>
+            <img
+              src="/smart-department-icon.svg"
+              alt="Smart Department"
+              className="w-14 h-14 object-contain mx-auto mb-3"
+            />
             <h1 className="text-2xl font-bold text-[#1F2937] tracking-tight font-[Poppins]">
               Forgot Password
             </h1>

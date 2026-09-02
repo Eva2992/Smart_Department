@@ -8,7 +8,7 @@ describe("Health & Core API Integration", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.message).toContain("JU CSE Smart Schedular API is healthy");
+    expect(res.body.message).toContain("JU CSE Smart Department API is healthy");
     expect(res.body.data).toBeDefined();
     expect(res.body.data.status).toBe("ok");
     expect(res.body.data.uptime).toBeGreaterThanOrEqual(0);

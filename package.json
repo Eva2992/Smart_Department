@@ -1,7 +1,7 @@
 {
-  "name": "smart-schedular",
+  "name": "smart-department",
   "version": "1.0.0",
-  "description": "Smart Scheduler - Academic Management & Routine Scheduling System",
+  "description": "Smart Department - Academic Operations Platform",
   "private": true,
   "type": "module",
   "scripts": {

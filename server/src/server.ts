@@ -4,7 +4,7 @@ import { env } from "./config/env.js";
 const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Smart Schedular Server running on port ${PORT} [${env.NODE_ENV}]`);
+  console.log(`🚀 Smart Department Server running on port ${PORT} [${env.NODE_ENV}]`);
 });
 
 // Graceful shutdown handling

@@ -3,7 +3,7 @@
   "entryPoints": ["src"],
   "entryPointStrategy": "expand",
   "out": "docs/api",
-  "name": "Smart Schedular Backend API",
+  "name": "Smart Department Backend API",
   "readme": "none",
   "exclude": ["**/*.test.ts", "**/node_modules/**"],
   "tsconfig": "tsconfig.json",
@@ -12,6 +12,6 @@
   "excludeProtected": false,
   "includeVersion": true,
   "navigationLinks": {
-    "Smart Schedular": "https://github.com/Eva2992/Smart_Schedular"
+    "Smart Department": "https://github.com/Eva2992/Smart_Department"
   }
 }

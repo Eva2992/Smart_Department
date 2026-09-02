@@ -2,7 +2,8 @@
 
 ## Project Overview
 
-**Smart_Schedular (JU CSE Department Academic Management System)** is a comprehensive full-stack platform designed to digitize and manage the academic operations of the Department of Computer Science and Engineering (CSE) at Jahangirnagar University (JU), Savar, Dhaka, Bangladesh.
+**Smart Department (JU CSE Department Academic Operations Platform)** is a comprehensive full-stack platform designed to digitize and manage the academic operations of the Department of Computer Science and Engineering (CSE) at Jahangirnagar University (JU), Savar, Dhaka, Bangladesh.
+_Avoid_: Smart Schedular, Smart Scheduler (legacy terms denoting the original routine-scheduling prototype).
 
 ---
 

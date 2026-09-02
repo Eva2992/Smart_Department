@@ -204,7 +204,7 @@ export const AdminBatchManagementPage: React.FC = () => {
                 <span className="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md bg-rose-100 text-[#DC143C]">
                   Department Administration
                 </span>
-                <span className="text-xs text-gray-500">• JU CSE Smart Schedular</span>
+                <span className="text-xs text-gray-500">• JU CSE Smart Department</span>
               </div>
               <h1 className="text-2xl font-extrabold text-[#1F2937] tracking-tight mt-1">
                 Batch & Semester Lifecycle Manager
