@@ -83,9 +83,9 @@ describe("HomePage Component", () => {
       </MemoryRouter>
     );
 
-    const dashboardCta = screen.getByRole("link", { name: /Go to Dashboard|Open Dashboard/i });
-    expect(dashboardCta).toBeInTheDocument();
-    expect(dashboardCta).toHaveAttribute("href", "/dashboard");
+    const dashboardCtas = screen.getAllByRole("link", { name: /Go to Dashboard|Open Dashboard/i });
+    expect(dashboardCtas[0]).toBeInTheDocument();
+    expect(dashboardCtas[0]).toHaveAttribute("href", "/dashboard");
   });
 
   it("renders the About the Department section with accurate SRS facts", () => {

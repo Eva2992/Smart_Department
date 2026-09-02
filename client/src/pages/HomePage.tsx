@@ -9,8 +9,34 @@ interface Facility {
   category: "classroom" | "computer_lab" | "specialized_lab" | "multipurpose";
   categoryLabel: string;
   description: string;
-  capacity?: string;
+  capacity: string;
   features: string[];
+}
+
+interface AcademicProgram {
+  id: string;
+  title: string;
+  description: string;
+  badge: string;
+  badgeClass: string;
+}
+
+interface FeatureItem {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  iconBgClass: string;
+  iconColorClass: string;
+}
+
+interface RoleCardItem {
+  id: string;
+  roleTitle: string;
+  badgeLabel: string;
+  badgeClass: string;
+  description: string;
+  bulletPoints: string[];
 }
 
 const FACILITIES_DATA: Facility[] = [
@@ -104,6 +130,169 @@ const FACILITIES_DATA: Facility[] = [
   },
 ];
 
+const PROGRAMS_DATA: AcademicProgram[] = [
+  {
+    id: "bsc",
+    title: "B.Sc. (Honours)",
+    description: "4-year foundational undergraduate program",
+    badge: "Undergraduate",
+    badgeClass: "bg-[var(--color-primary)]/10 text-[var(--color-primary)]",
+  },
+  {
+    id: "msc",
+    title: "M.Sc.",
+    description: "Master of Science in Computer Science & Engineering",
+    badge: "Graduate",
+    badgeClass: "bg-gray-100 text-[var(--color-text)]",
+  },
+  {
+    id: "pmscs",
+    title: "Professional M.Sc. (PMSCS)",
+    description: "Executive postgraduate program for industry practitioners",
+    badge: "Professional",
+    badgeClass: "bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]",
+  },
+  {
+    id: "mphil",
+    title: "M.Phil.",
+    description: "Master of Philosophy research degree",
+    badge: "Research",
+    badgeClass: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
+  },
+  {
+    id: "phd",
+    title: "Ph.D.",
+    description: "Doctor of Philosophy in Computer Science",
+    badge: "Doctoral",
+    badgeClass: "bg-gray-800 text-white",
+  },
+];
+
+const FEATURES_DATA: FeatureItem[] = [
+  {
+    id: "scheduling",
+    icon: "⚡",
+    title: "Conflict-free scheduling",
+    description:
+      "ACID-compliant real-time detection across room allocations, teacher timetables, and batch schedules, eliminating double-bookings instantaneously.",
+    iconBgClass: "bg-[var(--color-primary)]/10",
+    iconColorClass: "text-[var(--color-primary)]",
+  },
+  {
+    id: "dashboards",
+    icon: "👥",
+    title: "Role-based dashboards",
+    description:
+      "Tailored operational environments for Student, CR, Teacher, and Admin, ensuring precise feature access aligned with departmental authority.",
+    iconBgClass: "bg-gray-100",
+    iconColorClass: "text-[var(--color-text)]",
+  },
+  {
+    id: "cts",
+    icon: "📝",
+    title: "CT scheduling & marks tracking",
+    description:
+      "Transparent Class Test management with automated course-level aggregation policies (Best 3 of 4, Best N of M, or Average).",
+    iconBgClass: "bg-[var(--color-secondary)]/10",
+    iconColorClass: "text-[var(--color-secondary)]",
+  },
+  {
+    id: "assignments",
+    icon: "📋",
+    title: "Assignment management",
+    description:
+      "Dual-mode submission handling supporting both online repository/Drive links and direct file uploads with deadline auditing.",
+    iconBgClass: "bg-[var(--color-success)]/10",
+    iconColorClass: "text-[var(--color-success)]",
+  },
+  {
+    id: "resources",
+    icon: "📚",
+    title: "Resource sharing",
+    description:
+      "Structured repository of lecture slides, course materials, lab manuals, and previous year question banks organized by year and semester.",
+    iconBgClass: "bg-[var(--color-gold)]/10",
+    iconColorClass: "text-[var(--color-gold)]",
+  },
+  {
+    id: "results",
+    icon: "📊",
+    title: "Semester result publishing",
+    description:
+      "Dual-hybrid publishing model: individual student course breakdown and GPA view alongside official downloadable batch result sheets.",
+    iconBgClass: "bg-gray-100",
+    iconColorClass: "text-[var(--color-text)]",
+  },
+  {
+    id: "notifications",
+    icon: "🔔",
+    title: "In-app notifications",
+    description:
+      "Instant alerts dispatched for routine modifications, emergency room changes, newly scheduled CTs, assignments, and published semester results.",
+    iconBgClass: "bg-[var(--color-primary)]/10",
+    iconColorClass: "text-[var(--color-primary)]",
+  },
+];
+
+const ROLES_DATA: RoleCardItem[] = [
+  {
+    id: "student",
+    roleTitle: "Student",
+    badgeLabel: "Student",
+    badgeClass: "bg-gray-100 text-[var(--color-text-muted)]",
+    description:
+      "Personalized daily academic experience centered on personal course progress and timetable clarity.",
+    bulletPoints: [
+      "Personalized schedule & routine tracking",
+      "CT & assignment submission tracker",
+      "Continuous assessment marks & GPA view",
+      "Course slides, notes, and past paper access",
+    ],
+  },
+  {
+    id: "cr",
+    roleTitle: "Class Representative (CR)",
+    badgeLabel: "Class Representative (CR)",
+    badgeClass: "bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]",
+    description:
+      "Everything a student has, plus authority to coordinate batch timetables and manage academic deliverables.",
+    bulletPoints: [
+      "Batch routine management (reschedule, makeup, cancel)",
+      "Daily actual class logging & seminar requests",
+      "Study resource & syllabus uploads",
+      "Semester final result sheet upload & promotion requests",
+    ],
+  },
+  {
+    id: "teacher",
+    roleTitle: "Teacher",
+    badgeLabel: "Teacher",
+    badgeClass: "bg-[var(--color-text)]/10 text-[var(--color-text)]",
+    description:
+      "Comprehensive class management, assessment publishing, and cross-batch timetable overview.",
+    bulletPoints: [
+      "Multi-batch weekly schedule & timetable overview",
+      "One-click slot reschedule with real-time conflict check",
+      "CT scheduling & marks sheet upload",
+      "Course assignment creation & submission reviews",
+    ],
+  },
+  {
+    id: "admin",
+    roleTitle: "Admin",
+    badgeLabel: "Admin",
+    badgeClass: "bg-[var(--color-primary)]/10 text-[var(--color-primary)]",
+    description:
+      "Full system control, baseline master routine generation, conflict resolution, and institutional roster governance.",
+    bulletPoints: [
+      "Master routine generation & room matrix governance",
+      "Three-way conflict resolution & room deadlock overrides",
+      "Preloaded student & teacher roster validation",
+      "Batch promotion lifecycle & semester transitions",
+    ],
+  },
+];
+
 type FilterTab = "all" | "classroom" | "computer_lab" | "specialized_lab" | "multipurpose";
 
 export function HomePage() {
@@ -116,70 +305,72 @@ export function HomePage() {
       : FACILITIES_DATA.filter((f) => f.category === activeFacilityFilter);
 
   return (
-    <div className="min-h-screen bg-[#FFFBFA] text-[#1F2937]">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       {/* ------------------------------------------------------------------ */}
       {/* 1. HERO SECTION                                                    */}
       {/* ------------------------------------------------------------------ */}
-      <section className="relative overflow-hidden pt-12 pb-20 sm:pt-16 sm:pb-28 border-b border-gray-200/70">
-        {/* Atmospheric Red-brick & Lake Green geometric accents (JU motif) */}
+      <section className="relative overflow-hidden pt-14 pb-20 sm:pt-20 sm:pb-28 border-b border-gray-200/70">
+        {/* Subtle architectural brick-lattice accent texture (JU motif, restrained) */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-[0.035]"
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
           style={{
-            backgroundImage: `radial-gradient(#DC143C 1px, transparent 1px), radial-gradient(#1E3A5F 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(var(--color-primary) 1px, transparent 1px), radial-gradient(var(--color-text) 1px, transparent 1px)`,
             backgroundSize: "32px 32px",
             backgroundPosition: "0 0, 16px 16px",
           }}
           aria-hidden="true"
         />
 
-        {/* Ambient architectural gradient glows (warm brick red & deep lake blue) */}
+        {/* Subtle institutional ambient light accents */}
         <div
-          className="absolute top-0 right-0 -mt-16 -mr-16 w-96 h-96 rounded-full bg-gradient-to-br from-[#DC143C]/10 via-[#DA532C]/5 to-transparent blur-3xl pointer-events-none"
+          className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 rounded-full bg-gradient-to-br from-[var(--color-primary)]/8 via-[var(--color-secondary)]/5 to-transparent blur-3xl pointer-events-none"
           aria-hidden="true"
         />
         <div
-          className="absolute bottom-0 left-0 -mb-16 -ml-16 w-96 h-96 rounded-full bg-gradient-to-tr from-[#1E3A5F]/10 via-[#16A34A]/5 to-transparent blur-3xl pointer-events-none"
+          className="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 rounded-full bg-gradient-to-tr from-[var(--color-success)]/8 to-transparent blur-3xl pointer-events-none"
           aria-hidden="true"
         />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            {/* Department & Faculty Identity Chip */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1E3A5F]/5 border border-[#1E3A5F]/15 text-xs font-semibold text-[#1E3A5F] mb-6">
-              <span className="w-2 h-2 rounded-full bg-[#DC143C]" aria-hidden="true" />
+            {/* Department & Faculty Identity */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-200 shadow-[var(--shadow-soft)] text-xs font-semibold text-[var(--color-text)] mb-6">
+              <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" aria-hidden="true" />
               <span>Department of Computer Science &amp; Engineering</span>
-              <span className="text-gray-300">•</span>
-              <span>Jahangirnagar University</span>
+              <span className="text-gray-300" aria-hidden="true">
+                •
+              </span>
+              <span className="text-[var(--color-text-muted)]">Jahangirnagar University</span>
             </div>
 
             {/* Main Institutional Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#1F2937] font-[Poppins] leading-[1.15]">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--color-text)] font-[Poppins] leading-[1.15]">
               Smart Department
             </h1>
 
             {/* Clear one-line positioning statement */}
-            <p className="mt-4 text-base sm:text-xl font-medium text-[#4B5563] max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-4 text-base sm:text-xl font-medium text-[var(--color-text-muted)] max-w-2xl mx-auto leading-relaxed">
               Digital academic management for the JU CSE Department — orchestrating daily routines,
               conflict-free facilities, continuous assessments, and student records.
             </p>
 
             {/* Sub-line naming the four roles served */}
-            <p className="mt-3 text-xs sm:text-sm text-[#6B7280]">
+            <p className="mt-3 text-xs sm:text-sm text-[var(--color-text-muted)]">
               Unified operational workflows engineered for four key academic roles:
             </p>
 
             {/* Role Badges Strip */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200 shadow-xs">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[var(--color-text-muted)] border border-gray-200">
                 Student
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#DA532C]/10 text-[#DA532C] border border-[#DA532C]/30 shadow-xs">
-                Class Representative (CR)
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] border border-[var(--color-secondary)]/20">
+                CR
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#1F2937]/10 text-[#1F2937] border border-[#1F2937]/30 shadow-xs">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-text)]/10 text-[var(--color-text)] border border-[var(--color-text)]/20">
                 Teacher
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#DC143C]/10 text-[#DC143C] border border-[#DC143C]/30 shadow-xs">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
                 Admin
               </span>
             </div>
@@ -189,47 +380,37 @@ export function HomePage() {
               {isAuthenticated ? (
                 <Link
                   to="/dashboard"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[#DC143C] hover:bg-[#B01030] rounded-[16px] shadow-[0_4px_12px_rgba(220,20,60,0.25)] transition-all cursor-pointer group"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] rounded-[var(--radius-md)] shadow-[var(--shadow-soft)] transition-all cursor-pointer group"
                 >
                   Go to Dashboard
-                  <span className="ml-2 transition-transform group-hover:translate-x-0.5">→</span>
+                  <span
+                    className="ml-2 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  >
+                    →
+                  </span>
                 </Link>
               ) : (
                 <Link
                   to="/login"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[#DC143C] hover:bg-[#B01030] rounded-[16px] shadow-[0_4px_12px_rgba(220,20,60,0.25)] transition-all cursor-pointer group"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] rounded-[var(--radius-md)] shadow-[var(--shadow-soft)] transition-all cursor-pointer group"
                 >
-                  Sign In to Portal
-                  <span className="ml-2 transition-transform group-hover:translate-x-0.5">→</span>
+                  Log In
+                  <span
+                    className="ml-2 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  >
+                    →
+                  </span>
                 </Link>
               )}
 
               <a
                 href="#about"
-                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-[#1F2937] bg-white hover:bg-gray-50 border border-gray-200 rounded-[16px] shadow-xs transition-colors cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-[var(--color-text)] bg-[var(--color-surface)] hover:bg-gray-50 border border-gray-200 rounded-[var(--radius-md)] shadow-xs transition-colors cursor-pointer"
               >
                 Learn More
               </a>
-            </div>
-
-            {/* Public Quick-Access Gateways */}
-            <div className="mt-8 pt-6 border-t border-gray-200/60 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#6B7280]">
-              <span className="font-medium text-gray-500">Public Gateways:</span>
-              <Link
-                to="/resources"
-                className="font-semibold text-[#DC143C] hover:underline inline-flex items-center gap-1"
-              >
-                <span>📁</span> Department Study Resources
-              </Link>
-              <span className="text-gray-300" aria-hidden="true">
-                •
-              </span>
-              <Link
-                to="/results"
-                className="font-semibold text-[#1E3A5F] hover:underline inline-flex items-center gap-1"
-              >
-                <span>📜</span> Semester Final Results
-              </Link>
             </div>
           </div>
         </div>
@@ -238,30 +419,36 @@ export function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* 2. ABOUT THE DEPARTMENT SECTION                                    */}
       {/* ------------------------------------------------------------------ */}
-      <section id="about" className="py-16 sm:py-24 bg-white border-b border-gray-200/70">
+      <section
+        id="about"
+        className="py-16 sm:py-24 bg-[var(--color-surface)] border-b border-gray-200/70"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
             {/* Left Column: Academic Narrative */}
             <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#DC143C] uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#DC143C]" />
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[var(--color-primary)] uppercase">
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                  aria-hidden="true"
+                />
                 About the Department
               </div>
 
-              <h2 className="text-2xl sm:text-4xl font-extrabold text-[#1F2937] font-[Poppins] tracking-tight leading-tight">
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-[var(--color-text)] font-[Poppins] tracking-tight leading-tight">
                 Pioneering Computing Education &amp; Research at Jahangirnagar
               </h2>
 
-              <div className="space-y-4 text-sm sm:text-base text-[#4B5563] leading-relaxed">
+              <div className="space-y-4 text-sm sm:text-base text-[var(--color-text-muted)] leading-relaxed">
                 <p>
                   The Department of Computer Science and Engineering was established in{" "}
-                  <strong className="text-[#1F2937] font-semibold">1991</strong> (formerly known as
-                  the{" "}
-                  <em className="font-medium text-[#1F2937]">
+                  <strong className="text-[var(--color-text)] font-semibold">1991</strong> (formerly
+                  known as the{" "}
+                  <em className="font-medium text-[var(--color-text)]">
                     Department of Electronics and Computer Science
                   </em>
                   ) under the prestigious{" "}
-                  <strong className="text-[#1F2937] font-semibold">
+                  <strong className="text-[var(--color-text)] font-semibold">
                     Faculty of Mathematical and Physical Sciences
                   </strong>
                   .
@@ -269,17 +456,19 @@ export function HomePage() {
                 <p>
                   As one of Bangladesh’s leading public university computer science faculties, the
                   department is currently chaired by{" "}
-                  <strong className="text-[#1F2937] font-semibold">
+                  <strong className="text-[var(--color-text)] font-semibold">
                     Prof. Dr. Md. Golam Moazzam
                   </strong>{" "}
                   and is powered by approximately{" "}
-                  <strong className="text-[#1F2937] font-semibold">31 faculty members</strong>{" "}
+                  <strong className="text-[var(--color-text)] font-semibold">
+                    31 faculty members
+                  </strong>{" "}
                   specializing across machine learning, software engineering, systems security, and
                   algorithms.
                 </p>
                 <p>
                   As of 2026, the department has produced over{" "}
-                  <strong className="text-[#1F2937] font-semibold">
+                  <strong className="text-[var(--color-text)] font-semibold">
                     55+ undergraduate batches
                   </strong>{" "}
                   whose graduates lead technological innovation, academia, and research institutions
@@ -288,12 +477,14 @@ export function HomePage() {
               </div>
 
               {/* Campus architectural context note */}
-              <div className="p-4 rounded-[16px] bg-[#FFFBFA] border border-[#DC143C]/15 flex items-start gap-3">
-                <div className="text-xl" aria-hidden="true">
+              <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-bg)] border border-[var(--color-primary)]/15 flex items-start gap-3">
+                <span className="text-xl" aria-hidden="true">
                   🏛️
-                </div>
-                <div className="text-xs text-[#6B7280] leading-normal">
-                  <strong className="text-[#1F2937]">Red-Brick Campus &amp; Lake Ecology:</strong>{" "}
+                </span>
+                <div className="text-xs text-[var(--color-text-muted)] leading-normal">
+                  <strong className="text-[var(--color-text)]">
+                    Red-Brick Campus &amp; Lake Ecology:
+                  </strong>{" "}
                   Set within Jahangirnagar University’s expansive, sanctuary-protected residential
                   campus in Savar, the department pairs rigorous scientific training with JU’s rich
                   architectural heritage and natural biodiversity.
@@ -303,79 +494,36 @@ export function HomePage() {
 
             {/* Right Column: Degree Programs Offered */}
             <div className="lg:col-span-5">
-              <div className="p-6 sm:p-8 rounded-[20px] bg-[#FFFBFA] border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
-                <h3 className="text-lg font-bold text-[#1F2937] font-[Poppins] mb-4 flex items-center gap-2">
-                  <span>🎓</span> Academic Programs Offered
+              <div className="p-6 sm:p-8 rounded-[var(--radius-lg)] bg-[var(--color-bg)] shadow-[var(--shadow-soft)]">
+                <h3 className="text-lg font-bold text-[var(--color-text)] font-[Poppins] mb-4 flex items-center gap-2">
+                  <span aria-hidden="true">🎓</span> Academic Programs Offered
                 </h3>
-                <p className="text-xs text-[#6B7280] mb-6">
+                <p className="text-xs text-[var(--color-text-muted)] mb-6">
                   Comprehensive academic curricula recognized for rigorous mathematical rigor and
                   computational depth:
                 </p>
 
-                <ul className="space-y-3.5">
-                  <li className="p-3.5 rounded-[14px] bg-white border border-gray-200/60 shadow-xs flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-[#1F2937] font-[Poppins]">
-                        B.Sc. (Honours)
+                <ul className="space-y-3">
+                  {PROGRAMS_DATA.map((prog) => (
+                    <li
+                      key={prog.id}
+                      className="p-3.5 rounded-[14px] bg-[var(--color-surface)] shadow-xs flex items-start justify-between gap-3"
+                    >
+                      <div>
+                        <div className="text-sm font-bold text-[var(--color-text)] font-[Poppins]">
+                          {prog.title}
+                        </div>
+                        <div className="text-xs text-[var(--color-text-muted)]">
+                          {prog.description}
+                        </div>
                       </div>
-                      <div className="text-xs text-[#6B7280]">
-                        4-year foundational undergraduate program
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#DC143C]/10 text-[#DC143C]">
-                      Undergraduate
-                    </span>
-                  </li>
-
-                  <li className="p-3.5 rounded-[14px] bg-white border border-gray-200/60 shadow-xs flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-[#1F2937] font-[Poppins]">M.Sc.</div>
-                      <div className="text-xs text-[#6B7280]">
-                        Master of Science in Computer Science &amp; Engineering
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#1E3A5F]/10 text-[#1E3A5F]">
-                      Graduate
-                    </span>
-                  </li>
-
-                  <li className="p-3.5 rounded-[14px] bg-white border border-gray-200/60 shadow-xs flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-[#1F2937] font-[Poppins]">
-                        Professional M.Sc. (PMSCS)
-                      </div>
-                      <div className="text-xs text-[#6B7280]">
-                        Executive postgraduate program for industry practitioners
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#DA532C]/10 text-[#DA532C]">
-                      Professional
-                    </span>
-                  </li>
-
-                  <li className="p-3.5 rounded-[14px] bg-white border border-gray-200/60 shadow-xs flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-[#1F2937] font-[Poppins]">M.Phil.</div>
-                      <div className="text-xs text-[#6B7280]">
-                        Master of Philosophy research degree
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">
-                      Research
-                    </span>
-                  </li>
-
-                  <li className="p-3.5 rounded-[14px] bg-white border border-gray-200/60 shadow-xs flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-[#1F2937] font-[Poppins]">Ph.D.</div>
-                      <div className="text-xs text-[#6B7280]">
-                        Doctor of Philosophy in Computer Science
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700">
-                      Doctoral
-                    </span>
-                  </li>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${prog.badgeClass}`}
+                      >
+                        {prog.badge}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -386,124 +534,61 @@ export function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* 3. WHY SMART DEPARTMENT (SRS FEATURES GRID)                         */}
       {/* ------------------------------------------------------------------ */}
-      <section id="features" className="py-16 sm:py-24 bg-[#FFFBFA] border-b border-gray-200/70">
+      <section
+        id="features"
+        className="py-16 sm:py-24 bg-[var(--color-bg)] border-b border-gray-200/70"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center mb-14">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#DC143C] uppercase mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#DC143C]" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[var(--color-primary)] uppercase mb-2">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                aria-hidden="true"
+              />
               Department Operations
             </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-[#1F2937] font-[Poppins] tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-[var(--color-text)] font-[Poppins] tracking-tight">
               Why Smart Department
             </h2>
-            <p className="mt-3 text-sm sm:text-base text-[#6B7280]">
+            <p className="mt-3 text-sm sm:text-base text-[var(--color-text-muted)]">
               Engineered strictly around verified departmental workflows and SRS requirements —
               eliminating friction without unnecessary complexity.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Feature 1: Conflict-Free Scheduling */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-[14px] bg-[#DC143C]/10 text-[#DC143C] flex items-center justify-center text-xl mb-4 font-bold">
-                ⚡
-              </div>
-              <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-2">
-                Conflict-free scheduling
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                ACID-compliant real-time detection across room allocations, teacher timetables, and
-                batch schedules, eliminating double-bookings instantaneously.
-              </p>
-            </div>
-
-            {/* Feature 2: Role-based Dashboards */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-[14px] bg-[#1E3A5F]/10 text-[#1E3A5F] flex items-center justify-center text-xl mb-4 font-bold">
-                👥
-              </div>
-              <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-2">
-                Role-based dashboards
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                Tailored operational environments for Student, CR, Teacher, and Admin, ensuring
-                precise feature access aligned with departmental authority.
-              </p>
-            </div>
-
-            {/* Feature 3: CT Scheduling & Marks Tracking */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-[14px] bg-[#DA532C]/10 text-[#DA532C] flex items-center justify-center text-xl mb-4 font-bold">
-                📝
-              </div>
-              <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-2">
-                CT scheduling &amp; marks tracking
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                Transparent Class Test management with automated course-level aggregation policies
-                (Best 3 of 4, Best N of M, or Average).
-              </p>
-            </div>
-
-            {/* Feature 4: Assignment Management */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-[14px] bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl mb-4 font-bold">
-                📋
-              </div>
-              <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-2">
-                Assignment management
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                Dual-mode submission handling supporting both online repository/Drive links and
-                direct file uploads with deadline auditing.
-              </p>
-            </div>
-
-            {/* Feature 5: Resource Sharing */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-[14px] bg-indigo-50 text-indigo-700 flex items-center justify-center text-xl mb-4 font-bold">
-                📚
-              </div>
-              <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-2">
-                Resource sharing
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                Structured repository of lecture slides, course materials, lab manuals, and previous
-                year question banks organized by year and semester.
-              </p>
-            </div>
-
-            {/* Feature 6: Semester Result Publishing */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
-              <div className="w-11 h-11 rounded-[14px] bg-amber-50 text-amber-700 flex items-center justify-center text-xl mb-4 font-bold">
-                📊
-              </div>
-              <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-2">
-                Semester result publishing
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                Dual-hybrid publishing model: individual student course breakdown and GPA view
-                alongside official downloadable batch result sheets.
-              </p>
-            </div>
-
-            {/* Feature 7: In-App Notifications (Spans full row on md, or 1 card on lg) */}
-            <div className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow md:col-span-2 lg:col-span-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="w-11 h-11 rounded-[14px] bg-rose-50 text-[#DC143C] flex items-center justify-center text-xl font-bold shrink-0">
-                  🔔
+            {FEATURES_DATA.map((feat, index) => {
+              const isLast = index === FEATURES_DATA.length - 1;
+              return (
+                <div
+                  key={feat.id}
+                  className={`p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] hover:shadow-md transition-shadow ${
+                    isLast ? "md:col-span-2 lg:col-span-3" : ""
+                  }`}
+                >
+                  <div
+                    className={`flex ${isLast ? "flex-col sm:flex-row items-start sm:items-center gap-4" : "flex-col"}`}
+                  >
+                    <div
+                      className={`w-11 h-11 rounded-[14px] ${feat.iconBgClass} ${feat.iconColorClass} flex items-center justify-center text-xl font-bold shrink-0 ${
+                        isLast ? "" : "mb-4"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {feat.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-[var(--color-text)] font-[Poppins] mb-1.5">
+                        {feat.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-[var(--color-text-muted)] leading-relaxed">
+                        {feat.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#1F2937] font-[Poppins] mb-1">
-                    In-app notifications
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
-                    Instant alerts dispatched for routine modifications, emergency room changes,
-                    newly scheduled CTs, assignments, and published semester results.
-                  </p>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -511,63 +596,66 @@ export function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* 4. BY THE NUMBERS (STAT STRIP)                                      */}
       {/* ------------------------------------------------------------------ */}
-      <section className="py-12 sm:py-16 bg-white border-b border-gray-200/70">
+      <section className="py-12 sm:py-16 bg-[var(--color-surface)] border-b border-gray-200/70">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#DC143C] uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#DC143C]" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[var(--color-primary)] uppercase">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                aria-hidden="true"
+              />
               By the Numbers
             </div>
-            <p className="text-xs text-[#6B7280] mt-1">
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
               Key operational and demographic scale of the CSE Department
             </p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <div className="p-6 rounded-[20px] bg-[#FFFBFA] border border-gray-200/80 text-center">
-              <div className="text-3xl sm:text-5xl font-extrabold text-[#DC143C] font-[Poppins]">
+            <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-bg)] shadow-[var(--shadow-soft)] text-center">
+              <div className="text-3xl sm:text-5xl font-extrabold text-[var(--color-primary)] font-[Poppins]">
                 31
               </div>
-              <div className="mt-2 text-xs sm:text-sm font-semibold text-[#1F2937]">
+              <div className="mt-2 text-xs sm:text-sm font-semibold text-[var(--color-text)]">
                 faculty members
               </div>
-              <div className="mt-0.5 text-[11px] text-[#6B7280]">
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
                 Professors, Associate &amp; Assistant Lecturers
               </div>
             </div>
 
-            <div className="p-6 rounded-[20px] bg-[#FFFBFA] border border-gray-200/80 text-center">
-              <div className="text-3xl sm:text-5xl font-extrabold text-[#1E3A5F] font-[Poppins]">
+            <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-bg)] shadow-[var(--shadow-soft)] text-center">
+              <div className="text-3xl sm:text-5xl font-extrabold text-[var(--color-text)] font-[Poppins]">
                 4 + 1
               </div>
-              <div className="mt-2 text-xs sm:text-sm font-semibold text-[#1F2937]">
+              <div className="mt-2 text-xs sm:text-sm font-semibold text-[var(--color-text)]">
                 4 active Honours batches + 1 active Masters batch
               </div>
-              <div className="mt-0.5 text-[11px] text-[#6B7280]">
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
                 Concurrent semester cohorts tracked
               </div>
             </div>
 
-            <div className="p-6 rounded-[20px] bg-[#FFFBFA] border border-gray-200/80 text-center">
-              <div className="text-3xl sm:text-5xl font-extrabold text-[#DA532C] font-[Poppins]">
+            <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-bg)] shadow-[var(--shadow-soft)] text-center">
+              <div className="text-3xl sm:text-5xl font-extrabold text-[var(--color-secondary)] font-[Poppins]">
                 8
               </div>
-              <div className="mt-2 text-xs sm:text-sm font-semibold text-[#1F2937]">
+              <div className="mt-2 text-xs sm:text-sm font-semibold text-[var(--color-text)]">
                 8 managed rooms/labs
               </div>
-              <div className="mt-0.5 text-[11px] text-[#6B7280]">
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
                 Classrooms, computer &amp; circuit labs
               </div>
             </div>
 
-            <div className="p-6 rounded-[20px] bg-[#FFFBFA] border border-gray-200/80 text-center">
-              <div className="text-3xl sm:text-5xl font-extrabold text-[#16A34A] font-[Poppins]">
+            <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-bg)] shadow-[var(--shadow-soft)] text-center">
+              <div className="text-3xl sm:text-5xl font-extrabold text-[var(--color-success)] font-[Poppins]">
                 55+
               </div>
-              <div className="mt-2 text-xs sm:text-sm font-semibold text-[#1F2937]">
+              <div className="mt-2 text-xs sm:text-sm font-semibold text-[var(--color-text)]">
                 55+ batches produced
               </div>
-              <div className="mt-0.5 text-[11px] text-[#6B7280]">
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
                 Graduating cohorts since 1991 founding
               </div>
             </div>
@@ -578,17 +666,23 @@ export function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* 5. FACILITIES SECTION                                               */}
       {/* ------------------------------------------------------------------ */}
-      <section id="facilities" className="py-16 sm:py-24 bg-[#FFFBFA] border-b border-gray-200/70">
+      <section
+        id="facilities"
+        className="py-16 sm:py-24 bg-[var(--color-bg)] border-b border-gray-200/70"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center mb-10">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#DC143C] uppercase mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#DC143C]" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[var(--color-primary)] uppercase mb-2">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                aria-hidden="true"
+              />
               Physical Infrastructure
             </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-[#1F2937] font-[Poppins] tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-[var(--color-text)] font-[Poppins] tracking-tight">
               Department Facilities
             </h2>
-            <p className="mt-3 text-sm sm:text-base text-[#6B7280]">
+            <p className="mt-3 text-sm sm:text-base text-[var(--color-text-muted)]">
               The 8 physical spaces managed and conflict-checked by Smart Department: three standard
               lecture classrooms, three computing laboratories, one specialized electrical circuit
               lab, and one multipurpose hall.
@@ -616,8 +710,8 @@ export function HomePage() {
                 onClick={() => setActiveFacilityFilter(tab.id as FilterTab)}
                 className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-full transition-all cursor-pointer ${
                   activeFacilityFilter === tab.id
-                    ? "bg-[#1F2937] text-white shadow-xs"
-                    : "bg-white text-[#4B5563] hover:text-[#1F2937] hover:bg-gray-100 border border-gray-200"
+                    ? "bg-[var(--color-text)] text-white shadow-xs"
+                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-gray-100 border border-gray-200"
                 }`}
               >
                 {tab.label}
@@ -630,38 +724,40 @@ export function HomePage() {
             {filteredFacilities.map((facility) => (
               <div
                 key={facility.id}
-                className="p-6 rounded-[20px] bg-white border border-gray-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] flex flex-col justify-between"
+                className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface)] shadow-[var(--shadow-soft)] flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="font-mono text-base sm:text-lg font-bold text-[#DC143C] px-2.5 py-0.5 rounded-lg bg-[#DC143C]/10 border border-[#DC143C]/20">
+                    <span className="font-mono text-base sm:text-lg font-bold text-[var(--color-primary)] px-2.5 py-0.5 rounded-lg bg-[var(--color-primary)]/10">
                       {facility.code}
                     </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-[var(--color-text-muted)]">
                       {facility.categoryLabel}
                     </span>
                   </div>
 
-                  <h3 className="text-sm sm:text-base font-bold text-[#1F2937] font-[Poppins] mb-1.5">
+                  <h3 className="text-sm sm:text-base font-bold text-[var(--color-text)] font-[Poppins] mb-1.5">
                     {facility.name}
                   </h3>
 
-                  <p className="text-xs text-[#6B7280] leading-relaxed mb-4">
+                  <p className="text-xs text-[var(--color-text-muted)] leading-relaxed mb-4">
                     {facility.description}
                   </p>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 mt-2">
-                  <div className="text-[11px] font-semibold text-[#1F2937] mb-2 flex items-center justify-between">
+                  <div className="text-[11px] font-semibold text-[var(--color-text)] mb-2 flex items-center justify-between">
                     <span>Capacity:</span>
-                    <span className="text-[#6B7280] font-normal">{facility.capacity}</span>
+                    <span className="text-[var(--color-text-muted)] font-normal">
+                      {facility.capacity}
+                    </span>
                   </div>
 
                   <div className="flex flex-wrap gap-1">
                     {facility.features.map((feat, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] bg-[#FFFBFA] border border-gray-200 text-gray-600 px-2 py-0.5 rounded-md"
+                        className="text-[10px] bg-[var(--color-bg)] text-[var(--color-text-muted)] px-2 py-0.5 rounded-md"
                       >
                         {feat}
                       </span>
@@ -677,192 +773,60 @@ export function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* 6. BUILT FOR EVERY ROLE (4 CARDS)                                   */}
       {/* ------------------------------------------------------------------ */}
-      <section id="roles" className="py-16 sm:py-24 bg-white border-b border-gray-200/70">
+      <section
+        id="roles"
+        className="py-16 sm:py-24 bg-[var(--color-surface)] border-b border-gray-200/70"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center mb-14">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#DC143C] uppercase mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#DC143C]" />
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[var(--color-primary)] uppercase mb-2">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]"
+                aria-hidden="true"
+              />
               Role-Tailored Workflows
             </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-[#1F2937] font-[Poppins] tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-[var(--color-text)] font-[Poppins] tracking-tight">
               Built for Every Role
             </h2>
-            <p className="mt-3 text-sm sm:text-base text-[#6B7280]">
+            <p className="mt-3 text-sm sm:text-base text-[var(--color-text-muted)]">
               Scattered paper routines and ad-hoc chat notifications replaced by focused,
               permission-bound operational dashboards.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Role 1: Student */}
-            <div className="p-6 sm:p-7 rounded-[20px] bg-[#FFFBFA] border-2 border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.04)] flex flex-col justify-between">
-              <div>
-                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200 mb-4">
-                  Student
+            {ROLES_DATA.map((roleItem) => (
+              <div
+                key={roleItem.id}
+                className="p-6 sm:p-7 rounded-[var(--radius-lg)] bg-[var(--color-bg)] shadow-[var(--shadow-soft)] flex flex-col justify-between"
+              >
+                <div>
+                  <div
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mb-4 ${roleItem.badgeClass}`}
+                  >
+                    {roleItem.badgeLabel}
+                  </div>
+                  <h3 className="text-xl font-bold text-[var(--color-text)] font-[Poppins] mb-3">
+                    {roleItem.roleTitle}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-muted)] mb-5 leading-relaxed">
+                    {roleItem.description}
+                  </p>
+
+                  <ul className="space-y-2.5 text-xs text-[var(--color-text)]">
+                    {roleItem.bulletPoints.map((point, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <span className="text-[var(--color-success)] font-bold" aria-hidden="true">
+                          ✓
+                        </span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <h3 className="text-xl font-bold text-[#1F2937] font-[Poppins] mb-3">Student</h3>
-                <p className="text-xs text-[#6B7280] mb-5 leading-relaxed">
-                  Personalized daily academic experience centered on personal course progress and
-                  timetable clarity.
-                </p>
-
-                <ul className="space-y-2.5 text-xs text-[#4B5563]">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#16A34A] font-bold">✓</span>
-                    <span>Personalized schedule &amp; routine tracking</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#16A34A] font-bold">✓</span>
-                    <span>CT &amp; assignment submission tracker</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#16A34A] font-bold">✓</span>
-                    <span>Continuous assessment marks &amp; GPA view</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#16A34A] font-bold">✓</span>
-                    <span>Course slides, notes, and past paper access</span>
-                  </li>
-                </ul>
               </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <Link
-                  to="/login"
-                  className="text-xs font-semibold text-[#1F2937] hover:text-[#DC143C] inline-flex items-center gap-1"
-                >
-                  Student Portal Access →
-                </Link>
-              </div>
-            </div>
-
-            {/* Role 2: CR */}
-            <div className="p-6 sm:p-7 rounded-[20px] bg-[#FFFBFA] border-2 border-[#DA532C]/30 shadow-[0_4px_12px_rgba(218,83,44,0.06)] flex flex-col justify-between">
-              <div>
-                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#DA532C]/10 text-[#DA532C] border border-[#DA532C]/30 mb-4">
-                  Class Representative
-                </div>
-                <h3 className="text-xl font-bold text-[#1F2937] font-[Poppins] mb-3">
-                  Class Representative (CR)
-                </h3>
-                <p className="text-xs text-[#6B7280] mb-5 leading-relaxed">
-                  Everything a student has, plus authority to coordinate batch timetables and manage
-                  academic deliverables.
-                </p>
-
-                <ul className="space-y-2.5 text-xs text-[#4B5563]">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DA532C] font-bold">✓</span>
-                    <span>Batch routine management (reschedule, makeup, cancel)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DA532C] font-bold">✓</span>
-                    <span>Daily actual class logging &amp; seminar requests</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DA532C] font-bold">✓</span>
-                    <span>Study resource &amp; syllabus uploads</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DA532C] font-bold">✓</span>
-                    <span>Semester final result sheet upload &amp; promotion requests</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-[#DA532C]/20">
-                <Link
-                  to="/login"
-                  className="text-xs font-semibold text-[#DA532C] hover:underline inline-flex items-center gap-1"
-                >
-                  CR Portal Access →
-                </Link>
-              </div>
-            </div>
-
-            {/* Role 3: Teacher */}
-            <div className="p-6 sm:p-7 rounded-[20px] bg-[#FFFBFA] border-2 border-[#1F2937]/30 shadow-[0_4px_12px_rgba(31,41,55,0.06)] flex flex-col justify-between">
-              <div>
-                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#1F2937]/10 text-[#1F2937] border border-[#1F2937]/30 mb-4">
-                  Faculty Member
-                </div>
-                <h3 className="text-xl font-bold text-[#1F2937] font-[Poppins] mb-3">Teacher</h3>
-                <p className="text-xs text-[#6B7280] mb-5 leading-relaxed">
-                  Comprehensive class management, assessment publishing, and cross-batch timetable
-                  overview.
-                </p>
-
-                <ul className="space-y-2.5 text-xs text-[#4B5563]">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#1F2937] font-bold">✓</span>
-                    <span>Multi-batch weekly schedule &amp; timetable overview</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#1F2937] font-bold">✓</span>
-                    <span>One-click slot reschedule with real-time conflict check</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#1F2937] font-bold">✓</span>
-                    <span>CT scheduling &amp; marks sheet upload</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#1F2937] font-bold">✓</span>
-                    <span>Course assignment creation &amp; submission reviews</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-[#1F2937]/20">
-                <Link
-                  to="/login"
-                  className="text-xs font-semibold text-[#1F2937] hover:underline inline-flex items-center gap-1"
-                >
-                  Faculty Portal Access →
-                </Link>
-              </div>
-            </div>
-
-            {/* Role 4: Admin */}
-            <div className="p-6 sm:p-7 rounded-[20px] bg-[#FFFBFA] border-2 border-[#DC143C]/30 shadow-[0_4px_12px_rgba(220,20,60,0.06)] flex flex-col justify-between">
-              <div>
-                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#DC143C]/10 text-[#DC143C] border border-[#DC143C]/30 mb-4">
-                  Administration
-                </div>
-                <h3 className="text-xl font-bold text-[#1F2937] font-[Poppins] mb-3">Admin</h3>
-                <p className="text-xs text-[#6B7280] mb-5 leading-relaxed">
-                  Full system control, baseline master routine generation, conflict resolution, and
-                  institutional roster governance.
-                </p>
-
-                <ul className="space-y-2.5 text-xs text-[#4B5563]">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C] font-bold">✓</span>
-                    <span>Master routine generation &amp; room matrix governance</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C] font-bold">✓</span>
-                    <span>Three-way conflict resolution &amp; room deadlock overrides</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C] font-bold">✓</span>
-                    <span>Preloaded student &amp; teacher roster validation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C] font-bold">✓</span>
-                    <span>Batch promotion lifecycle &amp; semester transitions</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-[#DC143C]/20">
-                <Link
-                  to="/login"
-                  className="text-xs font-semibold text-[#DC143C] hover:underline inline-flex items-center gap-1"
-                >
-                  Admin Control Portal →
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -870,7 +834,7 @@ export function HomePage() {
       {/* ------------------------------------------------------------------ */}
       {/* 7. FOOTER CTA & DEPARTMENT DIRECTORY                                */}
       {/* ------------------------------------------------------------------ */}
-      <footer className="bg-[#1F2937] text-white pt-16 pb-12 border-t-4 border-[#DC143C]">
+      <footer className="bg-[var(--color-text)] text-white pt-16 pb-12 border-t-4 border-[var(--color-primary)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Institutional CTA Strip */}
           <div className="pb-12 border-b border-gray-700/80 mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -885,25 +849,36 @@ export function HomePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link
-                to="/login"
-                className="px-5 py-2.5 rounded-[14px] text-xs sm:text-sm font-semibold text-[#1F2937] bg-white hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                Log In
-              </Link>
-              <Link
-                to="/register"
-                className="px-5 py-2.5 rounded-[14px] text-xs sm:text-sm font-semibold text-white bg-[#DC143C] hover:bg-[#B01030] transition-colors cursor-pointer"
-              >
-                Register Account
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  to="/dashboard"
+                  className="px-5 py-2.5 rounded-[var(--radius-md)] text-xs sm:text-sm font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] transition-colors cursor-pointer"
+                >
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="px-5 py-2.5 rounded-[var(--radius-md)] text-xs sm:text-sm font-semibold text-[var(--color-text)] bg-white hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-5 py-2.5 rounded-[var(--radius-md)] text-xs sm:text-sm font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] transition-colors cursor-pointer"
+                  >
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
           {/* Directory Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
             {/* Col 1: Identity */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-8">
               <div className="flex items-center gap-3 mb-4">
                 <img
                   src="/smart-department-icon.svg"
@@ -919,7 +894,7 @@ export function HomePage() {
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 leading-relaxed max-w-md">
+              <p className="text-xs text-gray-400 leading-relaxed max-w-lg">
                 Department of Computer Science and Engineering, Faculty of Mathematical and Physical
                 Sciences, Jahangirnagar University, Savar, Dhaka-1342, Bangladesh.
               </p>
@@ -928,59 +903,28 @@ export function HomePage() {
               </p>
             </div>
 
-            {/* Col 2: Public Resources & Results */}
-            <div>
+            {/* Col 2: Public Resources & Results Links */}
+            <div className="md:col-span-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 mb-3 font-[Poppins]">
                 Public Access
               </h4>
-              <ul className="space-y-2 text-xs text-gray-400">
+              <ul className="space-y-2.5 text-xs text-gray-400">
                 <li>
-                  <Link to="/resources" className="hover:text-white transition-colors">
-                    Course Resources &amp; Notes
+                  <Link
+                    to="/resources"
+                    className="hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <span aria-hidden="true">📁</span>
+                    <span>Browse Public Resources</span>
                   </Link>
                 </li>
                 <li>
-                  <Link to="/results" className="hover:text-white transition-colors">
-                    Published Semester Results
-                  </Link>
-                </li>
-                <li>
-                  <a href="#facilities" className="hover:text-white transition-colors">
-                    Classrooms &amp; Laboratories
-                  </a>
-                </li>
-                <li>
-                  <a href="#about" className="hover:text-white transition-colors">
-                    Department Heritage &amp; Faculty
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Academic Portals */}
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-300 mb-3 font-[Poppins]">
-                Academic Portals
-              </h4>
-              <ul className="space-y-2 text-xs text-gray-400">
-                <li>
-                  <Link to="/login" className="hover:text-white transition-colors">
-                    Student Login
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/login" className="hover:text-white transition-colors">
-                    Class Representative (CR) Portal
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/login" className="hover:text-white transition-colors">
-                    Faculty Timetable Login
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/login" className="hover:text-white transition-colors">
-                    Department Administration
+                  <Link
+                    to="/results"
+                    className="hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <span aria-hidden="true">📜</span>
+                    <span>View Published Semester Results</span>
                   </Link>
                 </li>
               </ul>
@@ -1000,4 +944,5 @@ export function HomePage() {
     </div>
   );
 }
+
 export default HomePage;
