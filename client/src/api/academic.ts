@@ -9,6 +9,7 @@ import type {
   CreateSemesterPayload,
   PromoteBatchPayload,
   OverrideSemesterPayload,
+  Course,
   Program,
   BatchStatus,
   SemesterStatus,
@@ -54,12 +55,14 @@ export const academicApi = {
     semesterId: string,
     data: { name: string; code: string; creditHours: number; teacherId: string }
   ) => {
-    const res = await apiClient.post<ApiResponse<any>>(`/semesters/${semesterId}/courses`, data);
+    const res = await apiClient.post<ApiResponse<Course>>(`/semesters/${semesterId}/courses`, data);
     return res.data.data;
   },
 
   deleteCourse: async (semesterId: string, courseId: string) => {
-    const res = await apiClient.delete<ApiResponse<any>>(`/semesters/${semesterId}/courses/${courseId}`);
+    const res = await apiClient.delete<ApiResponse<unknown>>(
+      `/semesters/${semesterId}/courses/${courseId}`
+    );
     return res.data.data;
   },
 
@@ -130,9 +133,9 @@ export const academicApi = {
   },
 
   getTeachers: async () => {
-    const res = await apiClient.get<ApiResponse<Array<{ id: string; name: string; email: string }>>>(
-      "/semesters/teachers/list"
-    );
+    const res = await apiClient.get<
+      ApiResponse<Array<{ id: string; name: string; email: string }>>
+    >("/semesters/teachers/list");
     return res.data.data ?? [];
   },
 };

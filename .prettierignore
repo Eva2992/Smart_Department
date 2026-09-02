@@ -11,3 +11,4 @@ package-lock.json
 server/package-lock.json
 client/package-lock.json
 server/prisma/migrations
+.mypy_cache

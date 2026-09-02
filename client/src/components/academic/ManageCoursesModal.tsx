@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { academicApi } from "../../api/academic";
-import { useAuth } from "../../context/useAuth";
+import React, { useState, useEffect, useCallback } from "react";
+import { academicApi } from "../../api/academic.js";
+import { useAuth } from "../../context/useAuth.js";
+import type { Semester, Course } from "../../types/academic.js";
 
 interface ManageCoursesModalProps {
   isOpen: boolean;
@@ -18,9 +19,9 @@ export function ManageCoursesModal({
   const { user } = useAuth();
   const effectiveBatchId = propBatchId || user?.batchId;
 
-  const [semesters, setSemesters] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>("");
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [teachers, setTeachers] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,14 +34,14 @@ export function ManageCoursesModal({
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const fetchSemesterData = async () => {
+  const fetchSemesterData = useCallback(async () => {
     if (!effectiveBatchId) return;
     setLoading(true);
     try {
       const semList = await academicApi.getSemesters({ batchId: effectiveBatchId });
       setSemesters(semList);
 
-      const activeSem = semList.find((s: any) => s.status === "ACTIVE") || semList[0];
+      const activeSem = semList.find((s: Semester) => s.status === "ACTIVE") || semList[0];
       if (activeSem) {
         setSelectedSemesterId(activeSem.id);
         const detailedSem = await academicApi.getSemesterById(activeSem.id);
@@ -49,21 +50,21 @@ export function ManageCoursesModal({
 
       const tList = await academicApi.getTeachers();
       setTeachers(tList);
-      if (tList.length > 0 && !teacherId) {
-        setTeacherId(tList[0].id);
+      if (tList.length > 0) {
+        setTeacherId((prev) => prev || tList[0].id);
       }
     } catch (err: unknown) {
       console.error("Failed to load semester courses:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [effectiveBatchId]);
 
   useEffect(() => {
     if (isOpen) {
       fetchSemesterData();
     }
-  }, [isOpen, effectiveBatchId]);
+  }, [isOpen, fetchSemesterData]);
 
   const handleSemesterChange = async (semId: string) => {
     setSelectedSemesterId(semId);
@@ -187,7 +188,8 @@ export function ManageCoursesModal({
               </div>
             ) : (
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-xs">
-                No active semester found for this batch. Please request an administrator to initialize the semester.
+                No active semester found for this batch. Please request an administrator to
+                initialize the semester.
               </div>
             )}
 
@@ -229,14 +231,19 @@ export function ManageCoursesModal({
         )}
 
         {/* Add Course Form */}
-        <form onSubmit={handleAddCourse} className="p-4 bg-gray-50/70 border border-gray-200 rounded-2xl space-y-3">
+        <form
+          onSubmit={handleAddCourse}
+          className="p-4 bg-gray-50/70 border border-gray-200 rounded-2xl space-y-3"
+        >
           <h4 className="text-xs font-bold text-gray-900 uppercase font-[Inter]">
             + Add New Course to Semester
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#1F2937] mb-1">Course Title *</label>
+              <label className="block text-xs font-semibold text-[#1F2937] mb-1">
+                Course Title *
+              </label>
               <input
                 type="text"
                 placeholder="e.g. Operating Systems"
@@ -247,7 +254,9 @@ export function ManageCoursesModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1F2937] mb-1">Course Code *</label>
+              <label className="block text-xs font-semibold text-[#1F2937] mb-1">
+                Course Code *
+              </label>
               <input
                 type="text"
                 placeholder="e.g. CSE-311"
@@ -261,7 +270,9 @@ export function ManageCoursesModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#1F2937] mb-1">Credit Hours</label>
+              <label className="block text-xs font-semibold text-[#1F2937] mb-1">
+                Credit Hours
+              </label>
               <input
                 type="number"
                 step="0.5"
@@ -274,14 +285,18 @@ export function ManageCoursesModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1F2937] mb-1">Assigned Instructor *</label>
+              <label className="block text-xs font-semibold text-[#1F2937] mb-1">
+                Assigned Instructor *
+              </label>
               <select
                 value={teacherId}
                 onChange={(e) => setTeacherId(e.target.value)}
                 required
                 className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
               >
-                <option value="" disabled>Select Instructor</option>
+                <option value="" disabled>
+                  Select Instructor
+                </option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}

@@ -18,7 +18,7 @@ const TIME_SLOTS = [
 
 export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
   const { user } = useAuth();
-  
+
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -27,7 +27,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
   const [batchId, setBatchId] = useState("");
   const [courseId, setCourseId] = useState("");
   const [batches, setBatches] = useState<Array<{ id: string; name: string }>>([]);
-  
+
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -35,18 +35,21 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
 
-  const isAuthorized = user?.isChairman || user?.role === 'ADMIN' || user?.role === 'CR';
+  const isAuthorized = user?.isChairman || user?.role === "ADMIN" || user?.role === "CR";
 
   useEffect(() => {
-    academicApi.getBatches().then((data) => {
-      const mapped = data.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
-      setBatches(mapped);
-      if (user?.batchId) {
-        setBatchId(user.batchId);
-      } else if (mapped.length > 0 && !batchId) {
-        setBatchId(mapped[0].id);
-      }
-    }).catch(console.error);
+    academicApi
+      .getBatches()
+      .then((data) => {
+        const mapped = data.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
+        setBatches(mapped);
+        if (user?.batchId) {
+          setBatchId(user.batchId);
+        } else if (mapped.length > 0) {
+          setBatchId((prev) => prev || mapped[0].id);
+        }
+      })
+      .catch(console.error);
   }, [user?.batchId]);
 
   useEffect(() => {
@@ -65,7 +68,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
           endTime,
           roomId,
         });
-        
+
         if (res.hasConflict) {
           setHasConflict(true);
           setConflictMsg(res.summaryMessage || "Room occupied at selected time.");
@@ -85,7 +88,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
 
   const handleStartTimeChange = (val: string) => {
     setStartTime(val);
-    const slot = TIME_SLOTS.find(s => s.start === val);
+    const slot = TIME_SLOTS.find((s) => s.start === val);
     if (slot) {
       setEndTime(slot.end);
     }
@@ -94,7 +97,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
     setSubmitting(true);
     setSuccessMsg("");
     setErrorMsg(null);
@@ -107,11 +110,11 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
         roomId,
         teacherId: user.id,
         batchId: user.batchId || batchId || batches[0]?.id,
-        courseId: courseId || undefined
+        courseId: courseId || undefined,
       });
       setSuccessMsg("Seminar scheduled successfully!");
       if (onSuccess) onSuccess();
-      
+
       // Reset form
       setTitle("");
       setDate("");
@@ -121,7 +124,6 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
       setCourseId("");
       setConflictMsg(null);
       setHasConflict(false);
-      
     } catch (err: unknown) {
       console.error(err);
       const message = err instanceof Error ? err.message : "Failed to create seminar";
@@ -152,13 +154,13 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
       <h3 className="text-lg font-bold text-[#1F2937] font-[Poppins] flex items-center gap-2 mb-6">
         📅 Schedule Seminar / Workshop
       </h3>
-      
+
       {successMsg && (
         <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-medium">
           {successMsg}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">Title</label>
@@ -166,12 +168,12 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
             type="text"
             required
             value={title}
-            onChange={e => setTitle(e.target.value)}
+            onChange={(e) => setTitle(e.target.value)}
             className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
             placeholder="e.g. AI in Healthcare Workshop"
           />
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">Date</label>
@@ -179,56 +181,65 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
               type="date"
               required
               value={date}
-              onChange={e => setDate(e.target.value)}
+              onChange={(e) => setDate(e.target.value)}
               className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">Room</label>
-            <RoomSelector
-              value={roomId}
-              onChange={setRoomId}
+            <RoomSelector value={roomId} onChange={setRoomId} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">
+              Start Time
+            </label>
+            <select
+              required
+              value={startTime}
+              onChange={(e) => handleStartTimeChange(e.target.value)}
+              className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
+            >
+              <option value="" disabled>
+                Select Time
+              </option>
+              {TIME_SLOTS.map((slot) => (
+                <option key={slot.start} value={slot.start}>
+                  {slot.start}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">
+              End Time
+            </label>
+            <input
+              type="time"
+              required
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">Start Time</label>
-            <select
-              required
-              value={startTime}
-              onChange={e => handleStartTimeChange(e.target.value)}
-              className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
-            >
-              <option value="" disabled>Select Time</option>
-              {TIME_SLOTS.map(slot => (
-                <option key={slot.start} value={slot.start}>{slot.start}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">End Time</label>
-            <input
-              type="time"
-              required
-              value={endTime}
-              onChange={e => setEndTime(e.target.value)}
-              className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
-            />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">Batch (Target Audience)</label>
+            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">
+              Batch (Target Audience)
+            </label>
             <select
               required
               value={batchId}
-              onChange={e => setBatchId(e.target.value)}
+              onChange={(e) => setBatchId(e.target.value)}
               className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
             >
-              <option value="" disabled>Select Batch</option>
+              <option value="" disabled>
+                Select Batch
+              </option>
               {batches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -237,11 +248,13 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">Course (Optional)</label>
+            <label className="block text-xs font-bold text-[#6B7280] uppercase mb-1">
+              Course (Optional)
+            </label>
             <input
               type="text"
               value={courseId}
-              onChange={e => setCourseId(e.target.value)}
+              onChange={(e) => setCourseId(e.target.value)}
               placeholder="e.g. CSE-311"
               className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
             />
@@ -253,7 +266,9 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
           {checking ? (
             <span className="text-xs text-[#6B7280]">Checking room availability...</span>
           ) : conflictMsg ? (
-            <span className={`text-xs font-bold ${hasConflict ? 'text-[#E11D48]' : 'text-[#16A34A]'}`}>
+            <span
+              className={`text-xs font-bold ${hasConflict ? "text-[#E11D48]" : "text-[#16A34A]"}`}
+            >
               {conflictMsg}
             </span>
           ) : null}
@@ -271,7 +286,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
           disabled={hasConflict || !isFormComplete || submitting || checking}
           className="w-full mt-4 py-3 rounded-xl text-white font-bold font-[Poppins] text-sm bg-[#DC143C] hover:bg-[#B01030] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
         >
-          {submitting ? 'Scheduling...' : '📅 Schedule Seminar / Workshop'}
+          {submitting ? "Scheduling..." : "📅 Schedule Seminar / Workshop"}
         </button>
       </form>
     </div>
