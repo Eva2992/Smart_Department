@@ -44,6 +44,7 @@ export const AdminBatchManagementPage: React.FC = () => {
   const [isNewBatchModalOpen, setIsNewBatchModalOpen] = useState(false);
   const [newBatchName, setNewBatchName] = useState("");
   const [newBatchProgram, setNewBatchProgram] = useState<Program>("HONOURS");
+  const [batchModalError, setBatchModalError] = useState<string | null>(null);
 
   // Refresh data on filter/page change
   useEffect(() => {
@@ -116,6 +117,7 @@ export const AdminBatchManagementPage: React.FC = () => {
     e.preventDefault();
     if (!newBatchName.trim()) return;
 
+    setBatchModalError(null);
     try {
       await academicApi.createBatch({
         name: newBatchName.trim(),
@@ -130,7 +132,7 @@ export const AdminBatchManagementPage: React.FC = () => {
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : "Failed to create batch";
-      setFeedback({ type: "error", message: msg || "Failed to create batch" });
+      setBatchModalError(msg || "Failed to create batch");
     }
   };
 
@@ -289,7 +291,7 @@ export const AdminBatchManagementPage: React.FC = () => {
                   : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
             >
-              Student Roster & Overrides (FR-09)
+              Student Roster &amp; Overrides
             </button>
           </div>
         </div>
@@ -403,7 +405,7 @@ export const AdminBatchManagementPage: React.FC = () => {
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-extrabold text-[#1F2937]">
-                  Class Representative Promotion Requests (FR-07, FR-08)
+                  Class Representative Promotion Requests
                 </h2>
                 <p className="text-xs text-gray-500">
                   Review and process semester progression requests submitted by batch
@@ -498,7 +500,7 @@ export const AdminBatchManagementPage: React.FC = () => {
             <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-[#1F2937]">
-                  Student Roster & Semester Overrides (FR-09)
+                  Student Roster &amp; Semester Overrides
                 </h2>
                 <p className="text-xs text-gray-500">
                   Search students to manually update academic standing, reassign batches, or appoint
@@ -691,17 +693,27 @@ export const AdminBatchManagementPage: React.FC = () => {
                 </select>
               </div>
 
+              {/* Error message placed immediately above submit button */}
+              {batchModalError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#E11D48] text-xs font-semibold">
+                  ✕ {batchModalError}
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setIsNewBatchModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700"
+                  onClick={() => {
+                    setIsNewBatchModalOpen(false);
+                    setBatchModalError(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#DC143C] hover:bg-[#B01030] text-white"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#DC143C] hover:bg-[#B01030] text-white cursor-pointer"
                 >
                   Create Batch
                 </button>

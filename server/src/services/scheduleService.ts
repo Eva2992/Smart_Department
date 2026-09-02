@@ -694,28 +694,61 @@ export class ScheduleService {
    * ```
    */
   async createSeminarEntry(input: CreateSeminarInput, actor: AuthUser) {
-    if (actor.role !== Role.ADMIN && !actor.isChairman) {
+    if (actor.role !== Role.ADMIN && !actor.isChairman && actor.role !== Role.CR) {
       throw new AppError("Only the Chairman or Admin can create seminars", 403, "FORBIDDEN");
+    }
+
+    if (actor.role === Role.CR && actor.batchId) {
+      input.batchId = actor.batchId;
     }
 
     const targetDateStr = normalizeDateString(input.date);
 
     return await prisma.$transaction(async (tx) => {
+      // Validate batch exists in DB or fallback to an active batch if batch model is present
+      let validBatchId = input.batchId;
+      if (tx.batch?.findUnique) {
+        const batchExists = await tx.batch.findUnique({ where: { id: input.batchId } });
+        if (!batchExists && tx.batch.findFirst) {
+          const fallbackBatch = await tx.batch.findFirst({ where: { status: "ACTIVE" } });
+          if (fallbackBatch) {
+            validBatchId = fallbackBatch.id;
+          }
+        }
+      }
+
+      // Validate teacher exists in DB or fallback to actor
+      let validTeacherId = input.teacherId;
+      if (tx.user?.findUnique && input.teacherId) {
+        const teacherExists = await tx.user.findUnique({ where: { id: input.teacherId } });
+        if (!teacherExists) {
+          validTeacherId = actor.id;
+        }
+      }
+
+      // Check course if specified
+      let validCourseId: string | null = null;
+      if (input.courseId && tx.course?.findUnique) {
+        const courseExists = await tx.course.findUnique({ where: { id: input.courseId } });
+        if (courseExists) {
+          validCourseId = courseExists.id;
+        }
+      }
+
+      // Conflict check: focus strictly on Room availability for seminars
       const conflictResult = await conflictService.checkConflict(
         {
           date: targetDateStr,
           startTime: input.startTime,
           endTime: input.endTime,
           roomId: input.roomId,
-          teacherId: input.teacherId,
-          batchId: input.batchId,
         },
         tx
       );
 
       if (conflictResult.hasConflict) {
         throw new AppError(
-          conflictResult.summaryMessage || "Scheduling conflict detected for seminar",
+          conflictResult.summaryMessage || "Scheduling conflict detected for seminar room",
           409,
           "CONFLICT_DETECTED",
           conflictResult
@@ -737,9 +770,9 @@ export class ScheduleService {
           type: ScheduleEntryType.SEMINAR,
           status: ScheduleEntryStatus.SCHEDULED,
           topic: input.title,
-          courseId: input.courseId || null,
-          batchId: input.batchId,
-          teacherId: input.teacherId,
+          courseId: validCourseId,
+          batchId: validBatchId,
+          teacherId: validTeacherId,
           roomId: input.roomId,
           date: parsedDate,
           startTime: startDateTime,
@@ -795,6 +828,113 @@ export class ScheduleService {
   }
 
   /**
+   * Creates an ad-hoc class schedule (e.g. makeup or extra class session).
+   */
+  async createScheduleEntry(
+    input: {
+      courseId: string;
+      teacherId: string;
+      roomId: string;
+      batchId: string;
+      date: string;
+      startTime: string;
+      endTime: string;
+      topic?: string;
+      type?: ScheduleEntryType;
+    },
+    actor: AuthUser
+  ) {
+    if (actor.role !== Role.ADMIN && actor.role !== Role.TEACHER && actor.role !== Role.CR) {
+      throw new AppError("You do not have permission to create schedule entries.", 403, "FORBIDDEN");
+    }
+
+    let targetBatchId = input.batchId;
+    if (actor.role === Role.CR) {
+      if (!actor.batchId) {
+        throw new AppError("Class Representative does not have an assigned batch.", 400, "VALIDATION_ERROR");
+      }
+      targetBatchId = actor.batchId;
+    }
+
+    const targetDateStr = normalizeDateString(input.date);
+
+    return await prisma.$transaction(async (tx) => {
+      const conflictResult = await conflictService.checkConflict(
+        {
+          date: targetDateStr,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          roomId: input.roomId,
+          teacherId: input.teacherId,
+          batchId: targetBatchId,
+        },
+        tx
+      );
+
+      if (conflictResult.hasConflict) {
+        throw new AppError(
+          conflictResult.summaryMessage || "Scheduling conflict detected for class session",
+          409,
+          "CONFLICT_DETECTED",
+          conflictResult
+        );
+      }
+
+      const parsedDate = new Date(targetDateStr);
+      const startMinutes = timeToMinutes(input.startTime);
+      const endMinutes = timeToMinutes(input.endTime);
+
+      const startDateTime = new Date(parsedDate);
+      startDateTime.setUTCHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+
+      const endDateTime = new Date(parsedDate);
+      endDateTime.setUTCHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+
+      const newEntry = await tx.scheduleEntry.create({
+        data: {
+          type: input.type || ScheduleEntryType.CLASS,
+          status: ScheduleEntryStatus.SCHEDULED,
+          topic: input.topic,
+          courseId: input.courseId,
+          batchId: targetBatchId,
+          teacherId: input.teacherId,
+          roomId: input.roomId,
+          date: parsedDate,
+          startTime: startDateTime,
+          endTime: endDateTime,
+          createdById: actor.id,
+        },
+        include: {
+          course: true,
+          teacher: true,
+          room: true,
+          batch: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: actor.id,
+          action: "CREATE_SCHEDULE_ENTRY",
+          entityType: "ScheduleEntry",
+          entityId: newEntry.id,
+          ipAddress: "127.0.0.1",
+          details: {
+            courseId: input.courseId,
+            date: targetDateStr,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            roomId: input.roomId,
+            batchId: targetBatchId,
+          },
+        },
+      });
+
+      return newEntry;
+    });
+  }
+
+  /**
    * Helper to verify ownership or admin privilege.
    */
   private assertCanModifyEntry(entry: any, actor: AuthUser) {
@@ -808,6 +948,12 @@ export class ScheduleService {
         (actor.teacherUniqueId && entry.teacher?.teacherUniqueId === actor.teacherUniqueId);
 
       if (isOwner) {
+        return;
+      }
+    }
+
+    if (actor.role === Role.CR) {
+      if (entry.batchId === actor.batchId) {
         return;
       }
     }

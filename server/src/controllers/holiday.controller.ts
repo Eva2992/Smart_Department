@@ -24,6 +24,13 @@ const declareHolidaySchema = z
     }
   );
 
+const updateHolidaySchema = z.object({
+  date: z.string().optional(),
+  reason: z.string().min(1).optional(),
+  scope: z.enum(["ALL", "BATCH"]).optional(),
+  batchId: z.string().optional(),
+});
+
 export class HolidayController {
   async declareHoliday(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -33,6 +40,19 @@ export class HolidayController {
       const body = declareHolidaySchema.parse(req.body);
       const result = await holidayService.declareHoliday(body, req.user);
       sendCreated(res, result, result.message);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateHoliday(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const body = updateHolidaySchema.parse(req.body);
+      const result = await holidayService.updateHoliday(req.params.id as string, body, req.user);
+      sendSuccess(res, result, result.message);
     } catch (err) {
       next(err);
     }

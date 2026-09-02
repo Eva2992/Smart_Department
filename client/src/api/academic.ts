@@ -50,6 +50,19 @@ export const academicApi = {
     return res.data.data;
   },
 
+  addCourseToSemester: async (
+    semesterId: string,
+    data: { name: string; code: string; creditHours: number; teacherId: string }
+  ) => {
+    const res = await apiClient.post<ApiResponse<any>>(`/semesters/${semesterId}/courses`, data);
+    return res.data.data;
+  },
+
+  deleteCourse: async (semesterId: string, courseId: string) => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/semesters/${semesterId}/courses/${courseId}`);
+    return res.data.data;
+  },
+
   // Promotions
   getPromotionRequests: async (params?: { status?: PromotionStatus; batchId?: string }) => {
     const res = await apiClient.get<ApiResponse<PromotionRequest[]>>("/admin/promotions", {
@@ -114,5 +127,12 @@ export const academicApi = {
       reason,
     });
     return res.data.data;
+  },
+
+  getTeachers: async () => {
+    const res = await apiClient.get<ApiResponse<Array<{ id: string; name: string; email: string }>>>(
+      "/semesters/teachers/list"
+    );
+    return res.data.data ?? [];
   },
 };

@@ -61,12 +61,6 @@ export function ResetPasswordPage() {
             <p className="text-xs text-[#6B7280] mt-1.5">Enter your new password below</p>
           </div>
 
-          {error && (
-            <div className="mb-5">
-              <Alert type="error" message={error} onClose={() => setError(null)} />
-            </div>
-          )}
-
           {success && (
             <div className="mb-5">
               <Alert type="success" message={success} />
@@ -125,6 +119,13 @@ export function ResetPasswordPage() {
                 className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm text-[#1F2937] focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] transition-colors"
               />
             </div>
+
+            {/* Error Message: Placed EXACTLY above submit button */}
+            {error && (
+              <div className="pt-2">
+                <Alert type="error" message={error} onClose={() => setError(null)} />
+              </div>
+            )}
 
             <button
               type="submit"

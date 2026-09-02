@@ -22,10 +22,20 @@ scheduleRouter.post(
   "/seminar",
   scheduleWriteLimiter,
   authenticate,
-  authorize(Role.TEACHER, Role.ADMIN),
-  requireChairman,
+  authorize(Role.TEACHER, Role.ADMIN, Role.CR),
   (req, res, next) => {
     scheduleController.createSeminar(req, res, next);
+  }
+);
+
+// Create ad-hoc or makeup schedule entry
+scheduleRouter.post(
+  "/",
+  scheduleWriteLimiter,
+  authenticate,
+  authorize(Role.TEACHER, Role.ADMIN, Role.CR),
+  (req, res, next) => {
+    scheduleController.createScheduleEntry(req, res, next);
   }
 );
 
@@ -44,11 +54,11 @@ scheduleRouter.get("/:id", optionalAuthenticate, (req, res, next) => {
   scheduleController.getScheduleById(req, res, next);
 });
 
-// Reschedule a class (Teacher of class or Admin)
+// Reschedule a class (Teacher of class, Admin, or CR)
 scheduleRouter.patch(
   "/:id/reschedule",
   authenticate,
-  authorize(Role.TEACHER, Role.ADMIN),
+  authorize(Role.TEACHER, Role.ADMIN, Role.CR),
   (req, res, next) => {
     scheduleController.rescheduleClass(req, res, next);
   }
@@ -58,7 +68,7 @@ scheduleRouter.patch(
 scheduleRouter.patch(
   "/:id/time",
   authenticate,
-  authorize(Role.TEACHER, Role.ADMIN),
+  authorize(Role.TEACHER, Role.ADMIN, Role.CR),
   (req, res, next) => {
     scheduleController.updateClassTime(req, res, next);
   }
@@ -68,7 +78,7 @@ scheduleRouter.patch(
 scheduleRouter.patch(
   "/:id/cancel",
   authenticate,
-  authorize(Role.TEACHER, Role.ADMIN),
+  authorize(Role.TEACHER, Role.ADMIN, Role.CR),
   (req, res, next) => {
     scheduleController.cancelClass(req, res, next);
   }
@@ -77,7 +87,7 @@ scheduleRouter.patch(
 scheduleRouter.post(
   "/:id/cancel",
   authenticate,
-  authorize(Role.TEACHER, Role.ADMIN),
+  authorize(Role.TEACHER, Role.ADMIN, Role.CR),
   (req, res, next) => {
     scheduleController.cancelClass(req, res, next);
   }

@@ -9,6 +9,7 @@ vi.mock("../../src/lib/prisma.js", () => ({
     holiday: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
@@ -280,6 +281,57 @@ describe("holidayService", () => {
         include: { batch: { select: { id: true, name: true } } },
       });
       expect(res).toEqual(mockUpcoming);
+    });
+  });
+
+  describe("updateHoliday", () => {
+    it("should allow admin to update a holiday", async () => {
+      (prisma.holiday.findUnique as any).mockResolvedValue({
+        id: "hol-1",
+        date: new Date("2026-09-15"),
+        reason: "Old Reason",
+        scope: HolidayScope.ALL,
+        batchId: null,
+      });
+      (prisma.holiday.update as any).mockResolvedValue({
+        id: "hol-1",
+        date: new Date("2026-09-16"),
+        reason: "New Reason",
+        scope: HolidayScope.ALL,
+        batchId: null,
+      });
+      (prisma.scheduleEntry.updateMany as any).mockResolvedValue({ count: 1 });
+      (prisma.auditLog.create as any).mockResolvedValue({ id: "audit-upd" });
+
+      const res = await holidayService.updateHoliday(
+        "hol-1",
+        { reason: "New Reason", date: "2026-09-16" },
+        mockAdminActor as any
+      );
+
+      expect(res.holiday.reason).toBe("New Reason");
+      expect(prisma.holiday.update).toHaveBeenCalled();
+    });
+
+    it("should allow CR to declare batch off-day", async () => {
+      const mockCrActor = { id: "cr-1", role: Role.CR, batchId: "batch-52" };
+      (prisma.holiday.create as any).mockResolvedValue({
+        id: "hol-cr",
+        date: new Date("2026-09-20"),
+        reason: "Batch Study Leave",
+        scope: HolidayScope.BATCH,
+        batchId: "batch-52",
+      });
+      (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
+      (prisma.auditLog.create as any).mockResolvedValue({ id: "audit-cr" });
+
+      const res = await holidayService.declareHoliday(
+        { date: "2026-09-20", reason: "Batch Study Leave" },
+        mockCrActor as any
+      );
+
+      expect(res.holiday.scope).toBe(HolidayScope.BATCH);
+      expect(res.holiday.batchId).toBe("batch-52");
     });
   });
 });

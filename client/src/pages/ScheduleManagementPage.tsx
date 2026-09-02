@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { type ScheduleEntry, type Holiday, getSchedules, getRooms, getHolidays } from "../api/scheduleApi";
+import { academicApi } from "../api/academic";
 import { ScheduleGrid } from "../components/ScheduleGrid";
 import { RescheduleModal } from "../components/RescheduleModal";
 import { CancelModal } from "../components/CancelModal";
@@ -8,6 +9,8 @@ import { HolidayBanner } from "../components/HolidayBanner";
 import { RoomMatrix } from "../components/RoomMatrix";
 import { SeminarBookingForm } from "../components/SeminarBookingForm";
 import { ConflictTester } from "../components/ConflictTester";
+import { MakeupClassModal } from "../components/MakeupClassModal";
+import { ManageCoursesModal } from "../components/academic/ManageCoursesModal";
 import { useAuth } from "../context/useAuth.js";
 
 interface ScheduleManagementPageProps {
@@ -16,6 +19,8 @@ interface ScheduleManagementPageProps {
 
 export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleManagementPageProps) {
   const { user } = useAuth();
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const [activeTab, setActiveTab] = useState<"timetable" | "rooms" | "holidays" | "conflicts">(
     defaultTab
   );
@@ -31,17 +36,32 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
     { id: "lab-2", roomNumber: "LAB-2", type: "LAB" },
     { id: "r-202", roomNumber: "R-202", type: "MULTIPURPOSE" },
   ]);
+  const [batches, setBatches] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [batchFilter, setBatchFilter] = useState("");
+  // Filters - date strictly defaults to today's date
+  const [batchFilter, setBatchFilter] = useState(user?.batchId || "");
   const [statusFilter, setStatusFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState(todayStr);
 
   // Modals state
   const [selectedForReschedule, setSelectedForReschedule] = useState<ScheduleEntry | null>(null);
   const [selectedForCancel, setSelectedForCancel] = useState<ScheduleEntry | null>(null);
   const [activeHoliday, setActiveHoliday] = useState<Holiday | null>(null);
+  const [isMakeupModalOpen, setIsMakeupModalOpen] = useState(false);
+  const [isManageCoursesOpen, setIsManageCoursesOpen] = useState(false);
+
+  useEffect(() => {
+    academicApi.getBatches().then((data) => {
+      setBatches(data.map((b) => ({ id: b.id, name: `${b.name} Batch` })));
+    }).catch(console.error);
+  }, []);
+
+  const adjustDate = (days: number) => {
+    const current = new Date(dateFilter || todayStr);
+    current.setDate(current.getDate() + days);
+    setDateFilter(current.toISOString().split("T")[0]);
+  };
 
   const fetchScheduleData = useCallback(async () => {
     setLoading(true);
@@ -50,7 +70,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
         getSchedules({
           batchId: batchFilter || undefined,
           status: statusFilter ? (statusFilter as ScheduleEntry["status"]) : undefined,
-          date: dateFilter || undefined,
+          date: dateFilter, // Strictly enforce single-date view
         }),
         getRooms(),
         dateFilter
@@ -82,6 +102,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
 
   const userRole = user?.role || "STUDENT";
   const userId = user?.id;
+  const canScheduleClass = userRole === "ADMIN" || userRole === "TEACHER" || userRole === "CR";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -92,7 +113,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
             <span>JU CSE Departmental Routine Engine</span>
           </div>
           <h1 className="text-2xl font-extrabold text-[#1F2937] font-[Poppins]">
-            Class Update &amp; Reschedule Management
+            Class Routine &amp; Schedule Management
           </h1>
           <p className="text-xs sm:text-sm text-[#6B7280] mt-1">
             Day-wise routine schedule, 3-way transactional conflict checking, room matrix &amp;
@@ -100,12 +121,33 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {canScheduleClass && (
+            <button
+              type="button"
+              onClick={() => setIsMakeupModalOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#DC143C] hover:bg-[#B01030] text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>+ Schedule Makeup Class</span>
+            </button>
+          )}
+
+          {userRole === "CR" && (
+            <button
+              type="button"
+              onClick={() => setIsManageCoursesOpen(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#1F2937] hover:bg-black text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>📚 Manage Batch Courses</span>
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={fetchScheduleData}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-gray-200 hover:border-gray-300 text-[#1F2937] shadow-2xs hover:bg-gray-50 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <span>🔄 Refresh Routine</span>
+            <span>🔄 Refresh</span>
           </button>
         </div>
       </div>
@@ -152,16 +194,18 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
           <span>★ Holidays &amp; Off-Days</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab("conflicts")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "conflicts"
-              ? "bg-[#DC143C] text-white shadow-xs"
-              : "bg-white text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 border border-gray-200"
-          }`}
-        >
-          <span>⚡ Conflict Engine Tester</span>
-        </button>
+        {userRole !== "STUDENT" && (
+          <button
+            onClick={() => setActiveTab("conflicts")}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              activeTab === "conflicts"
+                ? "bg-[#DC143C] text-white shadow-xs"
+                : "bg-white text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 border border-gray-200"
+            }`}
+          >
+            <span>⚡ Conflict Engine Tester</span>
+          </button>
+        )}
       </div>
 
       {/* Main Tab Content */}
@@ -180,10 +224,11 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
                   className="bg-white border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
                 >
                   <option value="">All Batches</option>
-                  <option value="batch-52">52nd Batch</option>
-                  <option value="batch-51">51st Batch</option>
-                  <option value="batch-50">50th Batch</option>
-                  <option value="batch-49">49th Batch</option>
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -206,26 +251,56 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
 
               <div>
                 <label className="block text-[10px] uppercase font-bold text-[#6B7280] mb-1">
-                  Date Filter
+                  Schedule Date (Specific Date / Today)
                 </label>
-                <input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
-                />
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => adjustDate(-1)}
+                    className="px-2.5 py-1.5 text-xs font-bold rounded-xl border border-gray-300 hover:bg-gray-100 transition cursor-pointer"
+                    title="Previous Day"
+                  >
+                    ◀
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateFilter(todayStr)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      dateFilter === todayStr
+                        ? "bg-[#DC143C] text-white border-[#DC143C]"
+                        : "border-gray-300 hover:bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => adjustDate(1)}
+                    className="px-2.5 py-1.5 text-xs font-bold rounded-xl border border-gray-300 hover:bg-gray-100 transition cursor-pointer"
+                    title="Next Day"
+                  >
+                    ▶
+                  </button>
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value || todayStr)}
+                    className="bg-white border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
+                  />
+                </div>
               </div>
 
-              {(batchFilter || statusFilter || dateFilter) && (
+              {(batchFilter !== (user?.batchId || "") || statusFilter || dateFilter !== todayStr) && (
                 <button
+                  type="button"
                   onClick={() => {
-                    setBatchFilter("");
+                    setBatchFilter(user?.batchId || "");
                     setStatusFilter("");
-                    setDateFilter("");
+                    setDateFilter(todayStr);
                   }}
-                  className="mt-4 text-xs text-[#DC143C] font-semibold hover:underline"
+                  className="mt-4 text-xs text-[#DC143C] font-semibold hover:underline cursor-pointer"
                 >
-                  Reset Filters
+                  Reset to Today
                 </button>
               )}
             </div>
@@ -251,7 +326,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
       {activeTab === "rooms" && (
         <div className="space-y-6">
           <RoomMatrix />
-          {(user?.isChairman || user?.role === 'ADMIN') && (
+          {(user?.isChairman || user?.role === 'ADMIN' || user?.role === 'CR') && (
             <SeminarBookingForm onSuccess={fetchScheduleData} />
           )}
         </div>
@@ -261,7 +336,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
         <HolidayManager userRole={userRole} onHolidayChanged={fetchScheduleData} />
       )}
 
-      {activeTab === "conflicts" && <ConflictTester rooms={rooms} />}
+      {activeTab === "conflicts" && userRole !== "STUDENT" && <ConflictTester rooms={rooms} />}
 
       {/* Reschedule Modal */}
       <RescheduleModal
@@ -277,6 +352,23 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
         isOpen={Boolean(selectedForCancel)}
         onClose={() => setSelectedForCancel(null)}
         entry={selectedForCancel}
+        onSuccess={fetchScheduleData}
+      />
+
+      {/* Makeup Class Modal */}
+      <MakeupClassModal
+        isOpen={isMakeupModalOpen}
+        onClose={() => setIsMakeupModalOpen(false)}
+        onSuccess={fetchScheduleData}
+        defaultDate={dateFilter}
+        rooms={rooms}
+      />
+
+      {/* CR Semester Course Management Modal */}
+      <ManageCoursesModal
+        isOpen={isManageCoursesOpen}
+        onClose={() => setIsManageCoursesOpen(false)}
+        batchId={user?.batchId || undefined}
         onSuccess={fetchScheduleData}
       />
     </div>

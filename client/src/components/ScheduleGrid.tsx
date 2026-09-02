@@ -1,4 +1,5 @@
 import { type ScheduleEntry } from "../api/scheduleApi";
+import { useAuth } from "../context/useAuth";
 
 interface ScheduleGridProps {
   schedules: ScheduleEntry[];
@@ -17,6 +18,7 @@ export function ScheduleGrid({
   onOpenReschedule,
   onOpenCancel,
 }: ScheduleGridProps) {
+  const { user } = useAuth();
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-[#6B7280]">
@@ -96,7 +98,8 @@ export function ScheduleGrid({
       {schedules.map((entry) => {
         const isOwnerOrAdmin =
           userRole === "ADMIN" ||
-          (userRole === "TEACHER" && (entry.teacherId === currentUserId || !currentUserId));
+          (userRole === "TEACHER" && (entry.teacherId === currentUserId || !currentUserId)) ||
+          (userRole === "CR" && (entry.batchId === user?.batchId || !user?.batchId));
 
         const isActionable = entry.status !== "CANCELLED" && entry.status !== "HOLIDAY";
 

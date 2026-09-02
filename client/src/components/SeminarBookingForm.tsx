@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/useAuth";
 import { createSeminar, checkConflict } from "../api/scheduleApi";
+import { academicApi } from "../api/academic";
 import { RoomSelector } from "./RoomSelector";
 
 interface SeminarBookingFormProps {
@@ -25,14 +26,28 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
   const [roomId, setRoomId] = useState("");
   const [batchId, setBatchId] = useState("");
   const [courseId, setCourseId] = useState("");
+  const [batches, setBatches] = useState<Array<{ id: string; name: string }>>([]);
   
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
   const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
 
-  const isAuthorized = user?.isChairman || user?.role === 'ADMIN';
+  const isAuthorized = user?.isChairman || user?.role === 'ADMIN' || user?.role === 'CR';
+
+  useEffect(() => {
+    academicApi.getBatches().then((data) => {
+      const mapped = data.map((b) => ({ id: b.id, name: `${b.name} Batch` }));
+      setBatches(mapped);
+      if (user?.batchId) {
+        setBatchId(user.batchId);
+      } else if (mapped.length > 0 && !batchId) {
+        setBatchId(mapped[0].id);
+      }
+    }).catch(console.error);
+  }, [user?.batchId]);
 
   useEffect(() => {
     if (!date || !startTime || !endTime || !roomId) {
@@ -49,16 +64,14 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
           startTime,
           endTime,
           roomId,
-          teacherId: user?.id,
-          batchId: batchId || undefined
         });
         
         if (res.hasConflict) {
           setHasConflict(true);
-          setConflictMsg(res.summaryMessage || "Conflict detected.");
+          setConflictMsg(res.summaryMessage || "Room occupied at selected time.");
         } else {
           setHasConflict(false);
-          setConflictMsg("✓ Clear");
+          setConflictMsg("✓ Room Available");
         }
       } catch (err) {
         console.error("Conflict check failed", err);
@@ -68,7 +81,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [date, startTime, endTime, roomId, batchId, user?.id]);
+  }, [date, startTime, endTime, roomId]);
 
   const handleStartTimeChange = (val: string) => {
     setStartTime(val);
@@ -84,6 +97,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
     
     setSubmitting(true);
     setSuccessMsg("");
+    setErrorMsg(null);
     try {
       await createSeminar({
         title,
@@ -92,7 +106,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
         endTime,
         roomId,
         teacherId: user.id,
-        batchId: batchId || "batch-52", // Default to something if needed, but form should require it
+        batchId: user.batchId || batchId || batches[0]?.id,
         courseId: courseId || undefined
       });
       setSuccessMsg("Seminar scheduled successfully!");
@@ -104,7 +118,6 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
       setStartTime("");
       setEndTime("");
       setRoomId("");
-      setBatchId("");
       setCourseId("");
       setConflictMsg(null);
       setHasConflict(false);
@@ -112,7 +125,7 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
     } catch (err: unknown) {
       console.error(err);
       const message = err instanceof Error ? err.message : "Failed to create seminar";
-      alert(message);
+      setErrorMsg(message);
     } finally {
       setSubmitting(false);
     }
@@ -216,11 +229,11 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
               className="w-full bg-[#FFFFFF] border border-gray-300 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:outline-none focus:border-[#DC143C]"
             >
               <option value="" disabled>Select Batch</option>
-              <option value="batch-52">52nd Batch</option>
-              <option value="batch-51">51st Batch</option>
-              <option value="batch-50">50th Batch</option>
-              <option value="batch-49">49th Batch</option>
-              <option value="all">All Batches</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -238,13 +251,20 @@ export function SeminarBookingForm({ onSuccess }: SeminarBookingFormProps) {
         {/* Conflict Display */}
         <div className="h-6 mt-2">
           {checking ? (
-            <span className="text-xs text-[#6B7280]">Checking conflicts...</span>
+            <span className="text-xs text-[#6B7280]">Checking room availability...</span>
           ) : conflictMsg ? (
             <span className={`text-xs font-bold ${hasConflict ? 'text-[#E11D48]' : 'text-[#16A34A]'}`}>
               {conflictMsg}
             </span>
           ) : null}
         </div>
+
+        {/* Error message placed immediately above submit button */}
+        {errorMsg && (
+          <div className="p-3 my-2 rounded-xl bg-rose-50 border border-rose-200 text-[#E11D48] text-xs font-semibold">
+            ✕ {errorMsg}
+          </div>
+        )}
 
         <button
           type="submit"

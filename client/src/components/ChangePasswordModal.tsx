@@ -86,12 +86,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
         </div>
 
         <div className="p-6">
-          {error && (
-            <div className="mb-5">
-              <Alert type="error" message={error} onClose={() => setError(null)} />
-            </div>
-          )}
-
           {success && (
             <div className="mb-5">
               <Alert type="success" message={success} />
@@ -148,6 +142,13 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                 className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm text-[#1F2937] focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] transition-colors"
               />
             </div>
+
+            {/* Error Message: Placed EXACTLY above the submit button */}
+            {error && (
+              <div className="pt-2">
+                <Alert type="error" message={error} onClose={() => setError(null)} />
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <button

@@ -14,7 +14,7 @@ _Avoid_: Smart Schedular, Smart Scheduler (legacy terms denoting the original ro
 - **User**: Any authenticated entity in the system. Discriminated into 4 distinct roles:
   - **Admin**: Department office/management holding system-wide authority (preloading student/teacher rosters, managing global settings, resolving deadlocks).
   - **Teacher / Faculty**: Academic instructors who manage class schedules, conduct assessments, record marks, and request room/slot changes.
-  - **Class Representative (CR)**: Designated student liaison elected per batch who coordinates routines, logs daily actuals, uploads study resources, and posts semester results.
+  - **Class Representative (CR)**: Designated student liaison elected per batch who coordinates and edits batch class schedules (reschedule, cancel, makeup classes), inputs course entries for the batch's active semester, declares batch off-days, books seminars/workshops, logs daily actuals, uploads study resources, and posts semester results.
   - **Student**: Enrolled undergraduate or graduate scholar viewing personalized schedules, notices, CT marks, and study materials.
 - **Preloaded Student / Teacher**: Authoritative roster maintained by Admin for zero-friction account verification during registration. Students verify via University ID and matched institutional email (auto-resolving batch and program); teachers verify via preloaded institutional email (without needing a teacher unique ID).
 

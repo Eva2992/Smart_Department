@@ -1,13 +1,10 @@
-import { useState } from "react";
 import { useAuth } from "../context/useAuth.js";
 import { StudentResultCard } from "../components/StudentResultCard.js";
 import { Link } from "react-router-dom";
-import { ChangePasswordModal } from "../components/ChangePasswordModal.js";
 import { UpcomingHolidaysWidget } from "../components/UpcomingHolidaysWidget.js";
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   if (!user) return null;
 
@@ -61,7 +58,7 @@ export function DashboardPage() {
       {isStudentOrCr && <StudentResultCard />}
 
       {/* Profile & Metadata Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Account Details Card */}
         <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80">
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -101,16 +98,18 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Academic Affiliation Card */}
+        {/* Academic Profile Details Card */}
         <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80">
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-600" />
-            Academic Information
+            Academic Profile
           </h2>
           <div className="space-y-3 text-xs">
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Department</span>
-              <span className="font-semibold text-gray-900">Computer Science & Engineering</span>
+              <span className="font-semibold text-gray-900">
+                Computer Science & Engineering
+              </span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Institution</span>
@@ -120,36 +119,6 @@ export function DashboardPage() {
               <span className="text-gray-500">Assigned Role</span>
               <span className="font-bold text-indigo-600">{user.role}</span>
             </div>
-          </div>
-        </div>
-
-        {/* Security & Session Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80">
-          <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-600" />
-            Security & Session
-          </h2>
-          <div className="space-y-3 text-xs">
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">JWT Access Token</span>
-              <span className="font-semibold text-emerald-600">Active (15m expiry)</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">Hashed Refresh Token</span>
-              <span className="font-semibold text-emerald-600">SHA-256 Secured (7d)</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">Auto-Rotation</span>
-              <span className="font-semibold text-gray-900">Enabled on use</span>
-            </div>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => setIsChangePasswordOpen(true)}
-              className="bg-[#DC143C] hover:bg-[#B01030] text-white font-semibold text-xs rounded-xl px-4 py-2 transition-colors cursor-pointer"
-            >
-              Change Password
-            </button>
           </div>
         </div>
       </div>
@@ -205,11 +174,6 @@ export function DashboardPage() {
           </p>
         </a>
       </div>
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
-      />
     </div>
   );
 }

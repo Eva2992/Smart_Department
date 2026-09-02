@@ -1,13 +1,6 @@
-import axios from "axios";
+import { apiClient } from "./client.js";
 
-const API_BASE_URL = "http://localhost:5000/api/v1";
-
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+export const api = apiClient;
 
 // Set user context headers for role simulation & auth
 export function setAuthHeaders(headers: {
@@ -169,9 +162,14 @@ export async function cancelClass(id: string, data?: { reason?: string }): Promi
   return res.data.data;
 }
 
-export async function getRooms(): Promise<
-  Array<{ id: string; roomNumber: string; type: string; description?: string }>
-> {
+export interface Room {
+  id: string;
+  roomNumber: string;
+  type: string;
+  description?: string;
+}
+
+export async function getRooms(): Promise<Room[]> {
   const res = await api.get("/rooms");
   return res.data.data;
 }
@@ -219,10 +217,38 @@ export async function declareHoliday(data: {
   return res.data.data;
 }
 
+export async function updateHoliday(
+  id: string,
+  data: {
+    date?: string;
+    reason?: string;
+    scope?: "ALL" | "BATCH";
+    batchId?: string;
+  }
+): Promise<{ holiday: Holiday; affectedClassesCount: number; message: string }> {
+  const res = await api.patch(`/holidays/${id}`, data);
+  return res.data.data;
+}
+
 export async function deleteHoliday(
   id: string
 ): Promise<{ success: boolean; restoredClassesCount: number; message?: string }> {
   const res = await api.delete(`/holidays/${id}`);
+  return res.data.data;
+}
+
+export async function createScheduleEntry(data: {
+  courseId: string;
+  teacherId: string;
+  roomId: string;
+  batchId?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  topic?: string;
+  type?: string;
+}): Promise<ScheduleEntry> {
+  const res = await api.post("/schedules", data);
   return res.data.data;
 }
 

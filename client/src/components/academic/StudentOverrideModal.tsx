@@ -72,7 +72,7 @@ export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-[#FFFBFA]">
           <div>
             <span className="text-xs font-bold text-[#DC143C] uppercase tracking-wider">
-              Student Status Override (FR-09)
+              Student Academic Record
             </span>
             <h2 className="text-lg font-extrabold text-[#1F2937]">
               Override Student Semester / Status
@@ -96,15 +96,6 @@ export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div
-              role="alert"
-              className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48]"
-            >
-              {error}
-            </div>
-          )}
-
           {/* Student Profile Snapshot */}
           <div className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl text-xs space-y-1">
             <div className="flex justify-between">
@@ -197,6 +188,16 @@ export const StudentOverrideModal: React.FC<StudentOverrideModalProps> = ({
               className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-[#DC143C]"
             />
           </div>
+
+          {/* Error display placed immediately above submit button */}
+          {error && (
+            <div
+              role="alert"
+              className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2"
+            >
+              <span>✕ {error}</span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">

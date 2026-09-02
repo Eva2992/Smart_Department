@@ -312,16 +312,7 @@ export function ExamSchedulePage() {
                 </div>
               ))}
 
-              {/* Add row + Submit */}
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                <button type="button" id="exam-add-row" onClick={addRow} style={ghostBtnStyle}>
-                  + Add Row
-                </button>
-                <button type="submit" id="exam-create-submit" disabled={submitting} style={primaryBtnStyle}>
-                  {submitting ? "Creating…" : "📤 Publish Exam Routine"}
-                </button>
-              </div>
-
+              {/* Error Message: Placed EXACTLY above submit button */}
               {formError && (
                 <div style={alertStyle("#E11D48", "#FFF1F2")} role="alert">
                   ⚠️ {formError}
@@ -332,6 +323,16 @@ export function ExamSchedulePage() {
                   ✅ {formSuccess}
                 </div>
               )}
+
+              {/* Add row + Submit */}
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                <button type="button" id="exam-add-row" onClick={addRow} style={ghostBtnStyle}>
+                  + Add Row
+                </button>
+                <button type="submit" id="exam-create-submit" disabled={submitting} style={primaryBtnStyle}>
+                  {submitting ? "Creating…" : "📤 Publish Exam Routine"}
+                </button>
+              </div>
             </form>
           </div>
         )}

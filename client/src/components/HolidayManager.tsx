@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { type Holiday, getHolidays, deleteHoliday } from "../api/scheduleApi";
+import { type Holiday, getHolidays, deleteHoliday, updateHoliday } from "../api/scheduleApi";
+import { useAuth } from "../context/useAuth";
 import { HolidayCalendar } from "./HolidayCalendar";
 import { HolidayDeclarationForm } from "./HolidayDeclarationForm";
 
@@ -12,6 +13,7 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
   userRole,
   onHolidayChanged,
 }) => {
+  const { user } = useAuth();
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<"calendar" | "list">("calendar");
@@ -19,9 +21,16 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Confirmation Modal state
+  // Confirmation Delete Modal state
   const [holidayToDelete, setHolidayToDelete] = useState<Holiday | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Edit Modal state
+  const [holidayToEdit, setHolidayToEdit] = useState<Holiday | null>(null);
+  const [editReason, setEditReason] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -46,6 +55,39 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
     fetchList();
     if (onHolidayChanged) {
       onHolidayChanged();
+    }
+  };
+
+  const handleOpenEdit = (h: Holiday) => {
+    setHolidayToEdit(h);
+    setEditReason(h.reason);
+    setEditDate(h.date ? h.date.split("T")[0] : "");
+    setEditError(null);
+  };
+
+  const handleConfirmEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!holidayToEdit) return;
+    if (!editReason.trim()) {
+      setEditError("Reason is required.");
+      return;
+    }
+    setIsEditing(true);
+    setEditError(null);
+    try {
+      const res = await updateHoliday(holidayToEdit.id, {
+        reason: editReason.trim(),
+        date: editDate,
+      });
+      setBannerMessage(`✓ ${res.message || "Holiday updated successfully."}`);
+      setHolidayToEdit(null);
+      fetchList();
+      if (onHolidayChanged) onHolidayChanged();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update holiday";
+      setEditError(msg);
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -138,8 +180,8 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Declaration Form (Admin Only) */}
-          {isAdmin && (
+          {/* Declaration Form (Admin or CR) */}
+          {(isAdmin || userRole === "CR") && (
             <div>
               <HolidayDeclarationForm onSuccess={handleDeclaredSuccess} />
             </div>
@@ -148,7 +190,7 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
           {/* Holiday List */}
           <div
             className={`${
-              isAdmin ? "lg:col-span-2" : "lg:col-span-3"
+              (isAdmin || userRole === "CR") ? "lg:col-span-2" : "lg:col-span-3"
             } bg-[#FFFFFF] border border-gray-100 rounded-3xl p-6 text-[#1F2937] shadow-[0_4px_12px_rgba(0,0,0,0.06)]`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
@@ -174,6 +216,7 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
               ) : (
                 holidays.map((h) => {
                   const dateStr = h.date ? h.date.split("T")[0] : "";
+                  const canModify = isAdmin || (userRole === "CR" && h.batchId === user?.batchId);
                   return (
                     <div
                       key={h.id}
@@ -196,13 +239,21 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
                         </h4>
                       </div>
 
-                      {isAdmin && (
-                        <button
-                          onClick={() => setHolidayToDelete(h)}
-                          className="py-1.5 px-3 rounded-xl text-xs font-bold text-[#E11D48] hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
-                        >
-                          ✕ Remove &amp; Restore
-                        </button>
+                      {canModify && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(h)}
+                            className="py-1.5 px-3 rounded-xl text-xs font-bold text-[#1F2937] hover:bg-white border border-gray-300 transition cursor-pointer"
+                          >
+                            ✎ Edit
+                          </button>
+                          <button
+                            onClick={() => setHolidayToDelete(h)}
+                            className="py-1.5 px-3 rounded-xl text-xs font-bold text-[#E11D48] hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                          >
+                            ✕ Remove &amp; Restore
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
@@ -254,6 +305,79 @@ export const HolidayManager: React.FC<HolidayManagerProps> = ({
                 {isDeleting ? "Restoring Classes..." : "Proceed with Restoration"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Holiday / Off-Day Modal */}
+      {holidayToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-[#1F2937] font-[Poppins]">
+                Edit Holiday / Off-Day
+              </h3>
+              <button
+                type="button"
+                onClick={() => setHolidayToEdit(null)}
+                className="text-gray-400 hover:text-gray-600 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1.5 font-[Inter]">
+                  Holiday Date
+                </label>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  required
+                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-[#1F2937] focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#1F2937] uppercase tracking-wider mb-1.5 font-[Inter]">
+                  Reason / Occasion
+                </label>
+                <input
+                  type="text"
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  required
+                  className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-[#1F2937] placeholder-gray-400 focus:outline-none focus:border-[#DC143C] focus:ring-1 focus:ring-[#DC143C] text-sm"
+                />
+              </div>
+
+              {/* Error message placed immediately above submit button */}
+              {editError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#E11D48] text-xs font-semibold">
+                  ✕ {editError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setHolidayToEdit(null)}
+                  disabled={isEditing}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#6B7280] hover:bg-gray-100 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditing}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#DC143C] hover:bg-[#B01030] text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                >
+                  {isEditing ? "Saving Changes..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
