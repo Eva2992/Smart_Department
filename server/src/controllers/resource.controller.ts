@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import path from "node:path";
 import fs from "node:fs";
-import { resourceService } from "../services/resource.service.js";
+import { resourceService, notifyResourceUpload } from "../services/resource.service.js";
 import {
   uploadResourceMetadataSchema,
   resourceQuerySchema,
@@ -36,6 +36,11 @@ export class ResourceController {
       },
       req.user.userId
     );
+
+    // FR-31: Trigger notifications for students of the relevant semester
+    notifyResourceUpload(resource).catch(() => {
+      // Non-blocking: notification failure should not fail the upload
+    });
 
     sendCreated(res, resource, "Study resource uploaded successfully");
   }

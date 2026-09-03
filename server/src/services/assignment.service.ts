@@ -1,5 +1,6 @@
 import { AppError } from "../middleware/errorHandler.js";
 import { prisma } from "../lib/prisma.js";
+import { notificationService, NotificationType } from "./notification.service.js";
 
 export interface CreateAssignmentInput {
   teacherId: string;
@@ -81,6 +82,16 @@ export async function createAssignment(input: CreateAssignmentInput) {
       batch: { select: { id: true, name: true } },
     },
   });
+
+  // FR-31: Notify batch students about new assignment
+  const dueDateStr = input.dueDate.toISOString().split("T")[0];
+  await notificationService.createBulkForBatch(
+    input.batchId,
+    NotificationType.ASSIGNMENT_CREATED,
+    `New assignment "${input.title}" for ${assignment.course.name} — Due: ${dueDateStr}`,
+    "Assignment",
+    assignment.id
+  );
 
   return {
     ...assignment,

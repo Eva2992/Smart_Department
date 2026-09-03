@@ -2,6 +2,7 @@ import { ScheduleEntryStatus, ScheduleEntryType } from "@prisma/client";
 import { AppError } from "../middleware/errorHandler.js";
 import { prisma } from "../lib/prisma.js";
 import { checkScheduleConflict } from "./conflict.service.js";
+import { notificationService, NotificationType } from "./notification.service.js";
 
 export interface ScheduleCTInput {
   scheduleEntryId: string;
@@ -212,6 +213,16 @@ export async function scheduleCT(input: ScheduleCTInput) {
       room: { select: { id: true, roomNumber: true } },
     },
   });
+
+  // FR-31: Notify batch students about new CT
+  const dateStr = new Date(entry.date).toISOString().split("T")[0];
+  await notificationService.createBulkForBatch(
+    entry.batchId,
+    NotificationType.CT_SCHEDULED,
+    `New CT scheduled for ${entry.course?.name || "course"} on ${dateStr} — Topic: ${input.topic}`,
+    "ScheduleEntry",
+    entry.id
+  );
 
   return {
     ctEntry,

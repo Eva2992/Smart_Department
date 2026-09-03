@@ -3,6 +3,7 @@ import { AppError } from "../middleware/errorHandler.js";
 import type { RequestPromotionDto, PromoteBatchDto } from "../types/academic.js";
 import type { AccessTokenPayload } from "../types/auth.js";
 import type { PromotionStatus, Prisma } from "@prisma/client";
+import { notificationService, NotificationType } from "./notification.service.js";
 
 export class PromotionService {
   /**
@@ -86,7 +87,7 @@ export class PromotionService {
       );
     }
 
-    return prisma.promotionRequest.create({
+    const request = await prisma.promotionRequest.create({
       data: {
         batchId: dto.batchId,
         semesterId: dto.semesterId,
@@ -100,6 +101,19 @@ export class PromotionService {
         requestedBy: { select: { id: true, name: true, email: true, role: true } },
       },
     });
+
+    // FR-31: Notify all admins about the new promotion request
+    const batchName = request.batch?.name || "Batch";
+    const semesterName = request.semester?.name || "Semester";
+    const requesterName = request.requestedBy?.name || "CR";
+    await notificationService.createBulkForAdmins(
+      NotificationType.PROMOTION_REQUESTED,
+      `Semester promotion request submitted for Batch ${batchName} (${semesterName}) by ${requesterName}`,
+      "PromotionRequest",
+      request.id
+    );
+
+    return request;
   }
 
   /**

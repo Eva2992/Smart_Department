@@ -12,6 +12,8 @@ import { semesterRouter } from "./semester.route.js";
 import { promotionRouter } from "./promotion.route.js";
 import { adminRouter } from "./admin.route.js";
 import { resourceRouter } from "./resource.route.js";
+import { notificationRouter } from "./notification.route.js";
+import { dashboardRouter } from "./dashboard.route.js";
 
 const apiV1Router = Router();
 
@@ -29,5 +31,7 @@ apiV1Router.use("/promotions", promotionRouter);
 apiV1Router.use("/admin", adminRouter);
 apiV1Router.use("/assessments", assessmentsRouter);
 apiV1Router.use("/resources", resourceRouter);
+apiV1Router.use("/notifications", notificationRouter);
+apiV1Router.use("/dashboard", dashboardRouter);
 
 export { apiV1Router };

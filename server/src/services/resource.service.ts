@@ -10,6 +10,7 @@ import type {
   ResourceHierarchyItem,
 } from "../types/resource.js";
 import { ResourceType, Role } from "@prisma/client";
+import { notificationService, NotificationType } from "./notification.service.js";
 
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
@@ -100,6 +101,33 @@ export async function uploadResource(
   });
 
   return created as unknown as ResourceItem;
+}
+
+/**
+ * FR-31: Notify students of the relevant semester about a new resource upload.
+ * Called after uploadResource succeeds.
+ */
+export async function notifyResourceUpload(resource: ResourceItem) {
+  // Find users in batches whose current semester matches the resource's semesterLabel
+  const semesters = await prisma.semester.findMany({
+    where: {
+      name: { contains: resource.semesterLabel, mode: "insensitive" },
+      status: "ACTIVE",
+    },
+    select: { batchId: true },
+  });
+
+  const batchIds = [...new Set(semesters.map((s) => s.batchId))];
+
+  for (const batchId of batchIds) {
+    await notificationService.createBulkForBatch(
+      batchId,
+      NotificationType.RESOURCE_UPLOADED,
+      `New resource uploaded: "${resource.title}" for ${resource.courseName}`,
+      "Resource",
+      resource.id
+    );
+  }
 }
 
 /**

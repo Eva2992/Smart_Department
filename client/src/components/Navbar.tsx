@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth.js";
+import { NotificationBell } from "./NotificationBell.js";
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -72,6 +73,7 @@ export function Navbar() {
                     Batch &amp; Semesters
                   </Link>
                 )}
+                <NotificationBell />
                 <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
                   <div className="text-right hidden sm:block">
                     <p className="text-xs font-semibold text-[#1F2937] leading-tight font-[Poppins]">
