@@ -49,7 +49,7 @@ describe("PreloadedManagement Component (AN-01, AN-02)", () => {
 
     render(<PreloadedManagement batches={mockBatches} />);
 
-    expect(screen.getByText("Preloaded Students (AN-01)")).toBeInTheDocument();
+    expect(screen.getByText("Preloaded Students")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText("20201001")).toBeInTheDocument();
       expect(screen.getByText("Alice Johnson")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("PreloadedManagement Component (AN-01, AN-02)", () => {
 
     render(<PreloadedManagement batches={mockBatches} />);
 
-    const teachersTab = screen.getByText("Preloaded Teachers (AN-02)");
+    const teachersTab = screen.getByText("Preloaded Teachers");
     await userEvent.click(teachersTab);
 
     await waitFor(() => {
