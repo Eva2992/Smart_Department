@@ -30,5 +30,8 @@
   "license": "ISC",
   "devDependencies": {
     "prettier": "^3.9.6"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6"
   }
 }

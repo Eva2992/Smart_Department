@@ -41,7 +41,7 @@ describe("Preloaded Service & Role Management Unit Tests", () => {
     vi.clearAllMocks();
   });
 
-  describe("Preloaded Students & Teachers (AN-01, AN-02)", () => {
+  describe("Preloaded Students & Teachers", () => {
     it("bulk creates preloaded students after validating batch", async () => {
       vi.mocked(prisma.batch.findUnique).mockResolvedValue({ id: "batch-1", name: "51st" } as any);
       vi.mocked(prisma.preloadedStudent.upsert).mockResolvedValue({} as any);
@@ -89,7 +89,7 @@ describe("Preloaded Service & Role Management Unit Tests", () => {
     });
   });
 
-  describe("CR Role Management (AN-10, C-05)", () => {
+  describe("CR Role Management", () => {
     it("promotes student to CR and demotes existing batch CR", async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: "student-1",
@@ -156,7 +156,7 @@ describe("Preloaded Service & Role Management Unit Tests", () => {
     });
   });
 
-  describe("Audit Service (NFR-12)", () => {
+  describe("Audit Service", () => {
     it("creates an audit log entry", async () => {
       vi.mocked(prisma.auditLog.create).mockResolvedValue({ id: "log-1" } as any);
 

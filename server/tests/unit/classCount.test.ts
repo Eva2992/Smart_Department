@@ -14,12 +14,12 @@ vi.mock("../../src/lib/prisma.js", () => ({
   },
 }));
 
-describe("Class Count Tracking Service (SN-05, TN-10)", () => {
+describe("Class Count Tracking Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("calculates student view: classes conducted per course per teacher (SN-05)", async () => {
+  it("calculates student view: classes conducted per course per teacher", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       id: "student-1",
       role: Role.STUDENT,
@@ -69,7 +69,7 @@ describe("Class Count Tracking Service (SN-05, TN-10)", () => {
     expect(result.courses[0].teachers[1].classCount).toBe(1);
   });
 
-  it("calculates teacher view: classes taken per batch (TN-10)", async () => {
+  it("calculates teacher view: classes taken per batch", async () => {
     vi.mocked(prisma.scheduleEntry.findMany).mockResolvedValue([
       {
         id: "entry-1",

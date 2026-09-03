@@ -341,7 +341,7 @@ describe("AuthService (Unit Seam)", () => {
       );
     });
 
-    it("revokes all refresh tokens after reset (NFR-08)", async () => {
+    it("revokes all refresh tokens after reset", async () => {
       const mockUser = {
         id: "user-1",
         email: "student52_1@juniv.edu",

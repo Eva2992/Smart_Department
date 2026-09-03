@@ -9,12 +9,12 @@ vi.mock("../api/scheduleApi.js", () => ({
   getClassCounts: vi.fn(),
 }));
 
-describe("ClassCountWidget Component (SN-05, TN-10)", () => {
+describe("ClassCountWidget Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders student view: classes conducted per course per teacher (SN-05)", async () => {
+  it("renders student view: classes conducted per course per teacher", async () => {
     vi.mocked(getClassCounts).mockResolvedValue({
       role: "STUDENT",
       totalConducted: 5,
@@ -59,7 +59,7 @@ describe("ClassCountWidget Component (SN-05, TN-10)", () => {
     });
   });
 
-  it("renders teacher view: classes taken per batch (TN-10)", async () => {
+  it("renders teacher view: classes taken per batch", async () => {
     vi.mocked(getClassCounts).mockResolvedValue({
       role: "TEACHER",
       totalClassesTaken: 12,

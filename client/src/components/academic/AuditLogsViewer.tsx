@@ -62,7 +62,7 @@ export const AuditLogsViewer: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
         <div>
           <h3 className="text-base font-bold text-gray-900">
-            Security Audit Logs (NFR-12, R-02, R-06)
+            Security Audit Logs
           </h3>
           <p className="text-xs text-gray-500">
             Immutable tracking of sensitive administrative and authentication operations.

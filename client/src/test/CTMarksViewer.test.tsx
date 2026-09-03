@@ -11,7 +11,7 @@ vi.mock("../api/assessments.js", () => ({
   },
 }));
 
-describe("CTMarksViewer Component (FR-27, ADR-0005)", () => {
+describe("CTMarksViewer Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

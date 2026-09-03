@@ -207,7 +207,7 @@ export const PreloadedManagement: React.FC<PreloadedManagementProps> = ({ batche
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            Preloaded Students (AN-01)
+            Preloaded Students
           </button>
           <button
             type="button"
@@ -218,7 +218,7 @@ export const PreloadedManagement: React.FC<PreloadedManagementProps> = ({ batche
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            Preloaded Teachers (AN-02)
+            Preloaded Teachers
           </button>
         </div>
 

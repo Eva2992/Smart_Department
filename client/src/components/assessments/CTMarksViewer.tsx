@@ -99,7 +99,7 @@ export const CTMarksViewer: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-xs">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#DC143C] bg-rose-50 px-2 py-0.5 rounded-md">
-            Continuous Assessment (FR-27, ADR-0005)
+            Continuous Assessment
           </span>
           <h2 className="text-xl font-bold text-[#1F2937] mt-1">
             Class Test (CT) Marks &amp; Aggregates

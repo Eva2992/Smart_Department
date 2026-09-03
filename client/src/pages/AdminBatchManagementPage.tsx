@@ -332,7 +332,7 @@ export const AdminBatchManagementPage: React.FC = () => {
                   : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
             >
-              Preloaded Rosters (AN-01/02)
+              Preloaded Rosters
             </button>
 
             <button
@@ -344,7 +344,7 @@ export const AdminBatchManagementPage: React.FC = () => {
                   : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
             >
-              Audit Logs (NFR-12)
+              Audit Logs
             </button>
           </div>
         </div>

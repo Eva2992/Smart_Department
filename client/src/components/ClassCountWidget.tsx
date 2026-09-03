@@ -97,8 +97,8 @@ export const ClassCountWidget: React.FC = () => {
           </span>
           <h3 className="text-base font-bold text-gray-900 mt-1">
             {isTeacher
-              ? "Classes Taken by Batch (TN-10)"
-              : "Classes Conducted by Course & Teacher (SN-05)"}
+              ? "Classes Taken by Batch"
+              : "Classes Conducted by Course & Teacher"}
           </h3>
         </div>
         <div className="text-right">

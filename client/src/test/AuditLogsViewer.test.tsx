@@ -9,7 +9,7 @@ vi.mock("../api/academic.js", () => ({
   },
 }));
 
-describe("AuditLogsViewer Component (NFR-12, R-02, R-06)", () => {
+describe("AuditLogsViewer Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
