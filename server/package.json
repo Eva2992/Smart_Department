@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
     "docs": "typedoc",
     "docs:watch": "typedoc --watch"

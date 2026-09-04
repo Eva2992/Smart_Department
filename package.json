@@ -17,6 +17,7 @@
     "prisma:validate": "npm run prisma:validate --prefix server",
     "prisma:generate": "npm run prisma:generate --prefix server",
     "prisma:migrate": "npm run prisma:migrate --prefix server",
+    "prisma:push": "npm run prisma:push --prefix server",
     "prisma:seed": "npm run prisma:seed --prefix server"
   },
   "keywords": [

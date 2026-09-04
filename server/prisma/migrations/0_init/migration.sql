@@ -1,17 +1,6 @@
-/*
-  Warnings:
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
 
-  - The primary key for the `User` table will be changed. If it partially fails, the table could be left without primary key constraint.
-  - You are about to drop the `Post` table. If the table is not empty, all the data it contains will be lost.
-  - A unique constraint covering the columns `[universityId]` on the table `User` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[teacherUniqueId]` on the table `User` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[verificationToken]` on the table `User` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `passwordHash` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `role` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `updatedAt` to the `User` table without a default value. This is not possible if the table is not empty.
-  - Made the column `name` on table `User` required. This step will fail if there are existing NULL values in that column.
-
-*/
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('STUDENT', 'CR', 'TEACHER', 'ADMIN');
 
@@ -42,33 +31,34 @@ CREATE TYPE "ResourceType" AS ENUM ('NOTES', 'SLIDES', 'PAST_PAPER', 'OTHER');
 -- CreateEnum
 CREATE TYPE "PromotionStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 
--- DropForeignKey
-ALTER TABLE "Post" DROP CONSTRAINT "Post_authorId_fkey";
+-- CreateEnum
+CREATE TYPE "StudentStatus" AS ENUM ('ACTIVE', 'PROMOTED', 'DEMOTED', 'DROPOUT', 'GRADUATED');
 
--- AlterTable
-ALTER TABLE "User" DROP CONSTRAINT "User_pkey",
-ADD COLUMN     "batchId" TEXT,
-ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "failedAttempts" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "isChairman" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "isVerified" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "lockedUntil" TIMESTAMP(3),
-ADD COLUMN     "passwordHash" TEXT NOT NULL,
-ADD COLUMN     "program" "Program",
-ADD COLUMN     "role" "Role" NOT NULL,
-ADD COLUMN     "teacherUniqueId" TEXT,
-ADD COLUMN     "universityId" TEXT,
-ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL,
-ADD COLUMN     "verificationToken" TEXT,
-ADD COLUMN     "verificationTokenExpiry" TIMESTAMP(3),
-ALTER COLUMN "id" DROP DEFAULT,
-ALTER COLUMN "id" SET DATA TYPE TEXT,
-ALTER COLUMN "name" SET NOT NULL,
-ADD CONSTRAINT "User_pkey" PRIMARY KEY ("id");
-DROP SEQUENCE "User_id_seq";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "universityId" TEXT,
+    "teacherUniqueId" TEXT,
+    "passwordHash" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+    "studentStatus" "StudentStatus" DEFAULT 'ACTIVE',
+    "program" "Program",
+    "batchId" TEXT,
+    "isChairman" BOOLEAN NOT NULL DEFAULT false,
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "verificationToken" TEXT,
+    "verificationTokenExpiry" TIMESTAMP(3),
+    "resetPasswordToken" TEXT,
+    "resetPasswordTokenExpiry" TIMESTAMP(3),
+    "failedAttempts" INTEGER NOT NULL DEFAULT 0,
+    "lockedUntil" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- DropTable
-DROP TABLE "Post";
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "RefreshToken" (
@@ -209,6 +199,23 @@ CREATE TABLE "Assignment" (
 );
 
 -- CreateTable
+CREATE TABLE "AssignmentSubmission" (
+    "id" TEXT NOT NULL,
+    "assignmentId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "submissionType" TEXT NOT NULL,
+    "submissionUrl" TEXT,
+    "fileUrl" TEXT,
+    "fileName" TEXT,
+    "fileSizeBytes" INTEGER,
+    "notes" TEXT,
+    "submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AssignmentSubmission_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Resource" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -285,6 +292,30 @@ CREATE TABLE "AuditLog" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_universityId_key" ON "User"("universityId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_teacherUniqueId_key" ON "User"("teacherUniqueId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_verificationToken_key" ON "User"("verificationToken");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_resetPasswordToken_key" ON "User"("resetPasswordToken");
+
+-- CreateIndex
+CREATE INDEX "User_batchId_idx" ON "User"("batchId");
+
+-- CreateIndex
+CREATE INDEX "User_role_idx" ON "User"("role");
+
+-- CreateIndex
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
 
 -- CreateIndex
@@ -330,6 +361,15 @@ CREATE UNIQUE INDEX "CTMark_scheduleEntryId_studentId_key" ON "CTMark"("schedule
 CREATE INDEX "Assignment_batchId_idx" ON "Assignment"("batchId");
 
 -- CreateIndex
+CREATE INDEX "AssignmentSubmission_assignmentId_idx" ON "AssignmentSubmission"("assignmentId");
+
+-- CreateIndex
+CREATE INDEX "AssignmentSubmission_studentId_idx" ON "AssignmentSubmission"("studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AssignmentSubmission_assignmentId_studentId_key" ON "AssignmentSubmission"("assignmentId", "studentId");
+
+-- CreateIndex
 CREATE INDEX "Resource_year_semesterLabel_idx" ON "Resource"("year", "semesterLabel");
 
 -- CreateIndex
@@ -337,6 +377,12 @@ CREATE INDEX "Result_batchId_semesterId_idx" ON "Result"("batchId", "semesterId"
 
 -- CreateIndex
 CREATE INDEX "Result_studentId_idx" ON "Result"("studentId");
+
+-- CreateIndex
+CREATE INDEX "Result_universityId_idx" ON "Result"("universityId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Result_semesterId_studentId_key" ON "Result"("semesterId", "studentId");
 
 -- CreateIndex
 CREATE INDEX "PromotionRequest_status_idx" ON "PromotionRequest"("status");
@@ -349,24 +395,6 @@ CREATE INDEX "AuditLog_userId_idx" ON "AuditLog"("userId");
 
 -- CreateIndex
 CREATE INDEX "AuditLog_entityType_entityId_idx" ON "AuditLog"("entityType", "entityId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "User_universityId_key" ON "User"("universityId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "User_teacherUniqueId_key" ON "User"("teacherUniqueId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "User_verificationToken_key" ON "User"("verificationToken");
-
--- CreateIndex
-CREATE INDEX "User_batchId_idx" ON "User"("batchId");
-
--- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
-
--- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "Batch"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -423,6 +451,12 @@ ALTER TABLE "Assignment" ADD CONSTRAINT "Assignment_batchId_fkey" FOREIGN KEY ("
 ALTER TABLE "Assignment" ADD CONSTRAINT "Assignment_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "AssignmentSubmission" ADD CONSTRAINT "AssignmentSubmission_assignmentId_fkey" FOREIGN KEY ("assignmentId") REFERENCES "Assignment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AssignmentSubmission" ADD CONSTRAINT "AssignmentSubmission_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Resource" ADD CONSTRAINT "Resource_uploaderId_fkey" FOREIGN KEY ("uploaderId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -454,3 +488,4 @@ ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+

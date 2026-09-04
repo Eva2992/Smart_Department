@@ -134,7 +134,7 @@ Scaffold and verify the end-to-end foundation for both the backend (`server/`) a
 
 ---
 
-## Member 1: Auth-1 (Signup, Signin, Email Verification)
+## Member 1: Auth-1 (Signup, Signin)
 
 > **Assigned to:** Member 1  
 > **Target Modules:** User Registration, Email Verification, Login & JWT Session Management  
