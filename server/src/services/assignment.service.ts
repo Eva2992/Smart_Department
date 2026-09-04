@@ -37,6 +37,15 @@ function computeStatus(dueDate: Date): "UPCOMING" | "PAST_DUE" {
   return dueDate.getTime() < Date.now() ? "PAST_DUE" : "UPCOMING";
 }
 
+/**
+ * Creates a new assignment for a specific course and batch.
+ *
+ * @param input - The assignment details including dueDate and description.
+ * @returns The newly created assignment along with its computed upcoming/past-due status.
+ * @throws {AppError} If the course is not found, forbidden, batch mismatch, or invalid due date.
+ * @example
+ * const assignment = await createAssignment({ teacherId: "tid", courseId: "cid", batchId: "bid", title: "Assignment 1", description: "Desc", dueDate: new Date() });
+ */
 export async function createAssignment(input: CreateAssignmentInput) {
   const course = await prisma.course.findUnique({
     where: { id: input.courseId },
@@ -88,6 +97,14 @@ export async function createAssignment(input: CreateAssignmentInput) {
   };
 }
 
+/**
+ * Lists all assignments for a given batch.
+ *
+ * @param batchId - The ID of the batch to retrieve assignments for.
+ * @returns An array of assignments ordered by due date.
+ * @example
+ * const assignments = await listAssignments("batch-uuid");
+ */
 export async function listAssignments(batchId: string): Promise<AssignmentListItem[]> {
   const assignments = await prisma.assignment.findMany({
     where: { batchId },
@@ -105,6 +122,15 @@ export async function listAssignments(batchId: string): Promise<AssignmentListIt
   }));
 }
 
+/**
+ * Updates an existing assignment's details.
+ *
+ * @param input - The partial update data for the assignment.
+ * @returns The updated assignment with re-computed status.
+ * @throws {AppError} If the assignment is not found, forbidden, or the due date is invalid.
+ * @example
+ * const updated = await updateAssignment({ assignmentId: "id", teacherId: "tid", title: "New Title" });
+ */
 export async function updateAssignment(input: UpdateAssignmentInput) {
   const assignment = await prisma.assignment.findUnique({
     where: { id: input.assignmentId },
@@ -142,6 +168,15 @@ export async function updateAssignment(input: UpdateAssignmentInput) {
   };
 }
 
+/**
+ * Deletes an assignment completely.
+ *
+ * @param assignmentId - The ID of the assignment to delete.
+ * @param teacherId - The ID of the teacher requesting deletion (must be owner).
+ * @throws {AppError} If the assignment is not found or the action is forbidden.
+ * @example
+ * await deleteAssignment("id", "tid");
+ */
 export async function deleteAssignment(assignmentId: string, teacherId: string): Promise<void> {
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
@@ -171,6 +206,12 @@ export interface SubmitAssignmentInput {
 
 /**
  * Submits an assignment via external link, direct file, or both (FR-21, ADR-0005).
+ *
+ * @param input - The submission details including optional file URL or external URL.
+ * @returns The recorded assignment submission.
+ * @throws {AppError} If the assignment/student is not found, batch mismatch, or empty submission.
+ * @example
+ * const submission = await submitAssignment({ assignmentId: "id", studentId: "sid", submissionUrl: "http://github.com" });
  */
 export async function submitAssignment(input: SubmitAssignmentInput) {
   const assignment = await prisma.assignment.findUnique({
@@ -244,6 +285,13 @@ export async function submitAssignment(input: SubmitAssignmentInput) {
 
 /**
  * Retrieves submissions for an assignment. Teachers/admins see all; students see their own.
+ *
+ * @param assignmentId - The ID of the assignment.
+ * @param user - The user requesting the submissions (student sees own, teacher sees all).
+ * @returns An array of assignment submissions.
+ * @throws {AppError} If the assignment is not found.
+ * @example
+ * const submissions = await getAssignmentSubmissions("id", { id: "uid", role: "TEACHER" });
  */
 export async function getAssignmentSubmissions(
   assignmentId: string,
