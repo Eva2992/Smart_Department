@@ -3,6 +3,10 @@ import { assessmentsController } from "../controllers/assessments.controller.js"
 import { authenticate } from "../middleware/auth.js";
 import { assignmentUpload } from "../config/upload.js";
 
+/**
+ * Express router for all assessment-related endpoints (CTs and Assignments).
+ * Includes routes for scheduling CTs, managing assignments, and handling file submissions.
+ */
 const assessmentsRouter = Router();
 
 // Static segments MUST come before dynamic :ctId to prevent Express swallowing "student" as a ctId

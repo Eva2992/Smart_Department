@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/**
+ * Zod schema for validating the creation of a Class Test (CT) schedule entry.
+ */
 export const scheduleCtSchema = z.object({
   scheduleEntryId: z.string().uuid(),
   teacherId: z.string().uuid(),
@@ -24,6 +27,9 @@ export const studentCtMarksParamsSchema = z.object({
   studentId: z.string().uuid(),
 });
 
+/**
+ * Zod schema for validating assignment creation payloads.
+ */
 export const createAssignmentSchema = z.object({
   teacherId: z.string().uuid(),
   courseId: z.string().uuid(),
