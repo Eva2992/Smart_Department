@@ -14,6 +14,22 @@
   "validation": {
     "invalidLink": true
   },
+  "externalSymbolLinkMappings": {
+    ".prisma": {
+      "Role": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedStudent": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedTeacher": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "User": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "RefreshToken": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference"
+    },
+    "@prisma/client": {
+      "Role": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedStudent": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedTeacher": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "User": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "RefreshToken": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference"
+    }
+  },
   "navigationLinks": {
     "Smart Department": "https://github.com/Eva2992/Smart_Department"
   }

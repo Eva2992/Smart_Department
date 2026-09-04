@@ -4,21 +4,59 @@ import { verifyAccessToken } from "../utils/token.js";
 import type { AccessTokenPayload } from "../types/auth.js";
 import { Role } from "@prisma/client";
 
+/**
+ * Authenticated user context populated on the Express request object (`req.user`).
+ *
+ * Extends {@link AccessTokenPayload} with normalized `id` and `userId` aliases.
+ *
+ * @example
+ * ```ts
+ * const authUser: AuthUser = {
+ *   userId: "usr_1",
+ *   id: "usr_1",
+ *   email: "student@juniv.edu",
+ *   role: Role.STUDENT,
+ *   name: "Zahir Hossain",
+ * };
+ * ```
+ */
 export interface AuthUser extends AccessTokenPayload {
+  /** Unique primary key identifier of the authenticated user. */
   id: string;
+
+  /** Canonical user ID matching {@link AccessTokenPayload.userId}. */
   userId: string;
 }
 
 declare global {
   namespace Express {
     interface Request {
+      /**
+       * Authenticated user session claims attached by {@link authenticate} or {@link optionalAuthenticate}.
+       */
       user?: AuthUser;
     }
   }
 }
 
 /**
- * Authentication middleware: verifies JWT access token or mock headers in test/dev environment.
+ * Mandatory authentication guard middleware (NFR-08).
+ *
+ * Extracts the JWT access token from the HTTP `Authorization: Bearer <token>` header,
+ * cryptographically verifies its validity, and populates `req.user`.
+ * In development or testing environments, accepts mock user headers (`x-user-id`, `x-user-role`).
+ *
+ * @param req - The Express request object containing authorization headers.
+ * @param _res - The Express response object.
+ * @param next - The Express next middleware callback.
+ * @returns Nothing (`void`).
+ * @throws {AppError} 401 `INVALID_TOKEN` if the access token has expired or signature verification fails.
+ * @throws {AppError} 401 `UNAUTHORIZED` if no Bearer token or mock credentials are provided.
+ *
+ * @example
+ * ```ts
+ * router.get("/protected", authenticate, controller.getProtectedData);
+ * ```
  */
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -67,7 +105,20 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
 }
 
 /**
- * Optional authentication: attaches req.user if token/header present, but does not block if absent.
+ * Optional authentication middleware.
+ *
+ * Inspects incoming headers and populates `req.user` if a valid Bearer token or mock header
+ * is present, but does not interrupt the request pipeline if credentials are missing or expired.
+ *
+ * @param req - The Express request object.
+ * @param _res - The Express response object.
+ * @param next - The Express next middleware callback.
+ * @returns Nothing (`void`).
+ *
+ * @example
+ * ```ts
+ * router.get("/public-or-personal", optionalAuthenticate, controller.viewContent);
+ * ```
  */
 export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -104,7 +155,19 @@ export function optionalAuthenticate(req: Request, _res: Response, next: NextFun
 }
 
 /**
- * Role-based access control middleware (RBAC).
+ * Role-based access control (RBAC) middleware generator.
+ *
+ * Restricts endpoint execution to users whose authenticated role matches one of `allowedRoles`.
+ *
+ * @param allowedRoles - Variadic list of allowed {@link Role} values.
+ * @returns Express middleware function enforcing role authorization.
+ * @throws {AppError} 401 `UNAUTHORIZED` if `req.user` is not populated.
+ * @throws {AppError} 403 `FORBIDDEN` if `req.user.role` is not in `allowedRoles`.
+ *
+ * @example
+ * ```ts
+ * router.post("/admin-only", authenticate, authorize(Role.ADMIN), controller.doAdminAction);
+ * ```
  */
 export function authorize(...allowedRoles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -129,7 +192,22 @@ export function authorize(...allowedRoles: Role[]) {
 }
 
 /**
- * Chairman role check middleware.
+ * Department Chairman privilege authorization guard.
+ *
+ * Asserts that the authenticated user either possesses the `ADMIN` role or is a faculty member
+ * designated as the Department Chairman (`isChairman: true`).
+ *
+ * @param req - The Express request object containing `req.user`.
+ * @param _res - The Express response object.
+ * @param next - The Express next middleware callback.
+ * @returns Nothing (`void`).
+ * @throws {AppError} 401 `UNAUTHORIZED` if the request is unauthenticated.
+ * @throws {AppError} 403 `FORBIDDEN` if the user lacks Chairman or Admin status.
+ *
+ * @example
+ * ```ts
+ * router.post("/chairman-approval", authenticate, requireChairman, controller.approveRequest);
+ * ```
  */
 export function requireChairman(req: Request, _res: Response, next: NextFunction): void {
   if (!req.user) {

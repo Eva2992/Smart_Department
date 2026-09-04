@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
-import { preloadedService } from "./preloaded.service.js";
+import { preloadedService, PreloadedService } from "./preloaded.service.js";
 import { emailService } from "./email.service.js";
 import { auditService } from "./audit.service.js";
 import {
@@ -19,7 +19,9 @@ import type {
   AuthTokens,
   AccessTokenPayload,
 } from "../types/auth.js";
-import type { User } from "@prisma/client";
+import type { User, RefreshToken } from "@prisma/client";
+
+export type { User, RefreshToken };
 
 function toUserResponse(user: User): UserResponse {
   return {
@@ -38,12 +40,49 @@ function toUserResponse(user: User): UserResponse {
   };
 }
 
+/**
+ * Authentication and Identity Management Service (FR-01, FR-03, FR-04, FR-05, NFR-08).
+ *
+ * Implements:
+ * - Preloaded roster validation and immediate single-step registration (ADR-0006).
+ * - Secure login with bcrypt hash verification and 5-attempt brute-force lockout mechanics.
+ * - Dual-token issuance (15-minute access token, 7-day cryptographically hashed refresh token).
+ * - Token rotation and revocation across password changes and explicit logouts.
+ * - Self-service single-use password reset workflows.
+ */
 export class AuthService {
   /**
-   * Registers a new user with preloaded roster verification (FR-01, AN-01, AN-02).
-   * Automatically activates account and issues JWT access and refresh tokens.
+   * Registers a new student, CR, or faculty member using preloaded roster validation (FR-01, AN-01, AN-02).
+   *
+   * In accordance with ADR-0006:
+   * 1. Public registration for the `ADMIN` role is strictly rejected.
+   * 2. Checks that the institutional email is not already registered.
+   * 3. Students/CRs are verified via {@link PreloadedService.verifyStudentRoster}; their batch and program are auto-derived.
+   * 4. Teachers are verified via {@link PreloadedService.verifyTeacherRoster} by email.
+   * 5. Passwords are salted and hashed with bcrypt (cost factor 10).
+   * 6. The account activates immediately (`isVerified: true`) without requiring email verification.
+   * 7. Creates an active {@link User} entity and issues an initial session token pair with a persisted {@link RefreshToken}.
+   *
+   * @param dto - Registration payload containing user credentials and roster identifiers.
+   * @returns An object containing the serialized {@link UserResponse} and issued session tokens.
+   * @throws {AppError} 403 `FORBIDDEN` if registration is attempted for the `ADMIN` role.
+   * @throws {AppError} 409 `USER_ALREADY_EXISTS` if an account already exists with the provided email.
+   * @throws {AppError} 400 `MISSING_UNIVERSITY_ID` if a student or CR registers without a University ID.
+   * @throws {AppError} 400 `PRELOADED_VERIFICATION_FAILED` if provided credentials do not match preloaded records.
+   *
+   * @example
+   * ```ts
+   * const session = await authService.register({
+   *   name: "Sumon Paul",
+   *   email: "sumon.52@juniv.edu",
+   *   password: "securePassword123",
+   *   role: "STUDENT",
+   *   universityId: "20220654999",
+   * });
+   * console.log(`Welcome ${session.user.name}! Token: ${session.accessToken}`);
+   * ```
    */
-  async register(
+  public async register(
     dto: RegisterDto
   ): Promise<{ user: UserResponse; accessToken: string; refreshToken: string }> {
     const { name, email, password, role, universityId } = dto;
@@ -181,9 +220,31 @@ export class AuthService {
   }
 
   /**
-   * Logs in user with JWT Access + Hashed Refresh Token session (FR-03, NFR-08).
+   * Authenticates user credentials and issues a JWT session token pair (FR-03, NFR-08).
+   *
+   * Security Invariants:
+   * - Validates password using bcrypt constant-time comparison against `passwordHash` of the {@link User}.
+   * - Brute-force protection: Tracks `failedAttempts`. On 5 failed attempts, sets `lockedUntil` for 15 minutes
+   *   and writes an audit entry (`LOGIN_LOCKOUT`).
+   * - Resets failed attempts to 0 and clears `lockedUntil` upon successful authentication.
+   * - Issues a 15-minute JWT access token with user role and academic claims.
+   * - Persists a 7-day SHA-256 hashed {@link RefreshToken} in the database for secure rotation.
+   *
+   * @param dto - Login credentials (`email` and `password`).
+   * @returns Authenticated user profile and session token pair.
+   * @throws {AppError} 401 `INVALID_CREDENTIALS` if email is not found or password verification fails.
+   * @throws {AppError} 403 `ACCOUNT_LOCKED` if the account is currently locked out from excessive failed attempts.
+   *
+   * @example
+   * ```ts
+   * const session = await authService.login({
+   *   email: "faculty@juniv.edu",
+   *   password: "secretPassword123",
+   * });
+   * console.log(`Logged in as: ${session.user.role}`);
+   * ```
    */
-  async login(
+  public async login(
     dto: LoginDto
   ): Promise<{ user: UserResponse; accessToken: string; refreshToken: string }> {
     const { email, password } = dto;
@@ -311,9 +372,24 @@ export class AuthService {
   }
 
   /**
-   * Refreshes access token and rotates refresh token.
+   * Refreshes the session access token and rotates the refresh token (NFR-08).
+   *
+   * Verifies the cryptographic signature of the raw refresh token, matches its SHA-256
+   * hash against persisted {@link RefreshToken} database records, validates non-revocation and expiration,
+   * immediately revokes the consumed token, and issues a fresh token pair.
+   *
+   * @param rawRefreshToken - Raw, unhashed JWT refresh token string received from client.
+   * @returns A promise resolving to the newly generated {@link AuthTokens} pair.
+   * @throws {AppError} 400 `MISSING_REFRESH_TOKEN` if the refresh token string is empty.
+   * @throws {AppError} 401 `INVALID_REFRESH_TOKEN` if token verification fails, or the token is expired/revoked.
+   *
+   * @example
+   * ```ts
+   * const newTokens = await authService.refreshTokens(clientRefreshToken);
+   * console.log(`New Access Token: ${newTokens.accessToken}`);
+   * ```
    */
-  async refreshTokens(rawRefreshToken: string): Promise<AuthTokens> {
+  public async refreshTokens(rawRefreshToken: string): Promise<AuthTokens> {
     if (!rawRefreshToken) {
       throw new AppError("Refresh token is required", 400, "MISSING_REFRESH_TOKEN");
     }
@@ -378,9 +454,20 @@ export class AuthService {
   }
 
   /**
-   * Logs out user by revoking active refresh token.
+   * Terminates user session by revoking active {@link RefreshToken} records in the database.
+   *
+   * Supports revoking an individual token by raw string or all active tokens for a given user ID.
+   *
+   * @param rawRefreshToken - Optional specific refresh token string to revoke.
+   * @param userId - Optional user identifier to invalidate all concurrent sessions.
+   * @returns An object indicating `{ success: true }`.
+   *
+   * @example
+   * ```ts
+   * await authService.logout(userRefreshToken);
+   * ```
    */
-  async logout(rawRefreshToken?: string, userId?: string): Promise<{ success: boolean }> {
+  public async logout(rawRefreshToken?: string, userId?: string): Promise<{ success: boolean }> {
     if (rawRefreshToken) {
       const tokenHash = hashToken(rawRefreshToken);
       await prisma.refreshToken.updateMany({
@@ -398,9 +485,19 @@ export class AuthService {
   }
 
   /**
-   * Retrieves user profile by ID.
+   * Retrieves the sanitized profile of an authenticated user by primary key.
+   *
+   * @param userId - Unique database identifier of the user.
+   * @returns The user's {@link UserResponse} profile representation.
+   * @throws {AppError} 404 `USER_NOT_FOUND` if the user cannot be located.
+   *
+   * @example
+   * ```ts
+   * const user = await authService.getMe("usr_101");
+   * console.log(`User name: ${user.name}`);
+   * ```
    */
-  async getMe(userId: string): Promise<UserResponse> {
+  public async getMe(userId: string): Promise<UserResponse> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -413,11 +510,29 @@ export class AuthService {
   }
 
   /**
-   * Changes password for an authenticated user (FR-04).
-   * Validates current password, enforces password strength, updates hash,
-   * and revokes ALL active refresh tokens to force re-authentication.
+   * Changes the password for an authenticated user and revokes all active sessions (FR-04, NFR-08).
+   *
+   * Validates the current password, computes a new bcrypt hash (cost factor 10),
+   * revokes all outstanding refresh tokens to force re-authentication across all client devices,
+   * and records an audit log entry.
+   *
+   * @param userId - Unique database identifier of the authenticated user.
+   * @param currentPassword - The user's current password for verification.
+   * @param newPassword - The new password meeting complexity criteria (minimum 8 characters).
+   * @returns An object with `success: true` and a confirmation message.
+   * @throws {AppError} 404 `USER_NOT_FOUND` if the user record does not exist.
+   * @throws {AppError} 401 `INVALID_CURRENT_PASSWORD` if current password verification fails.
+   *
+   * @example
+   * ```ts
+   * const result = await authService.changePassword(
+   *   "usr_101",
+   *   "currentSecret123",
+   *   "newSecurePassword456"
+   * );
+   * ```
    */
-  async changePassword(
+  public async changePassword(
     userId: string,
     currentPassword: string,
     newPassword: string
@@ -462,14 +577,21 @@ export class AuthService {
   }
 
   /**
-   * Initiates password reset flow for an unauthenticated user (FR-05, Step 1).
-   * Generates a cryptographically secure, single-use token (1-hour expiry) and
-   * dispatches a reset email via SendGrid.
-   * If email is not registered, throws an AppError with 404.
+   * Initiates the self-service password reset flow for an unauthenticated user (FR-05, Step 1).
+   *
+   * Generates a cryptographically secure, single-use token (1-hour expiry), saves it
+   * to the user record, and dispatches a password reset email via SendGrid.
+   *
+   * @param email - The institutional email address associated with the account.
+   * @returns An object with `success: true` and a delivery confirmation message.
+   * @throws {AppError} 404 `USER_NOT_FOUND` if no account is registered with the given email.
+   *
+   * @example
+   * ```ts
+   * await authService.forgotPassword("student@juniv.edu");
+   * ```
    */
-  async forgotPassword(
-    email: string
-  ): Promise<{ success: boolean; message: string }> {
+  public async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
     const normalizedEmail = email.trim().toLowerCase();
 
     const user = await prisma.user.findUnique({
@@ -502,10 +624,23 @@ export class AuthService {
   }
 
   /**
-   * Resets password using a valid, non-expired reset token (FR-05, Step 2).
-   * Validates token, updates password hash, clears token, and revokes all sessions.
+   * Resets user password using a valid, non-expired single-use token (FR-05, Step 2).
+   *
+   * Verifies the token existence and expiration window, computes a new bcrypt hash (cost factor 10),
+   * clears the token to prevent reuse, and revokes all active sessions to force re-authentication (NFR-08).
+   *
+   * @param token - Single-use reset token string from the reset email link.
+   * @param newPassword - New password meeting the minimum 8-character policy.
+   * @returns An object with `success: true` and confirmation message.
+   * @throws {AppError} 400 `INVALID_RESET_TOKEN` if token cannot be found.
+   * @throws {AppError} 400 `TOKEN_EXPIRED` if the reset token has elapsed its 1-hour lifespan.
+   *
+   * @example
+   * ```ts
+   * await authService.resetPassword("token_abc123", "freshPassword789");
+   * ```
    */
-  async resetPassword(
+  public async resetPassword(
     token: string,
     newPassword: string
   ): Promise<{ success: boolean; message: string }> {
@@ -556,9 +691,10 @@ export class AuthService {
   }
 
   /**
-   * Revokes ALL active (non-revoked) refresh tokens for a given user.
-   * Used by changePassword and resetPassword to force re-authentication
-   * across all devices (NFR-08).
+   * Revokes all active (non-revoked) refresh tokens for a specified user in the database.
+   * Enforces global session invalidation across all user devices (NFR-08).
+   *
+   * @param userId - Unique database identifier of the target user.
    */
   private async revokeAllUserTokens(userId: string): Promise<void> {
     await prisma.refreshToken.updateMany({
@@ -568,4 +704,7 @@ export class AuthService {
   }
 }
 
+/**
+ * Singleton instance of {@link AuthService} exported for application-wide authentication operations.
+ */
 export const authService = new AuthService();

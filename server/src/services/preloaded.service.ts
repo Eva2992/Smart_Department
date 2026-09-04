@@ -1,29 +1,109 @@
 import { prisma } from "../lib/prisma.js";
 import type { PreloadedStudent, PreloadedTeacher, Program } from "@prisma/client";
 
+export type { PreloadedStudent, PreloadedTeacher, Program };
+
+/**
+ * Parameter criteria for validating a prospective student or CR against the preloaded roster (AN-01).
+ *
+ * @example
+ * ```ts
+ * const params: VerifyStudentParams = {
+ *   universityId: "20220654955",
+ *   email: "student@juniv.edu",
+ * };
+ * ```
+ */
 export interface VerifyStudentParams {
+  /** Unique university registration number/roll assigned by JU. */
   universityId: string;
+
+  /** Institutional email provided during registration to match against preloaded roster. */
   email?: string;
+
+  /** Optional academic batch identifier. */
   batchId?: string;
+
+  /** Optional academic program degree. */
   program?: Program;
 }
 
+/**
+ * Parameter criteria for validating a prospective faculty member against the preloaded directory (AN-02).
+ *
+ * @example
+ * ```ts
+ * const params: VerifyTeacherParams = {
+ *   email: "faculty@juniv.edu",
+ * };
+ * ```
+ */
 export interface VerifyTeacherParams {
+  /** Institutional email address of the faculty member. */
   email: string;
+
+  /** Optional legacy unique faculty code. */
   teacherUniqueId?: string;
 }
 
+/**
+ * Standardized outcome envelope returned by preloaded roster verification operations.
+ *
+ * @typeParam T - The preloaded record entity type (`PreloadedStudent` or `PreloadedTeacher`).
+ *
+ * @example
+ * ```ts
+ * const result: VerificationResult<PreloadedStudent> = {
+ *   valid: true,
+ *   preloadedRecord: studentRecord,
+ * };
+ * ```
+ */
 export interface VerificationResult<T> {
+  /** `true` if verification succeeded; `false` if not found or already registered. */
   valid: boolean;
+
+  /** Human-readable explanation if verification failed. */
   error?: string;
+
+  /** The matched preloaded record from the database if verification succeeded. */
   preloadedRecord?: T;
 }
 
+/**
+ * Preloaded Roster Management and Identity Verification Service.
+ *
+ * Provides authoritative verification for student and faculty account registrations:
+ * - Validates student University IDs and matched institutional emails against preloaded cohorts (AN-01).
+ * - Auto-derives batch and academic program directly from preloaded student records (ADR-0006).
+ * - Validates teacher registrations against the faculty directory by email (AN-02).
+ * - Supports administrative bulk ingestion and paginated browsing of preloaded records.
+ */
 export class PreloadedService {
   /**
-   * Verifies if a student exists in the preloaded roster and matches the admin-provided email.
+   * Verifies whether a student exists in the preloaded roster and matches the admin-provided email (AN-01).
+   *
+   * Checks:
+   * 1. Existence of `universityId` in the `PreloadedStudent` table.
+   * 2. Absence of an already registered account with this `universityId` or `email`.
+   * 3. Exact match between provided `email` and the preloaded record's email.
+   * 4. Consistency with optional `batchId` and `program` if supplied.
+   *
+   * @param params - Verification criteria containing `universityId` and institutional `email`.
+   * @returns A {@link VerificationResult} containing `valid: true` and the matched {@link PreloadedStudent} record on success.
+   *
+   * @example
+   * ```ts
+   * const check = await preloadedService.verifyStudentRoster({
+   *   universityId: "20220654955",
+   *   email: "student@juniv.edu",
+   * });
+   * if (!check.valid) {
+   *   throw new Error(check.error);
+   * }
+   * ```
    */
-  async verifyStudentRoster(
+  public async verifyStudentRoster(
     params: VerifyStudentParams
   ): Promise<VerificationResult<PreloadedStudent>> {
     const { universityId, email, batchId, program } = params;
@@ -36,7 +116,8 @@ export class PreloadedService {
     if (!preloaded) {
       return {
         valid: false,
-        error: "Your University ID was not found in the department roster. Please contact the department admin.",
+        error:
+          "Your University ID was not found in the department roster. Please contact the department admin.",
       };
     }
 
@@ -65,7 +146,8 @@ export class PreloadedService {
     if (normalizedEmail && normalizedEmail !== preloaded.email.trim().toLowerCase()) {
       return {
         valid: false,
-        error: "The provided email does not match the official department roster for this University ID.",
+        error:
+          "The provided email does not match the official department roster for this University ID.",
       };
     }
 
@@ -92,9 +174,26 @@ export class PreloadedService {
   }
 
   /**
-   * Verifies if a teacher exists in the preloaded roster by institutional email.
+   * Verifies whether a faculty member exists in the preloaded teacher directory by email (AN-02, ADR-0006).
+   *
+   * Verifies:
+   * 1. Existence of the normalized email in `PreloadedTeacher` directory.
+   * 2. Absence of an existing registered account with the same email.
+   *
+   * @param params - Verification criteria containing the faculty member's institutional email.
+   * @returns A {@link VerificationResult} containing `valid: true` and the matched {@link PreloadedTeacher} record on success.
+   *
+   * @example
+   * ```ts
+   * const check = await preloadedService.verifyTeacherRoster({
+   *   email: "teacher@juniv.edu",
+   * });
+   * if (!check.valid) {
+   *   throw new Error(check.error);
+   * }
+   * ```
    */
-  async verifyTeacherRoster(
+  public async verifyTeacherRoster(
     params: VerifyTeacherParams
   ): Promise<VerificationResult<PreloadedTeacher>> {
     const { email } = params;
@@ -112,10 +211,12 @@ export class PreloadedService {
     if (!preloaded) {
       return {
         valid: false,
-        error: "This email address is not registered in the department faculty directory. Please contact the department admin.",
+        error:
+          "This email address is not registered in the department faculty directory. Please contact the department admin.",
       };
     }
 
+    // Check if email already registered
     const existingUser = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
@@ -134,9 +235,31 @@ export class PreloadedService {
   }
 
   /**
-   * Bulk imports or updates preloaded students (AN-01).
+   * Bulk imports or updates preloaded student records within a database transaction (AN-01).
+   *
+   * Validates that all referenced `batchId` records exist before upserting by `universityId`
+   * and records an audit log entry on success.
+   *
+   * @param students - Array of student records containing universityId, name, email, batchId, and program.
+   * @param adminUserId - Optional identifier of the administrator executing the import.
+   * @param ipAddress - Optional client IP address for the audit log trail.
+   * @returns An object containing the count of successfully created/updated student records.
+   * @throws {Error} Thrown if any referenced `batchId` cannot be found in the database.
+   *
+   * @example
+   * ```ts
+   * const result = await preloadedService.bulkCreateStudents([
+   *   {
+   *     universityId: "20220654901",
+   *     name: "Tanvir Ahmed",
+   *     email: "tanvir.52@juniv.edu",
+   *     batchId: "batch_52",
+   *     program: "HONOURS",
+   *   },
+   * ], adminId, "192.168.1.1");
+   * ```
    */
-  async bulkCreateStudents(
+  public async bulkCreateStudents(
     students: Array<{
       universityId: string;
       name: string;
@@ -199,9 +322,21 @@ export class PreloadedService {
   }
 
   /**
-   * Retrieves paginated preloaded students with optional batch filtering.
+   * Retrieves paginated preloaded student records with optional cohort, program, and keyword filtering.
+   *
+   * @param params - Search and pagination options including `batchId`, `program`, `search`, `page`, and `limit`.
+   * @returns Paginated result object containing student list, total count, and page numbers.
+   *
+   * @example
+   * ```ts
+   * const pageData = await preloadedService.getPreloadedStudents({
+   *   batchId: "batch_52",
+   *   page: 1,
+   *   limit: 25,
+   * });
+   * ```
    */
-  async getPreloadedStudents(params: {
+  public async getPreloadedStudents(params: {
     batchId?: string;
     program?: Program;
     search?: string;
@@ -244,9 +379,29 @@ export class PreloadedService {
   }
 
   /**
-   * Bulk imports or updates preloaded teachers (AN-02).
+   * Bulk imports or updates preloaded faculty directory entries within a transaction (AN-02).
+   *
+   * Upserts records by `uniqueId` and captures an administrative audit trail.
+   *
+   * @param teachers - Array of faculty records containing uniqueId, name, email, designation, and chairman status.
+   * @param adminUserId - Optional identifier of the administrator performing the bulk import.
+   * @param ipAddress - Optional client IP address for audit logging.
+   * @returns An object containing the count of successfully created/updated faculty records.
+   *
+   * @example
+   * ```ts
+   * const result = await preloadedService.bulkCreateTeachers([
+   *   {
+   *     uniqueId: "T-101",
+   *     name: "Dr. Mohammad Zahir",
+   *     email: "zahir@juniv.edu",
+   *     designation: "Professor",
+   *     isChairman: true,
+   *   },
+   * ], adminId);
+   * ```
    */
-  async bulkCreateTeachers(
+  public async bulkCreateTeachers(
     teachers: Array<{
       uniqueId: string;
       name: string;
@@ -301,9 +456,21 @@ export class PreloadedService {
   }
 
   /**
-   * Retrieves paginated preloaded teachers.
+   * Retrieves paginated preloaded faculty records with optional keyword search.
+   *
+   * @param params - Search and pagination options (`search`, `page`, `limit`).
+   * @returns Paginated result object containing faculty list, total count, and page numbers.
+   *
+   * @example
+   * ```ts
+   * const teachers = await preloadedService.getPreloadedTeachers({
+   *   search: "Professor",
+   *   page: 1,
+   *   limit: 20,
+   * });
+   * ```
    */
-  async getPreloadedTeachers(params: { search?: string; page?: number; limit?: number }) {
+  public async getPreloadedTeachers(params: { search?: string; page?: number; limit?: number }) {
     const page = Math.max(1, params.page || 1);
     const limit = Math.min(100, Math.max(1, params.limit || 20));
     const skip = (page - 1) * limit;
@@ -338,4 +505,7 @@ export class PreloadedService {
   }
 }
 
+/**
+ * Singleton instance of {@link PreloadedService} exported for roster verification and management.
+ */
 export const preloadedService = new PreloadedService();
