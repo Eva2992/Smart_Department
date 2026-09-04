@@ -1,11 +1,15 @@
-# Sprint 1 Engineering Prompts (Matt Pocock Skills Suite)
+# Smart Department — TypeDoc Code Documentation Engineering Prompts
 
-This document contains standardized, copy-pasteable autonomous agent prompts for **Sprint 1** of the **Smart_Schedular (JU CSE Academic Management System)** project.
+This document contains standardized, copy-pasteable autonomous agent prompts to **generate comprehensive codebase documentation using TypeDoc** for the **Smart Department (JU CSE Academic Operations Platform)** repository.
 
-Each prompt is structured for the **Matt Pocock Engineering Skills Suite** workflow:
+The platform's features (backend API, database schema, conflict engine, routine management, assessments, and client UI) have already been built and are fully operational. However, the codebase was initially created without comprehensive inline documentation.
+
+Each prompt below guides an autonomous engineer or contributor to systematically document a specific module of the existing codebase using **TypeDoc** according to [`docs/documentation.md`](file:///docs/documentation.md) and [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md).
+
+Prompts follow the **Matt Pocock Engineering Skills Suite** workflow:
 
 ```
-/grill-with-docs → /to-spec → /to-tickets → /implement (with /tdd) → /code-review
+/grill-with-docs → /to-spec → /to-tickets → /implement (doc annotations) → /code-review
 ```
 
 ---
@@ -18,10 +22,17 @@ On every push and pull request, the CI pipeline enforces strict verification:
 2. **Format Check**: `npx prettier --check .` to catch unformatted code.
 3. **Type Check**: `tsc --noEmit` / `npm run typecheck` (TypeScript strict mode in both `server/` and `client/`).
 4. **Automated Testing Suite**:
-   - Backend unit tests via Vitest.
-   - Backend integration tests via Supertest against an isolated PostgreSQL service container.
+   - Backend unit tests via Vitest (`tests/unit/`).
+   - Backend integration tests via Supertest against PostgreSQL container (`tests/integration/`).
    - Frontend unit and component integration tests via Vitest and React Testing Library.
-5. **Quality Gate Rule**: If any check fails, the pull request is **strictly blocked from merging** until resolved.
+5. **Documentation Build & AST Verification**: `npm run build:docs` (TypeDoc compilation under `server/` verifying zero TypeScript AST parsing failures, valid `{@link}` symbol references, and up-to-date API docs in `server/docs/api`).
+6. **Quality Gate Rule**: If any check fails, the pull request is **strictly blocked from merging** until resolved.
+
+### Verification Commands
+
+- **Backend (`server/`)**: `npm test` (Vitest) && `npx tsc --noEmit` && `npm run prisma:validate` && `npm run build` && `npm run build:docs`
+- **Frontend (`client/`)**: `npm test` (Vitest) && `npm run typecheck` && `npm run lint` && `npm run build`
+- **Root Monorepo**: `npm run validate` (executes lint, typecheck, unit/integration tests, production build, TypeDoc doc build, and format check).
 
 ---
 
@@ -34,507 +45,386 @@ On every push and pull request, the CI pipeline enforces strict verification:
 
 ---
 
-## 🎨 Frontend Design System & Color Palette
+## 📚 TypeDoc & Code Documentation Standards
 
-All UI components MUST adhere strictly to the design tokens defined in [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md):
+All backend modules, services, controllers, interfaces, and shared types MUST strictly adhere to the TypeDoc guidelines defined in [`docs/documentation.md`](file:///docs/documentation.md) and [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md):
 
-### 1. Core Palette
+### 1. Direct AST Integration & Zero Type Duplication
 
-- **Primary (`--color-primary`)**: Crimson Red `#DC143C` (Dark `#B01030`) — Primary CTAs, active navigation items, active tab indicators, links, Admin accents, progress bars.
-- **Secondary (`--color-secondary`)**: Warm Orange `#DA532C` — Class Representative (CR) role tags, CT session badges, secondary highlights.
-- **Success (`--color-success`)**: Emerald Green `#16A34A` — Verified accounts, approved promotions, completed/active indicators.
-- **Error (`--color-error`)**: Rose Red `#E11D48` — Room/time conflicts, cancelled classes, validation errors, locked accounts.
-- **Gold / Amber (`--color-gold`)**: Amber `#F59E0B` — Holiday markers, rescheduled indicators, pending-review flags.
-- **Background (`--color-bg`)**: Warm off-white `#FFFBFA` — Main application canvas.
-- **Surface (`--color-surface`)**: Pure white `#FFFFFF` — Cards, modals, and panels.
+- TypeDoc extracts types directly from the TypeScript compiler (`tsc`) Abstract Syntax Tree.
+- **NEVER duplicate type annotations inside JSDoc comments** (e.g., write `@param userId - The unique identifier` instead of `@param {string} userId`).
+- Comments must focus on **domain intent, algorithmic rules, boundary constraints, and error semantics**, not redundant type signatures.
 
-### 2. Status & State Indicators
+### 2. Mandatory JSDoc Block Tags
 
-- **Scheduled**: Neutral gray `#F3F4F6` background with `#374151` text.
-- **Cancelled**: Rose Red `#E11D48` text / tinted badge.
-- **Rescheduled**: Amber `#F59E0B` text / tinted badge.
-- **CT Session**: Warm Orange `#DA532C` badge.
-- **Holiday (No Class)**: Amber `#F59E0B` badge.
-- **Approved / Verified**: Emerald Green `#16A34A` badge.
-- **Room / Time Conflict**: Rose Red `#E11D48` alert banner.
+All exported symbols (functions, methods, classes, interfaces, types, enums) must include standard JSDoc block comments (`/** ... */`):
 
-### 3. Role Badges
+- **Functions & Methods (`@param`, `@returns`, `@throws`, `@example`)**:
+  - `@param <name> - <description>`: Required for all input parameters. Detail edge cases and allowed ranges.
+  - `@returns <description>`: Clear description of the returned promise or value.
+  - `@throws {ErrorType} <description>`: Explicitly state all domain, validation, and HTTP exceptions thrown.
+  - `@example`: Functional markdown code snippets illustrating typical invocations.
+- **Classes & Services (`public`, `private`, `protected`, `@abstract`)**:
+  - Class-level docstrings describing domain responsibilities.
+  - Explicit visibility modifiers and `@abstract` tags where applicable.
+- **Interfaces & Types**:
+  - Interface-level explanation followed by JSDoc property docstrings explaining each field.
+- **Enums**:
+  - Enum-level description and explanations for each individual enum member.
+- **Cross-Referencing (`{@link}`)**:
+  - Use `{@link TargetSymbol}` (e.g., `{@link conflictService.checkOverlap}`) to create hyperlinked references to related models, services, and routes.
 
-- **Student**: Neutral Slate Gray `#6B7280`
-- **Class Representative (CR)**: Warm Orange `#DA532C`
-- **Teacher**: Charcoal `#1F2937`
-- **Admin**: Crimson Red `#DC143C`
+### 3. Verification & Local Inspection
 
-### 4. Surface & Typography Tokens
-
-- **Card Radius**: `16px` (`--radius-md`) to `20px` (`--radius-lg`).
-- **Elevation / Shadow**: Soft elevation `0 4px 12px rgba(0, 0, 0, 0.06)` (`--shadow-soft`) — paired with soft shadows, **never hard borders**.
-- **Headings**: `Poppins`, sans-serif (bold / semibold).
-- **Body / UI Text**: `Inter`, sans-serif (regular / medium).
+- Generate API documentation: `npm run build:docs` (generates searchable static site in `server/docs/api`).
+- Development watch mode: `npm run docs:watch --prefix server`.
+- Preview output in browser: `npx serve server/docs/api`.
 
 ---
 
 ## Table of Contents
 
-1. [Sprint 0: Initial Foundation & Project Setup Prompt](#sprint-0-initial-foundation--project-setup-prompt)
-2. [Member 1: Auth-1 (Signup, Signin, Email Verification)](#member-1-auth-1-signup-signin-email-verification)
-3. [Member 2: Auth-2 (Password Management & Session Invalidation)](#member-2-auth-2-password-management--session-invalidation)
-4. [Member 3: Batch & Semester Management (Lifecycle & Promotion)](#member-3-batch--semester-management-lifecycle--promotion)
-5. [Member 4: Class Update & Reschedule Management (Conflict Engine)](#member-4-class-update--reschedule-management-conflict-engine)
-6. [Member 5: Result Generation & Examination Management](#member-5-result-generation--examination-management)
-7. [Member 6: CT & Assignment Scheduling](#member-6-ct--assignment-scheduling)
+1. [Sprint 0: DevOps & Infrastructure Documentation Prompt](#sprint-0-devops--infrastructure-documentation-prompt)
+2. [Member 1: Auth-1 & Identity Management Documentation Prompt](#member-1-auth-1--identity-management-documentation-prompt)
+3. [Member 2: Auth-2 & Password Management Documentation Prompt](#member-2-auth-2--password-management-documentation-prompt)
+4. [Member 3: Academic Catalog, Batch & Semester Documentation Prompt](#member-3-academic-catalog-batch--semester-documentation-prompt)
+5. [Member 4: Routine, Scheduling & 3-Way Conflict Engine Documentation Prompt](#member-4-routine-scheduling--3-way-conflict-engine-documentation-prompt)
+6. [Member 5: Result Generation & Examination Management Documentation Prompt](#member-5-result-generation--examination-management-documentation-prompt)
+7. [Member 6: Assessment (CT & Assignment) Management Documentation Prompt](#member-6-assessment-ct--assignment-management-documentation-prompt)
 
 ---
 
-## Sprint 0: Initial Foundation & Project Setup Prompt
+## Sprint 0: DevOps & Infrastructure Documentation Prompt
 
-> **Assigned to:** Lead / DevOps / Foundation  
-> **Target Modules:** `server/`, `client/`, `prisma/`, `tests/`  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/backend_design.md`](file:///docs/backend_design.md), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md), [`docs/adr/0002-node-express-prisma-postgres-stack.md`](file:///docs/adr/0002-node-express-prisma-postgres-stack.md)
+> **Assigned to:** Lead / DevOps / Architecture  
+> **Target Existing Files:** `server/src/server.ts`, `server/src/app.ts`, `server/src/lib/prisma.ts`, `server/src/config/env.ts`, `server/src/config/upload.ts`, `server/src/middleware/errorHandler.ts`, `server/src/utils/response.ts`, `server/typedoc.json`  
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md), [`docs/adr/0002-node-express-prisma-postgres-stack.md`](file:///docs/adr/0002-node-express-prisma-postgres-stack.md)
 
 ```markdown
-You are an autonomous senior full-stack engineer configuring the core foundation of the Smart_Schedular repository using the Matt Pocock engineering workflow.
+You are an autonomous senior engineer documenting the core infrastructure, server pipeline, and configuration of the existing Smart Department platform using TypeDoc.
 
 ### Objective
 
-Scaffold and verify the end-to-end foundation for both the backend (`server/`) and frontend (`client/`), including Prisma schema initialization, database connection adapter, Express application pipeline, error handling, design system CSS tokens, and testing harnesses.
+Add comprehensive, TypeDoc-compliant JSDoc documentation to the already implemented server pipeline, database client, environment configuration, error handling middleware, and JSON response utility functions. Verify that the TypeDoc documentation build executes cleanly with 0 errors and 0 warnings.
 
-### Testing & CI Strategy
+### Existing Files to Document
 
-- Backend: Unit tests (Vitest) + Integration tests (Vitest + Supertest).
-- Frontend: Unit tests (Vitest) + Component integration tests (Vitest + React Testing Library).
-- Strict CI Quality Gate: Prettier format check, tsc --noEmit typecheck, Vitest test suites.
+1. `server/src/server.ts`: HTTP server initialization, port binding, and graceful shutdown handlers.
+2. `server/src/app.ts`: Express application factory, security middleware assembly (`cors`, `helmet`, json parser), and route mounting.
+3. `server/src/lib/prisma.ts`: PrismaClient singleton instance and Neon PostgreSQL connection adapter.
+4. `server/src/config/env.ts`: Environment variable schema validation (Zod) and application runtime settings.
+5. `server/src/config/upload.ts`: Multer disk storage and file upload configuration for study resources and grade sheets.
+6. `server/src/middleware/errorHandler.ts`: Global Express error handling middleware, AppError hierarchy, and unhandled exception logging.
+7. `server/src/utils/response.ts`: Standard JSON API response envelope utilities (`sendSuccess`, `sendError`).
 
-### Guidelines & Workflow
+### Documentation Deliverables
 
-1. Review `CONTEXT.md`, `docs/backend_design.md`, and `docs/frontend_color_palate.md`.
-2. Initialize `server/prisma/schema.prisma` with core domain models:
-   - `User`, `RefreshToken`, `PreloadedStudent`, `PreloadedTeacher`
-   - `Program`, `Batch`, `Semester`, `Course`, `Room`
-   - `ScheduleEntry`, `Holiday`, `CTMark`, `Assignment`, `Resource`, `Result`, `PromotionRequest`, `Notification`, `AuditLog`
-3. Configure `server/src/app.ts` with:
-   - Security middleware (`cors`, json body parser)
-   - Global error handler middleware and standard JSON response envelope (`sendSuccess`, `sendError`)
-   - Health check endpoint `GET /api/v1/health`
-4. Setup database connectivity using `@prisma/adapter-pg` connecting to Neon PostgreSQL.
-5. Create Prisma seed script `server/prisma/seed.ts` seeding the 8 fixed departmental rooms:
-   - R-101, R-102, R-103 (Classrooms)
-   - R-201, R-203, R-302 (Computer Labs)
-   - R-105 (Electrical Circuit Lab)
-   - R-202 (Multipurpose Room)
-6. Configure `client/src/index.css` with CSS custom properties and Tailwind tokens from `docs/frontend_color_palate.md`.
-7. Setup testing harness in both workspaces:
-   - `server/vitest.config.ts` for Supertest integration tests.
-   - `client/vitest.config.ts` with React Testing Library.
-8. Run full verification gates:
-   - `cd server && npm test && npx prisma validate && npx tsc --noEmit`
-   - `cd client && npm run build && npm run lint`
-9. Execute `/code-review` before finalizing.
+- **AST Synchronization**: Document all exported functions, types, and interfaces using standard tags (`@param`, `@returns`, `@throws`, `@example`).
+- **Zero Type Duplication**: Omit redundant `{type}` notations in comments. Let TypeDoc extract types from TypeScript AST.
+- **Cross-References**: Use `{@link sendSuccess}`, `{@link sendError}`, and `{@link AppError}` across middleware and response utilities.
+- **TypeDoc Build Check**: Ensure `server/typedoc.json` compiles the documented symbols into `server/docs/api` with zero errors.
+
+### Step-by-Step Workflow
+
+1. Review `docs/documentation.md` and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect `server/src/app.ts`, `server/src/config/env.ts`, and `server/src/utils/response.ts`.
+3. Add full JSDoc block comments (`/** ... */`) to each exported function and configuration object.
+4. Run TypeDoc build: `npm run build:docs`.
+5. Run test suite to verify no functional code regressions: `cd server && npm test && npx tsc --noEmit`.
+6. Run `/code-review` before finalizing.
 ```
 
 ---
 
-## Member 1: Auth-1 (Signup, Signin)
+## Member 1: Auth-1 & Identity Management Documentation Prompt
 
 > **Assigned to:** Member 1  
-> **Target Modules:** User Registration, Email Verification, Login & JWT Session Management  
-> **SRS Requirements:** `FR-01` (Registration), `FR-02` (Email Verification), `FR-03` (Login), `AN-01` & `AN-02` (Preloaded Verification), `NFR-08` (Token Security)  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/srs.md`](file:///docs/srs.md#L493), [`docs/backend_design.md`](file:///docs/backend_design.md#L91), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md)
+> **Target Existing Files:** `server/src/services/auth.service.ts` (registration, login, JWT token generation), `server/src/services/preloaded.service.ts`, `server/src/controllers/auth.controller.ts`, `server/src/routes/auth.route.ts`, `server/src/types/auth.ts`, `server/src/validators/auth.validator.ts`, `server/src/middleware/auth.ts`, `server/src/middleware/rbac.ts`  
+> **SRS Requirements:** `FR-01` (Registration), `FR-03` (Login), `AN-01` & `AN-02` (Preloaded Verification), `NFR-08` (Token Security)  
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0006-retire-email-verification-and-streamline-roster-auth.md`](file:///docs/adr/0006-retire-email-verification-and-streamline-roster-auth.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md)
 
 ```markdown
-You are an autonomous full-stack engineer implementing the Auth-1 module for Smart_Schedular using the Matt Pocock engineering workflow.
+You are an autonomous full-stack engineer documenting the existing Auth-1 & Identity Management module for Smart Department using TypeDoc.
 
 ### Objective
 
-Implement the complete vertical tracer bullet for User Registration with Preloaded Roster Verification, Email Verification via Token/OTP, User Login with JWT Access + Hashed Refresh Tokens, and responsive authentication UI.
+Add comprehensive, TypeDoc-compliant JSDoc comments to all existing authentication services, preloaded roster validation logic, authentication controllers, JWT middleware, and RBAC guards. Do not modify the underlying application logic.
 
-### Testing Strategy & Seams
+### Existing Code to Document
 
-- **Backend Unit Seams (Vitest)**: `authService.register`, `authService.verifyEmail`, `authService.login`, `tokenService.generateTokens`.
-- **Backend Integration Seams (Vitest + Supertest)**: `POST /api/v1/auth/register`, `POST /api/v1/auth/verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`.
-- **Frontend Component Tests (Vitest + React Testing Library)**: `RegisterForm.test.tsx`, `LoginForm.test.tsx`, `EmailVerification.test.tsx`.
+1. `server/src/services/auth.service.ts`:
+   - `register`: User registration with preloaded roster matching, password hashing, and immediate JWT session generation (`ADR-0006`).
+   - `login`: Credential validation, lockout tracking, and token pair issuance.
+   - `generateTokens`: Access token (15m) and refresh token (7d) signing.
+   - `refreshAccessToken`: Hashed refresh token verification and rotation.
+   - `logout`: Token revocation logic.
+2. `server/src/services/preloaded.service.ts`:
+   - Student roster matching by University ID and email.
+   - Teacher roster matching by institutional email.
+3. `server/src/middleware/auth.ts`:
+   - JWT extraction, Bearer token verification, and `req.user` payload attachment.
+4. `server/src/middleware/rbac.ts`:
+   - Role-based authorization middleware (`authorizeRole`, `requireAdmin`, `requireTeacherOrCR`).
+5. `server/src/types/auth.ts` & `server/src/validators/auth.validator.ts`:
+   - DTO interfaces, login/registration Zod schemas, and session token types.
 
-### UI & Design System Requirements
+### Documentation Requirements (from docs/documentation.md & ADR-0008)
 
-Adhere strictly to `docs/frontend_color_palate.md`:
-
-- Canvas background: Warm off-white `#FFFBFA`.
-- Auth Card container: Pure white `#FFFFFF` surface with `16–20px` border-radius and soft shadow `0 4px 12px rgba(0,0,0,0.06)` (no harsh borders).
-- Primary CTAs (Sign In / Register buttons): Crimson Red `#DC143C` (hover `#B01030`), text white.
-- Role selector tabs: Pill tabs styled with role colors:
-  - Student: Slate Gray `#6B7280`
-  - CR: Warm Orange `#DA532C`
-  - Teacher: Charcoal `#1F2937`
-  - Admin: Crimson Red `#DC143C`
-- Success state (Verified checkmark): Emerald Green `#16A34A`.
-- Error state (Account locked / invalid credentials): Rose Red `#E11D48`.
-- Typography: Poppins for headings, Inter for input labels and body text.
-
-### Domain Rules (from CONTEXT.md, ADR-0005, and docs/srs.md)
-
-1. **Preloaded Verification**:
-   - Students must provide a valid `universityId` that matches an unassigned record in `PreloadedStudent`.
-   - Teachers must match `PreloadedTeacher` (uniqueId & institutional email).
-   - CR registration requires admin pre-approval or preloaded CR designation.
-2. **Email Verification & Transport (`ADR-0005`)**:
-   - On signup, generate an expiring verification token/OTP (valid for 24 hours).
-   - User status remains `isVerified: false` until email token is confirmed.
-   - **Zero-Friction Dev/Test Transport**: In `NODE_ENV !== "production"`, log verification links and OTPs directly to the console/test response; route through SMTP transport only when SMTP environment variables are present.
-3. **Session & Security**:
-   - Issue short-lived Access Token (15m) and long-lived Refresh Token (7d).
-   - Refresh tokens must be hashed with SHA-256 before storing in `RefreshToken` table.
-   - Account lockout: Lock account for 15 minutes after 5 consecutive failed login attempts.
+- **Standard Tags**: Every public function and method must have `@param <name> - <description>`, `@returns <description>`, `@throws {AppError} <description>`, and `@example` usage blocks.
+- **Zero Type Duplication**: Never write `@param {string} email`. Use `@param email - User institutional email address`.
+- **Cross-References**: Use `{@link User}`, `{@link PreloadedStudent}`, and `{@link RefreshToken}` to link domain entities.
+- **Domain Invariants**: Document account lockout mechanics (5 failed attempts -> 15 min lock) and preloaded roster derivation.
 
 ### Step-by-Step Workflow
 
-1. Run `/grill-with-docs` or review `docs/srs.md` (FR-01, FR-02, FR-03), `docs/backend_design.md`, `docs/frontend_color_palate.md`, and `docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`.
-2. Run `/to-spec` to define test seams across backend and frontend.
-3. Run `/to-tickets` to split into vertical tracer-bullet slices:
-   - Ticket 1: Database models (`User`, `RefreshToken`, `PreloadedStudent`, `PreloadedTeacher`) + Seed.
-   - Ticket 2: `authService` & `emailService` + Unit tests using `/tdd` (Vitest).
-   - Ticket 3: Express routes, Zod schemas, rate-limiting, and Supertest integration tests.
-   - Ticket 4: React UI components (Register, Login, Verify Email) with React Testing Library tests.
-4. Run `/implement` with `/tdd`.
-5. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
+1. Review `docs/documentation.md`, `docs/adr/0006-retire-email-verification-and-streamline-roster-auth.md`, and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect the existing implementations in `server/src/services/auth.service.ts` and `server/src/services/preloaded.service.ts`.
+3. Add complete TypeDoc comments to all service methods, middleware functions, and DTO interfaces.
+4. Verify documentation build: `npm run build:docs` (0 errors, 0 warnings).
+5. Verify test suite passes without regression: `cd server && npm test && npx tsc --noEmit`.
 6. Run `/code-review` before finalizing.
 ```
 
 ---
 
-## Member 2: Auth-2 (Password Management & Session Invalidation)
+## Member 2: Auth-2 & Password Management Documentation Prompt
 
 > **Assigned to:** Member 2  
-> **Target Modules:** Password Change, Forgot Password, Reset Password, Session Revocation  
+> **Target Existing Files:** `server/src/services/auth.service.ts` (password change, forgot password, reset password), `server/src/services/email.service.ts`, `server/src/jobs/purgeUnverifiedAccounts.job.ts`, `server/src/utils/token.ts`, `server/src/validators/auth.validator.ts`  
 > **SRS Requirements:** `FR-04` (Password Change), `FR-05` (Forgot Password), `NFR-08` (Security & Invalidation)  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/srs.md`](file:///docs/srs.md#L535), [`docs/backend_design.md`](file:///docs/backend_design.md#L91), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md)
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`](file:///docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md)
 
 ```markdown
-You are an autonomous full-stack engineer implementing the Auth-2 (Password Management) module for Smart_Schedular using the Matt Pocock engineering workflow.
+You are an autonomous full-stack engineer documenting the existing Auth-2 (Password Management & Session Invalidation) module for Smart Department using TypeDoc.
 
 ### Objective
 
-Implement the vertical tracer bullet for Password Change (authenticated), Forgot Password (unauthenticated email flow with single-use expiring token), Password Reset, automatic session invalidation across all devices, and the corresponding user interface.
+Add comprehensive, TypeDoc-compliant JSDoc comments to the existing password management operations, cryptographically secure token generators, email transport dispatchers, and session revocation models.
 
-### Testing Strategy & Seams
+### Existing Code to Document
 
-- **Backend Unit Seams (Vitest)**: `authService.changePassword`, `authService.forgotPassword`, `authService.resetPassword`, `tokenService.revokeAllUserTokens`.
-- **Backend Integration Seams (Vitest + Supertest)**: `POST /api/v1/auth/change-password`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`.
-- **Frontend Component Tests (Vitest + React Testing Library)**: `ForgotPasswordForm.test.tsx`, `ResetPasswordForm.test.tsx`, `ChangePasswordModal.test.tsx`.
+1. `server/src/services/auth.service.ts` (Password Operations):
+   - `changePassword`: Authenticated password change with old password verification and strength enforcement.
+   - `forgotPassword`: Single-use expiring reset token generation and email dispatch.
+   - `resetPassword`: Password reset via token, password update, and global session revocation.
+   - `revokeAllUserTokens`: Invalidation of all active `RefreshToken` records for a user (`revoked: true`).
+2. `server/src/services/email.service.ts`:
+   - Zero-friction development transport (console logging in non-production environments).
+   - Production SMTP email transport dispatcher.
+   - Password reset email templating and dispatch.
+3. `server/src/utils/token.ts`:
+   - Cryptographic random token generation and SHA-256 hash digests.
+4. `server/src/jobs/purgeUnverifiedAccounts.job.ts`:
+   - Background cleanup job for expired session tokens.
 
-### UI & Design System Requirements
+### Documentation Requirements (from docs/documentation.md & ADR-0008)
 
-Adhere strictly to `docs/frontend_color_palate.md`:
-
-- Card container: Pure white `#FFFFFF` surface with `16–20px` radius and soft elevation (`0 4px 12px rgba(0,0,0,0.06)`).
-- Primary buttons (Submit Reset, Update Password): Crimson Red `#DC143C` (hover `#B01030`).
-- Password Strength Meter: Multi-segment bar transitioning from Rose Red `#E11D48` (Weak) to Amber `#F59E0B` (Medium) to Emerald Green `#16A34A` (Strong).
-- Alerts & Banners:
-  - Expired / Invalid Token Banner: Rose Red `#E11D48` accent.
-  - Password Reset Success Alert: Emerald Green `#16A34A` accent.
-- Typography: Poppins headings, Inter body text.
-
-### Domain Rules (from CONTEXT.md, ADR-0005, and docs/srs.md)
-
-1. **Password Change**:
-   - Authenticated endpoint requiring `currentPassword` and `newPassword`.
-   - Validates old password hash with `bcrypt`.
-   - Enforces password strength (min 8 chars, mixed case, numbers, special character).
-2. **Forgot & Reset Password (`ADR-0005`)**:
-   - `POST /api/v1/auth/forgot-password` generates a cryptographically secure, single-use token (valid for 15-30 minutes).
-   - Generates password reset link/token using `emailService` (logged to console in dev/test, sent via SMTP in production).
-   - `POST /api/v1/auth/reset-password` accepts token and new password, updates hash, and marks token as used.
-3. **Session Invalidation**:
-   - Upon successful password change or reset, revoke ALL existing active `RefreshToken` entries for that user (`revoked: true`).
-   - Force re-authentication across all active sessions.
+- **Standard Tags**: Document all functions and utilities with `@param`, `@returns`, `@throws`, and `@example`.
+- **Security Context**: Detail encryption standards (bcrypt salt rounds, SHA-256 digests) and token expiry lifetimes directly in docstrings.
+- **Cross-References**: Link related components using `{@link emailService.sendPasswordResetEmail}` and `{@link authService.resetPassword}`.
+- **Zero Type Duplication**: Rely on TypeScript compiler AST for parameter and return types.
 
 ### Step-by-Step Workflow
 
-1. Run `/grill-with-docs` or review `docs/srs.md` (FR-04, FR-05), `docs/backend_design.md`, `docs/frontend_color_palate.md`, and `docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`.
-2. Run `/to-spec` to define test seams across backend and frontend.
-3. Run `/to-tickets` to split into vertical slices:
-   - Ticket 1: Password reset token schema & revocation model.
-   - Ticket 2: `passwordService` logic with Vitest unit tests (`/tdd`).
-   - Ticket 3: Express routes, auth middleware, and Supertest integration tests.
-   - Ticket 4: React UI components (Forgot Password, Reset Password with strength meter, Profile Change Password modal).
-4. Run `/implement` with `/tdd`.
-5. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
-6. Run `/code-review` before PR finalization.
+1. Review `docs/documentation.md`, `docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`, and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect `server/src/services/auth.service.ts` (password methods) and `server/src/services/email.service.ts`.
+3. Add complete TypeDoc comments to all password-related methods and email dispatch functions.
+4. Verify doc build: `npm run build:docs` (0 errors, 0 warnings).
+5. Verify test suite passes cleanly: `cd server && npm test && npx tsc --noEmit`.
+6. Run `/code-review` before finalizing.
 ```
 
 ---
 
-## Member 3: Batch & Semester Management (Lifecycle & Promotion)
+## Member 3: Academic Catalog, Batch & Semester Documentation Prompt
 
 > **Assigned to:** Member 3  
-> **Target Modules:** Academic Catalog, Program, Batch, Semester, Promotion & Status Override  
+> **Target Existing Files:** `server/src/services/semester.service.ts`, `server/src/services/batch.service.ts`, `server/src/services/student.service.ts`, `server/src/services/promotion.service.ts`, `server/src/controllers/semester.controller.ts`, `server/src/controllers/batch.controller.ts`, `server/src/controllers/student.controller.ts`, `server/src/controllers/promotion.controller.ts`, `server/src/routes/semester.route.ts`, `server/src/routes/batch.route.ts`, `server/src/routes/promotion.route.ts`, `server/src/types/academic.ts`, `server/src/validators/academic.validator.ts`  
 > **SRS Requirements:** `FR-06` (Semester Creation), `FR-07` (Promotion Config), `FR-08` (Promotion Processing), `FR-09` (Student Semester Override), `AN-03` (Course Mapping)  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/srs.md`](file:///docs/srs.md#L562), [`docs/backend_design.md`](file:///docs/backend_design.md#L100), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md)
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0004-sprint-1-core-architectural-decisions.md`](file:///docs/adr/0004-sprint-1-core-architectural-decisions.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md)
 
 ```markdown
-You are an autonomous full-stack engineer implementing the Batch & Semester Management module for Smart_Schedular using the Matt Pocock engineering workflow.
+You are an autonomous full-stack engineer documenting the existing Academic Catalog, Batch & Semester Management module for Smart Department using TypeDoc.
 
 ### Objective
 
-Implement the complete vertical tracer bullet for Program/Batch management, Semester creation with course assignment, Batch-wide semester promotion processing, individual student semester overrides, and Admin management dashboard.
+Add comprehensive, TypeDoc-compliant JSDoc comments to the existing academic hierarchy services, course mapping handlers, batch promotion processors, and student semester override logic.
 
-### Testing Strategy & Seams
+### Existing Code to Document
 
-- **Backend Unit Seams (Vitest)**: `semesterService.createSemester`, `promotionService.promoteBatch`, `studentService.overrideSemester`.
-- **Backend Integration Seams (Vitest + Supertest)**: `POST /api/v1/admin/semesters`, `POST /api/v1/admin/batches/:id/promote`, `PATCH /api/v1/admin/students/:id/semester-override`, `GET /api/v1/batches`.
-- **Frontend Component Tests (Vitest + React Testing Library)**: `BatchManager.test.tsx`, `SemesterModal.test.tsx`, `PromotionWizard.test.tsx`.
+1. `server/src/services/semester.service.ts`:
+   - `createSemester`: Creation of academic terms, course bindings, and instructor allocations.
+   - `getSemestersByBatch`: Querying active and archived semesters.
+2. `server/src/services/batch.service.ts`:
+   - Cohort management (`Program` -> `Batch` hierarchy) and batch status tracking.
+3. `server/src/services/promotion.service.ts`:
+   - `promoteBatch`: Batch-wide sequential promotion (e.g., 2-2 -> 3-1) with routine archiving.
+   - **CR Reset Enforcement**: Automatic reset of all active `CR` roles back to `STUDENT` upon batch promotion (`ADR-0004`).
+4. `server/src/services/student.service.ts`:
+   - Student roster querying, status transitions (`ACTIVE`, `PROMOTED`, `DEMOTED`, `DROPOUT`, `GRADUATED`), and admin semester override for retakes/readmission.
+5. `server/src/types/academic.ts` & `server/src/validators/academic.validator.ts`:
+   - DTOs, payload schemas, and academic status enums.
 
-### UI & Design System Requirements
+### Documentation Requirements (from docs/documentation.md & ADR-0008)
 
-Adhere strictly to `docs/frontend_color_palate.md`:
-
-- Admin Canvas: Warm off-white `#FFFBFA` with Crimson Red `#DC143C` Admin accent badges.
-- Cards & Data Tables: Pure white `#FFFFFF` surface with soft shadow (`0 4px 12px rgba(0,0,0,0.06)`), `16px` border-radius.
-- Status Badges:
-  - Active Semester: Emerald Green `#16A34A` background tint / text.
-  - Archived Semester: Slate Gray `#6B7280`.
-  - Pending Promotion Request: Amber `#F59E0B` tag.
-- Primary Action (Promote Batch, Create Semester): Crimson Red `#DC143C` button.
-- Typography: Poppins for batch/semester cards and table headers, Inter for student rosters and data rows.
-
-### Domain Rules (from CONTEXT.md, ADR-0004, and docs/srs.md)
-
-1. **Academic Hierarchy**:
-   - `Program` (e.g., BSC_HONOURS) → `Batch` (e.g., Batch 51) → `Semester` (e.g., 3rd Year 1st Semester).
-   - Only one active semester per batch at any given time.
-2. **Semester Creation (`FR-06`)**:
-   - Admin creates semester, links courses, and assigns instructors (Theory & Lab courses).
-3. **Batch Promotion Lifecycle (`FR-07`, `FR-08`, `ADR-0004`)**:
-   - Transition all active students in a batch to the next sequential semester (e.g., 2-2 → 3-1).
-   - Archive previous semester routines and active schedule instances.
-   - **CR Reset Rule**: All active `CR` roles in the batch are automatically reset to `STUDENT` upon promotion, requiring explicit reassignment/confirmation for the new semester.
-4. **Student Status & Overrides (`FR-09`)**:
-   - Support student status flags (`ACTIVE`, `PROMOTED`, `DEMOTED`, `DROPOUT`, `GRADUATED`).
-   - Allow Admin to override a specific student's active semester for retake/readmission cases.
+- **Standard Tags**: Provide `@param`, `@returns`, `@throws {AppError}`, and `@example` for all service methods.
+- **Academic Hierarchy Documentation**: Document the domain invariant that only one semester per batch may be active at any time.
+- **Cross-References**: Use `{@link Batch}`, `{@link Semester}`, `{@link Course}`, and `{@link StudentStatus}`.
+- **Zero Type Duplication**: Omit redundant types from JSDoc tags.
 
 ### Step-by-Step Workflow
 
-1. Run `/grill-with-docs` or review `docs/srs.md` (FR-06 to FR-09), `docs/backend_design.md`, and `docs/frontend_color_palate.md`.
-2. Run `/to-spec` to define test seams across backend and frontend.
-3. Run `/to-tickets` to split into vertical slices:
-   - Ticket 1: Prisma models (`Program`, `Batch`, `Semester`, `Course`) + indexes.
-   - Ticket 2: Promotion & semester services (with CR reset logic) and Vitest unit tests (`/tdd`).
-   - Ticket 3: Express routes with Admin RBAC and Supertest integration tests.
-   - Ticket 4: Client React UI (Admin Batch & Semester Management, Promotion Wizard, Student Override panel).
-4. Run `/implement` with `/tdd`.
-5. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
+1. Review `docs/documentation.md`, `docs/adr/0004-sprint-1-core-architectural-decisions.md`, and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect `server/src/services/semester.service.ts`, `batch.service.ts`, and `promotion.service.ts`.
+3. Add complete TypeDoc comments to all functions, methods, and exported types.
+4. Verify documentation build: `npm run build:docs` (0 errors, 0 warnings).
+5. Verify test suite passes cleanly: `cd server && npm test && npx tsc --noEmit`.
 6. Run `/code-review` before finalizing.
 ```
 
 ---
 
-## Member 4: Class Update & Reschedule Management (Conflict Engine)
+## Member 4: Routine, Scheduling & 3-Way Conflict Engine Documentation Prompt
 
 > **Assigned to:** Member 4  
-> **Target Modules:** Day-Wise Schedule Instances, 3-Way Conflict Detection, Rescheduling & Cancellations  
+> **Target Existing Files:** `server/src/services/conflictService.ts`, `server/src/services/conflict.service.ts`, `server/src/services/scheduleService.ts`, `server/src/services/holidayService.ts`, `server/src/controllers/schedule.controller.ts`, `server/src/controllers/routine.controller.ts`, `server/src/controllers/holiday.controller.ts`, `server/src/controllers/room.controller.ts`, `server/src/routes/schedule.routes.ts`, `server/src/routes/routine.routes.ts`, `server/src/routes/holiday.routes.ts`, `server/src/routes/room.routes.ts`, `server/src/utils/timeUtils.ts`  
 > **SRS Requirements:** `FR-10` (Routine Generation), `FR-13` (Room Allocation), `FR-14` (Conflict Detection), `FR-15` (Cancellation), `FR-16` (Time Update), `FR-17` (Day Reassignment), `FR-18` (Holidays)  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/srs.md`](file:///docs/srs.md#L616), [`docs/backend_design.md`](file:///docs/backend_design.md#L52), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md), [`docs/adr/0003-three-way-conflict-detection-engine.md`](file:///docs/adr/0003-three-way-conflict-detection-engine.md), [`docs/adr/0004-sprint-1-core-architectural-decisions.md`](file:///docs/adr/0004-sprint-1-core-architectural-decisions.md)
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0003-three-way-conflict-detection-engine.md`](file:///docs/adr/0003-three-way-conflict-detection-engine.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md)
 
 ```markdown
-You are an autonomous full-stack engineer implementing the Class Update & Reschedule Management module with the 3-Way Conflict Detection Engine for Smart_Schedular.
+You are an autonomous full-stack engineer documenting the existing Routine, Scheduling & 3-Way Conflict Detection Engine for Smart Department using TypeDoc.
 
 ### Objective
 
-Implement the vertical tracer bullet for day-wise class schedule management, transactional 3-way conflict detection (Room, Teacher, Batch) with self-exclusion support, class rescheduling, cancellations, holiday declarations, and interactive routine UI.
+Add comprehensive, TypeDoc-compliant JSDoc comments to the 3-way conflict detection algorithm, defensive schedule modification services, holiday cascade declarations, and time calculation utilities.
 
-### Testing Strategy & Seams
+### Existing Code to Document
 
-- **Backend Unit Seams (Vitest)**: `conflictService.checkOverlap`, `scheduleService.rescheduleClass`, `scheduleService.cancelClass`, `holidayService.declareHoliday`.
-- **Backend Integration Seams (Vitest + Supertest)**: `POST /api/v1/schedules/check-conflict`, `PATCH /api/v1/schedules/:id/reschedule`, `PATCH /api/v1/schedules/:id/cancel`, `POST /api/v1/admin/holidays`.
-- **Frontend Component Tests (Vitest + React Testing Library)**: `ScheduleGrid.test.tsx`, `RescheduleModal.test.tsx`, `ConflictAlertBadge.test.tsx`.
+1. `server/src/services/conflictService.ts`:
+   - `checkOverlap`: Transactional 3-way conflict detection checking Room, Teacher, and Batch overlap.
+   - **Mathematical Overlap Formula**: Document `start_new < end_exist AND end_new > start_exist`.
+   - **Self-Exclusion (`excludeEntryId`)**: Document how updating an existing slot avoids self-conflict false positives.
+   - Database row locking (`SELECT ... FOR UPDATE`) to prevent concurrent double bookings.
+2. `server/src/services/scheduleService.ts`:
+   - `createScheduleEntry`: Validating and persisting schedule slots.
+   - `rescheduleClass`: Rescheduling with transactional conflict checks.
+   - `cancelClass`: Updating class state to `CANCELLED`.
+   - `getScheduleByBatch`, `getScheduleByTeacher`, `getScheduleByRoom`.
+3. `server/src/services/holidayService.ts`:
+   - `declareHoliday`: Creating holiday records and automatically flagging overlapping scheduled slots as `CANCELLED_HOLIDAY`.
+4. `server/src/utils/timeUtils.ts`:
+   - Time string parsing (`HH:mm`), minute conversions, and interval overlap predicates.
 
-### UI & Design System Requirements
+### Documentation Requirements (from docs/documentation.md & ADR-0008)
 
-Adhere strictly to `docs/frontend_color_palate.md`:
-
-- Routine Grid Cells (State Badges):
-  - Scheduled Class: Neutral gray `#F3F4F6` background with `#374151` text.
-  - Cancelled Class: Rose Red `#E11D48` tag / strike-through text.
-  - Rescheduled Class: Amber `#F59E0B` tag with new time slot.
-  - CT Session: Warm Orange `#DA532C` badge.
-  - Departmental Holiday: Amber `#F59E0B` banner across the routine column.
-- Live Conflict Warning Banner: Rose Red `#E11D48` border with tinted background and detailed conflict text (e.g. "Room R-101 is already booked by Batch 51").
-- Action Buttons:
-  - Save / Confirm: Crimson Red `#DC143C`.
-  - Cancel Class CTA: Rose Red outline / text `#E11D48`.
-- Card container: Pure white `#FFFFFF` surface with `16–20px` radius and soft elevation (`0 4px 12px rgba(0,0,0,0.06)`).
-
-### Domain Rules (from CONTEXT.md, ADR-0003, and ADR-0004)
-
-1. **Mathematical Conflict Detection Formula**:
-   - Overlap condition between proposed slot `[start_new, end_new]` and existing slot `[start_exist, end_exist]`:
-     `start_new < end_exist AND end_new > start_exist`
-   - Simultaneously checks:
-     1. **Room Conflict**: `roomId` on date/day.
-     2. **Teacher Conflict**: `teacherId` on date/day.
-     3. **Batch Conflict**: `batchId` on date/day.
-2. **Self-Exclusion (`excludeEntryId`)**:
-   - `conflictService.checkOverlap` must support `{ excludeEntryId }` so updating an existing schedule entry doesn't conflict with its own current slot.
-3. **Defensive Scheduling & Locking**:
-   - Use database row locks (`SELECT ... FOR UPDATE`) or serializable transactions to prevent race-condition double bookings.
-   - Reject conflicting requests with informative error payloads indicating the conflicting entity.
-4. **Schedule Updates (`FR-15` to `FR-18`)**:
-   - Teachers/CRs can reschedule or cancel instances.
-   - Admin can declare departmental holidays (`FR-18`), automatically marking overlapping classes as `CANCELLED_HOLIDAY`.
+- **Standard Tags**: Provide detailed `@param`, `@returns`, `@throws {ConflictError}`, and `@example` code snippets.
+- **Mathematical Formula**: Explicitly write out the interval condition in the `checkOverlap` docstring.
+- **Cross-References**: Use `{@link ScheduleEntry}`, `{@link Room}`, `{@link ClassState}`, and `{@link Holiday}`.
+- **Zero Type Duplication**: Never write redundant `{type}` syntax in comments.
 
 ### Step-by-Step Workflow
 
-1. Run `/grill-with-docs` or review `docs/srs.md` (FR-10 to FR-18), `docs/adr/0003-three-way-conflict-detection-engine.md`, and `docs/frontend_color_palate.md`.
-2. Run `/to-spec` to define test seams across backend and frontend.
-3. Run `/to-tickets` to split into vertical slices:
-   - Ticket 1: `ScheduleEntry` and `Holiday` schema + composite indexes.
-   - Ticket 2: `conflictService` (with `excludeEntryId` support) with comprehensive boundary test suite in Vitest (`/tdd`).
-   - Ticket 3: Schedule modification routes with RBAC and Supertest integration tests.
-   - Ticket 4: Client React UI (Interactive Schedule Grid, Reschedule Modal with live conflict validation badge, Cancellation confirmation).
-4. Run `/implement` with `/tdd`.
-5. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
-6. Run `/code-review` before PR finalization.
+1. Review `docs/documentation.md`, `docs/adr/0003-three-way-conflict-detection-engine.md`, and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect `server/src/services/conflictService.ts`, `scheduleService.ts`, and `holidayService.ts`.
+3. Add complete TypeDoc comments to all exported methods and interfaces.
+4. Verify documentation build: `npm run build:docs` (0 errors, 0 warnings).
+5. Verify test suite passes without regressions: `cd server && npm test && npx tsc --noEmit`.
+6. Run `/code-review` before finalizing.
 ```
 
 ---
 
-## Member 5: Result Generation & Examination Management
+## Member 5: Result Generation & Examination Management Documentation Prompt
 
 > **Assigned to:** Member 5  
-> **Target Modules:** Semester Final Result Upload, Grade Tabulation, Public & Student Result Display  
+> **Target Existing Files:** `server/src/services/result.service.ts`, `server/src/services/examService.ts`, `server/src/services/resource.service.ts`, `server/src/controllers/result.controller.ts`, `server/src/controllers/exam.controller.ts`, `server/src/controllers/resource.controller.ts`, `server/src/routes/result.route.ts`, `server/src/routes/exam.routes.ts`, `server/src/routes/resource.route.ts`, `server/src/types/result.ts`, `server/src/types/exam.ts`, `server/src/types/resource.ts`, `server/src/validators/result.validator.ts`, `server/src/validators/exam.validator.ts`, `server/src/validators/resource.validator.ts`  
 > **SRS Requirements:** `FR-22` (Exam Routine), `FR-25` (Result Upload by CR), `FR-26` (Public Result Page)  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/srs.md`](file:///docs/srs.md#L783), [`docs/backend_design.md`](file:///docs/backend_design.md#L100), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md), [`docs/adr/0004-sprint-1-core-architectural-decisions.md`](file:///docs/adr/0004-sprint-1-core-architectural-decisions.md)
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0004-sprint-1-core-architectural-decisions.md`](file:///docs/adr/0004-sprint-1-core-architectural-decisions.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md)
 
 ```markdown
-You are an autonomous full-stack engineer implementing the Result Generation & Examination Management module for Smart_Schedular using the Matt Pocock engineering workflow.
+You are an autonomous full-stack engineer documenting the existing Result Generation & Examination Management module for Smart Department using TypeDoc.
 
 ### Objective
 
-Implement the vertical tracer bullet for CR Semester Final Result uploading, structured grade tabulation, GPA/CGPA calculations, dual-hybrid result storage (relational records + archived file resource), and public/student result searching and viewing.
+Add comprehensive, TypeDoc-compliant JSDoc comments to the grade sheet parsing engine, JU GPA calculation algorithms, dual-hybrid result storage architecture, and final exam scheduling services.
 
-### Testing Strategy & Seams
+### Existing Code to Document
 
-- **Backend Unit Seams (Vitest)**: `resultService.parseAndValidateGradeSheet`, `resultService.calculateGPA`, `resultService.publishResult`.
-- **Backend Integration Seams (Vitest + Supertest)**: `POST /api/v1/results/upload`, `GET /api/v1/results/query`, `GET /api/v1/results/student/:id`.
-- **Frontend Component Tests (Vitest + React Testing Library)**: `ResultUploadForm.test.tsx`, `ResultQueryView.test.tsx`, `GradeSheetTable.test.tsx`.
+1. `server/src/services/result.service.ts`:
+   - `parseAndValidateGradeSheet`: CSV and spreadsheet parser extracting individual student rows.
+   - `calculateGPA`: Official JU CSE Grading Scale calculation (A+, A, A-, B+, B, etc., credit-weighted GPA/CGPA).
+   - `publishResult`: Verification of student records and transitioning result status to `PUBLISHED`.
+   - `getResultsByBatch`, `getStudentResult`: Query handlers for public and personalized result cards.
+2. `server/src/services/examService.ts`:
+   - Final examination routine generation, room allocation for exam sessions, and invigilator mapping.
+3. `server/src/services/resource.service.ts`:
+   - Dual-hybrid result archiving: saving the raw CSV/PDF grade sheet into the `Resource` repository for full-batch downloads (`ADR-0004`).
+4. `server/src/types/result.ts` & `server/src/types/exam.ts`:
+   - Result records, CourseMarks JSON schema, and exam session interfaces.
 
-### UI & Design System Requirements
+### Documentation Requirements (from docs/documentation.md & ADR-0008)
 
-Adhere strictly to `docs/frontend_color_palate.md`:
-
-- Role Tag: Warm Orange `#DA532C` badge for CR uploader.
-- Results Table & Grade Cards: Pure white `#FFFFFF` surface with soft shadow (`0 4px 12px rgba(0,0,0,0.06)`), `16px` border-radius.
-- Grade Badges:
-  - Outstanding (GPA ≥ 3.75 / A+, A): Emerald Green `#16A34A`.
-  - Pass (GPA 2.50–3.74): Charcoal `#1F2937` or slate gray `#6B7280`.
-  - Fail / Retake (F): Rose Red `#E11D48`.
-- Search & Filter Controls: Crimson Red `#DC143C` active filter highlights and Search CTA.
-- Typography: Poppins bold for GPA scores and headings, Inter for course tabular data.
-
-### Domain Rules (from CONTEXT.md, ADR-0004, and docs/srs.md)
-
-1. **Dual-Hybrid Result Upload by CR (`FR-25`, `ADR-0004`)**:
-   - CR uploads semester grade sheet (CSV/spreadsheet or PDF document).
-   - Tabular rows parse and validate into individual relational `Result` records (`gpa`, `cgpa`, `courseMarks` JSON) mapped to each `universityId`.
-   - The raw source document/PDF is archived under the `Resource` repository for full-batch downloads.
-   - Validates student ID matches, course codes, letter grades, and grade point scales (JU Grading Policy: A+, A, A-, B+, B, etc.).
-2. **Result Verification & Publication**:
-   - Admin or automated integrity check verifies GPA calculations before marking status as `PUBLISHED`.
-3. **Public & Student Result Access (`FR-26`)**:
-   - Public / authenticated result query page allowing lookup by Program, Batch, Semester, and Roll / Registration Number.
-   - Personalized result card in Student Dashboard.
+- **Standard Tags**: Annotate all methods with `@param`, `@returns`, `@throws {AppError}`, and `@example`.
+- **Grading Scale Documentation**: Document the exact GPA point scale and credit calculation formulas.
+- **Cross-References**: Use `{@link Result}`, `{@link Resource}`, and `{@link ExamSchedule}`.
+- **Zero Type Duplication**: Omit redundant `{type}` comments.
 
 ### Step-by-Step Workflow
 
-1. Run `/grill-with-docs` or review `docs/srs.md` (FR-22, FR-25, FR-26), `docs/backend_design.md`, and `docs/frontend_color_palate.md`.
-2. Run `/to-spec` to define test seams across backend and frontend.
-3. Run `/to-tickets` to split into vertical slices:
-   - Ticket 1: `Result` and `Resource` Prisma models + storage relations.
-   - Ticket 2: Result parsing, GPA calculation algorithms, and validation service with Vitest unit tests (`/tdd`).
-   - Ticket 3: Express routes with CR upload authorization and Supertest integration tests.
-   - Ticket 4: Client React UI (CR Result Upload view with preview table, Public Result Search page, Student Result Card).
-4. Run `/implement` with `/tdd`.
-5. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
+1. Review `docs/documentation.md`, `docs/adr/0004-sprint-1-core-architectural-decisions.md`, and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect `server/src/services/result.service.ts` and `server/src/services/examService.ts`.
+3. Add complete TypeDoc comments to all grade processing methods, algorithms, and interfaces.
+4. Verify documentation build: `npm run build:docs` (0 errors, 0 warnings).
+5. Verify test suite passes without regressions: `cd server && npm test && npx tsc --noEmit`.
 6. Run `/code-review` before finalizing.
-7. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
-8. Run `/code-review` before finalizing.
 ```
 
 ---
 
-## Member 6: CT & Assignment Scheduling
+## Member 6: Assessment (CT & Assignment) Management Documentation Prompt
 
 > **Assigned to:** Member 6  
-> **Target Modules:** Class Test (CT) Scheduling, CT Marks Upload, Assignment Distribution & Submissions  
+> **Target Existing Files:** `server/src/services/ct.service.ts`, `server/src/services/assignment.service.ts`, `server/src/controllers/assessments.controller.ts`, `server/src/routes/assessments.route.ts`, `server/src/validators/assessment.validator.ts`  
 > **SRS Requirements:** `FR-19` (CT Scheduling), `FR-20` (CT Marks Upload), `FR-21` (Assignment Creation), `FR-27` (CT Marks View by Student)  
-> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/srs.md`](file:///docs/srs.md#L741), [`docs/backend_design.md`](file:///docs/backend_design.md#L100), [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md)
+> **Key References:** [`CONTEXT.md`](file:///CONTEXT.md), [`docs/documentation.md`](file:///docs/documentation.md), [`docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`](file:///docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md), [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md)
 
 ```markdown
-You are an autonomous full-stack engineer implementing the CT & Assignment Scheduling module for Smart_Schedular using the Matt Pocock engineering workflow.
+You are an autonomous full-stack engineer documenting the existing Assessment (CT & Assignment) Management module for Smart Department using TypeDoc.
 
 ### Objective
 
-Implement the vertical tracer bullet for Class Test (CT) scheduling (integrated with conflict detection for rooms and batches), CT marks tabulation/upload by Teachers, Assignment distribution with deadlines, and Student CT marks visibility.
+Add comprehensive, TypeDoc-compliant JSDoc comments to Class Test (CT) scheduling, score aggregation algorithms, assignment distribution, deadline validation, and student performance visibility services.
 
-### Testing Strategy & Seams
+### Existing Code to Document
 
-- **Backend Unit Seams (Vitest)**: `ctService.scheduleCT`, `marksService.uploadMarks`, `marksService.calculateBestOf`, `assignmentService.createAssignment`.
-- **Backend Integration Seams (Vitest + Supertest)**: `POST /api/v1/assessments/ct`, `POST /api/v1/assessments/ct/:id/marks`, `GET /api/v1/assessments/ct/student/:id`, `POST /api/v1/assessments/assignments`.
-- **Frontend Component Tests (Vitest + React Testing Library)**: `CTSchedulingForm.test.tsx`, `CTMarksTable.test.tsx`, `AssignmentCard.test.tsx`.
+1. `server/src/services/ct.service.ts`:
+   - `scheduleCT`: CT scheduling integrated with the 3-way conflict detection engine.
+   - `uploadMarks`: Tabulation of student assessment scores.
+   - `calculateBestOf`: Configurable aggregation policies per course:
+     - `BEST_3_OF_4`: Default JU CSE departmental policy.
+     - `AVERAGE_ALL`: Arithmetic mean of all conducted quizzes.
+     - `BEST_2_OF_3` / `BEST_N_OF_M`: Custom course policy.
+   - `getStudentCTMarks`: Student dashboard aggregation queries.
+2. `server/src/services/assignment.service.ts`:
+   - `createAssignment`: Task creation with deadline, syllabus, and attachment metadata.
+   - `submitAssignment`: Dual-mode submission handling (external URLs and direct file uploads).
+   - `getAssignmentsByBatch`, `getSubmissionsByAssignment`.
+3. `server/src/validators/assessment.validator.ts`:
+   - Validation schemas for CT scheduling, marks entry, and assignments.
 
-### UI & Design System Requirements
+### Documentation Requirements (from docs/documentation.md & ADR-0008)
 
-Adhere strictly to `docs/frontend_color_palate.md`:
-
-- CT Session Badge: Warm Orange `#DA532C` badge / tag.
-- Assignment Due Date Tags:
-  - Upcoming / Open: Slate Gray `#6B7280` or Charcoal `#1F2937`.
-  - Due Soon (≤24h): Amber `#F59E0B`.
-  - Overdue / Closed: Rose Red `#E11D48`.
-- Marks Entry & Performance Cards: Pure white `#FFFFFF` surface with `16px` border-radius and soft shadow (`0 4px 12px rgba(0,0,0,0.06)`).
-- Action Buttons (Schedule CT, Create Assignment, Submit Marks): Crimson Red `#DC143C` (hover `#B01030`).
-- Typography: Poppins for assessment titles and stat counters, Inter for descriptions and marks tables.
-
-### Domain Rules (from CONTEXT.md, ADR-0005, and docs/srs.md)
-
-1. **CT Scheduling (`FR-19`)**:
-   - Teacher schedules CT for a course specifying date, time slot, syllabus, and room.
-   - Validates against room and batch conflicts using the `conflictService`.
-   - Prevents booking multiple CTs for the same batch on the same date unless confirmed with warning.
-2. **CT Marks Management & Aggregation (`FR-20`, `FR-27`, `ADR-0005`)**:
-   - Teacher uploads marks (total marks, obtained marks per student).
-   - Computes assessment aggregate according to course policy:
-     - `BEST_3_OF_4` (Default JU CSE departmental policy).
-     - `AVERAGE_ALL` (Average of all conducted CTs).
-     - `BEST_2_OF_3` / `BEST_N_OF_M` (Custom policy).
-   - Students can view their breakdown and class statistics in their dashboard (`FR-27`).
-3. **Assignment Management & Submissions (`FR-21`, `ADR-0005`)**:
-   - Teacher creates assignment with title, description, attachments, due date/time, and submission instructions.
-   - Supports dual submission mode: external URL links (e.g. GitHub/Google Drive) and direct document attachments.
+- **Standard Tags**: Provide `@param`, `@returns`, `@throws {AppError}`, and `@example` for all service methods.
+- **Aggregation Policy Documentation**: Document the exact sorting, filtering, and mathematical average algorithms in `calculateBestOf`.
+- **Cross-References**: Use `{@link CTSchedule}`, `{@link CTMark}`, and `{@link Assignment}`.
+- **Zero Type Duplication**: Rely on TypeScript compiler AST for parameter and return types.
 
 ### Step-by-Step Workflow
 
-1. Run `/grill-with-docs` or review `docs/srs.md` (FR-19, FR-20, FR-21, FR-27), `docs/backend_design.md`, `docs/frontend_color_palate.md`, and `docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`.
-2. Run `/to-spec` to define test seams across backend and frontend.
-3. Run `/to-tickets` to split into vertical slices:
-   - Ticket 1: `CTSchedule`, `CTMark`, `Assignment`, `AssignmentSubmission` Prisma schema + constraints.
-   - Ticket 2: CT scheduling with conflict checking + marks aggregation service in Vitest (`/tdd`).
-   - Ticket 3: Express routes with Teacher authorization and Supertest integration tests.
-   - Ticket 4: Client React UI (Teacher CT & Assignment scheduler, Marks entry table, Student CT Marks & Assignment cards).
-4. Run `/implement` with `/tdd`.
-5. Verify with CI Quality Gates:
-   - Backend: `cd server && npm test && npx tsc --noEmit`
-   - Frontend: `cd client && npm test && npm run build && npm run lint`
+1. Review `docs/documentation.md`, `docs/adr/0005-email-transport-ct-aggregation-and-assignment-storage.md`, and `docs/adr/0008-typedoc-documentation-standard.md`.
+2. Inspect `server/src/services/ct.service.ts` and `server/src/services/assignment.service.ts`.
+3. Add complete TypeDoc comments to all assessment methods, policies, and types.
+4. Verify documentation build: `npm run build:docs` (0 errors, 0 warnings).
+5. Verify test suite passes without regressions: `cd server && npm test && npx tsc --noEmit`.
 6. Run `/code-review` before finalizing.
 ```

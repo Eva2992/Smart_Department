@@ -5,12 +5,15 @@
   "out": "docs/api",
   "name": "Smart Department Backend API",
   "readme": "none",
-  "exclude": ["**/*.test.ts", "**/node_modules/**"],
+  "exclude": ["**/*.test.ts", "**/node_modules/**", "**/generated/**"],
   "tsconfig": "tsconfig.json",
   "plugin": [],
   "excludePrivate": true,
   "excludeProtected": false,
   "includeVersion": true,
+  "validation": {
+    "invalidLink": true
+  },
   "navigationLinks": {
     "Smart Department": "https://github.com/Eva2992/Smart_Department"
   }

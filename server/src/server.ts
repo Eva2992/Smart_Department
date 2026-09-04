@@ -3,9 +3,16 @@ import { env } from "./config/env.js";
 import { prisma } from "./lib/prisma.js";
 import { startPurgeJob } from "./jobs/purgeUnverifiedAccounts.job.js";
 
-const PORT = env.PORT;
+/** Active HTTP port number derived from runtime configuration. */
+export const PORT = env.PORT;
 
-const server = app.listen(PORT, async () => {
+/**
+ * Active Node.js HTTP server instance created by binding the Express application to {@link PORT}.
+ *
+ * Verifies PostgreSQL database connectivity on startup via a ping query,
+ * and launches background scheduled maintenance jobs.
+ */
+export const server = app.listen(PORT, async () => {
   console.log(`🚀 Smart Department Server running on port ${PORT} [${env.NODE_ENV}]`);
 
   try {
@@ -18,8 +25,22 @@ const server = app.listen(PORT, async () => {
   startPurgeJob();
 });
 
-// Graceful shutdown handling
-function handleShutdown(signal: string) {
+/**
+ * Graceful termination handler invoked when operating system signals are received.
+ *
+ * Stops accepting new HTTP connections via `server.close`, terminates active connections,
+ * disconnects the {@link prisma} database client, and exits cleanly with code `0`.
+ * Includes a 10-second safety timeout to force exit with code `1` if resources hang.
+ *
+ * @param signal - The termination signal received from the operating system (e.g. `'SIGINT'`, `'SIGTERM'`).
+ * @returns Nothing (`void`).
+ *
+ * @example
+ * ```ts
+ * process.on("SIGTERM", () => handleShutdown("SIGTERM"));
+ * ```
+ */
+export function handleShutdown(signal: string): void {
   console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
   server.close(async () => {
     console.log("🔒 HTTP server closed.");

@@ -64,7 +64,8 @@ On every push and pull request, the CI pipeline enforces strict verification:
 4. **Tests**:
    - Backend unit tests (Vitest) + Integration tests (Vitest + Supertest against a PostgreSQL test database container)
    - Frontend unit tests (Vitest) + Component integration tests (Vitest + React Testing Library)
-5. **Quality Gate Rule**: If any check fails, the PR is **strictly blocked from merging**.
+5. **Documentation Build**: `npm run build:docs` (TypeDoc compilation under `server/` verifying zero AST parsing failures, valid `{@link}` symbol references, and API docs in `server/docs/api`)
+6. **Quality Gate Rule**: If any check fails, the PR is **strictly blocked from merging**.
 
 ### Testing Strategy Matrix
 
@@ -75,7 +76,7 @@ On every push and pull request, the CI pipeline enforces strict verification:
 
 ### Verification Commands
 
-- **Backend (`server/`)**: `npm test` (Vitest) && `npx tsc --noEmit` && `npm run prisma:validate` && `npm run build`
+- **Backend (`server/`)**: `npm test` (Vitest) && `npx tsc --noEmit` && `npm run prisma:validate` && `npm run build` && `npm run build:docs`
 - **Frontend (`client/`)**: `npm test` (Vitest) && `npm run typecheck` && `npm run lint` && `npm run build`
 
 ---
@@ -86,3 +87,4 @@ On every push and pull request, the CI pipeline enforces strict verification:
 2. **Defensive Scheduling**: All schedule changes must be validated through the conflict detection engine before persisting.
 3. **Thin Controllers, Pure Services**: Business logic belongs in `services/`, never in Express controllers.
 4. **Design System Fidelity**: All UI elements must use CSS variables and tokens from [`docs/frontend_color_palate.md`](file:///docs/frontend_color_palate.md).
+5. **TypeDoc Code Documentation Standards**: All public backend services, controllers, interfaces, and domain types must feature AST-synchronized JSDoc block comments (`@param`, `@returns`, `@throws`, `@example`, `{@link}`) per [`docs/documentation.md`](file:///docs/documentation.md) and [`docs/adr/0008-typedoc-documentation-standard.md`](file:///docs/adr/0008-typedoc-documentation-standard.md).

@@ -111,3 +111,5 @@ graph TD
   - API endpoints tested via integration tests (Supertest).
 - **Defensive Scheduling**:
   - Never allow slot updates or creation without transactional conflict validation.
+- **TypeDoc Code Documentation Standards (`ADR-0008`)**:
+  - All public services, controllers, interfaces, and domain types must be documented with AST-synchronized JSDoc blocks (`@param`, `@returns`, `@throws`, `@example`, `{@link}`) without duplicating TypeScript type annotations. API documentation is compiled to `server/docs/api` via `npm run build:docs`.
