@@ -8,6 +8,7 @@ interface ScheduleGridProps {
   currentUserId?: string;
   onOpenReschedule: (entry: ScheduleEntry) => void;
   onOpenCancel: (entry: ScheduleEntry) => void;
+  onOpenStudentRequest?: (entry: ScheduleEntry) => void;
 }
 
 export function ScheduleGrid({
@@ -17,6 +18,7 @@ export function ScheduleGrid({
   currentUserId,
   onOpenReschedule,
   onOpenCancel,
+  onOpenStudentRequest,
 }: ScheduleGridProps) {
   const { user } = useAuth();
   if (loading) {
@@ -190,6 +192,18 @@ export function ScheduleGrid({
                   className="py-2 px-3.5 rounded-xl text-xs font-bold text-[#E11D48] hover:bg-rose-50 border border-[#E11D48]/40 hover:border-[#E11D48] transition-all cursor-pointer"
                 >
                   ✕ Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Actions for Students and CRs (FR-17, FR-18) */}
+            {!isOwnerOrAdmin && (userRole === "STUDENT" || userRole === "CR") && isActionable && (
+              <div className="mt-5 pt-3.5 border-t border-gray-100">
+                <button
+                  onClick={() => onOpenStudentRequest?.(entry)}
+                  className="w-full py-2 px-3 rounded-xl text-xs font-bold text-[#DC143C] bg-rose-50/60 hover:bg-rose-100/60 border border-[#DC143C]/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>📩 Request Cancellation / Reschedule</span>
                 </button>
               </div>
             )}

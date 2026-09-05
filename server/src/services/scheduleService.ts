@@ -1,9 +1,16 @@
 import { prisma } from "../lib/prisma.js";
-import { ScheduleEntryStatus, ScheduleEntryType, Role } from "@prisma/client";
+import {
+  ScheduleEntryStatus,
+  ScheduleEntryType,
+  Role,
+  ClassChangeRequestType,
+  ClassChangeRequestStatus,
+} from "@prisma/client";
 import { AppError } from "../middleware/errorHandler.js";
 import { AuthUser } from "../middleware/auth.js";
 import { conflictService } from "./conflictService.js";
 import { holidayService } from "./holidayService.js";
+import { notificationService, NotificationType } from "./notification.service.js";
 import {
   normalizeDateString,
   timeToMinutes,
@@ -38,6 +45,69 @@ export interface UpdateClassTimeInput {
 
 export interface CancelClassInput {
   reason?: string;
+}
+
+/**
+ * Input for submitting a student/CR class change request (FR-17, FR-18).
+ */
+export interface CreateChangeRequestInput {
+  type: ClassChangeRequestType;
+  reason: string;
+  preferredDate?: string | Date;
+  preferredStartTime?: string | Date;
+  preferredEndTime?: string | Date;
+  preferredRoomId?: string;
+}
+
+/**
+ * Input for reviewing a student/CR class change request (FR-17, FR-18).
+ */
+export interface ReviewChangeRequestInput {
+  action: "APPROVE" | "DENY";
+  denialReason?: string;
+  modifiedDate?: string | Date;
+  modifiedStartTime?: string | Date;
+  modifiedEndTime?: string | Date;
+  modifiedRoomId?: string;
+}
+
+/**
+ * Filter parameters for fetching class change requests.
+ */
+export interface GetChangeRequestsFilter {
+  scheduleEntryId?: string;
+  status?: ClassChangeRequestStatus;
+  type?: ClassChangeRequestType;
+  teacherId?: string;
+  requestedById?: string;
+  batchId?: string;
+}
+
+/**
+ * Suggested department slot item (FR-19).
+ */
+export interface SuggestedSlot {
+  startTime: string;
+  endTime: string;
+  label: string;
+  isAvailable: boolean;
+  reason?: string;
+  availableRooms: Array<{
+    id: string;
+    roomNumber: string;
+    type: string;
+    description?: string | null;
+  }>;
+}
+
+/**
+ * Output of suggested slots evaluation for a given class entry and date (FR-19).
+ */
+export interface SuggestedSlotsResult {
+  date: string;
+  isHoliday: boolean;
+  holidayReason?: string;
+  slots: SuggestedSlot[];
 }
 
 export interface GenerateRoutineTemplateItem {
@@ -305,25 +375,138 @@ export class ScheduleService {
   }
 
   /**
-   * Change time of scheduled class on the same day (FR-16).
+   * Change time of scheduled class on the same day with 3-way conflict detection (FR-16).
+   *
+   * @param id - ID of the scheduled entry to update
+   * @param payload - New start/end times and optional reason
+   * @param actor - The teacher or admin making the update
+   * @returns Updated schedule entry
+   * @throws {AppError} If conflict detected, or class is already cancelled/holiday
+   *
+   * @example
+   * ```ts
+   * const updated = await scheduleService.updateClassTime('entry-1', {
+   *   startTime: '10:00',
+   *   endTime: '11:30'
+   * }, teacherActor);
+   * ```
    */
   async updateClassTime(id: string, payload: UpdateClassTimeInput, actor: AuthUser) {
     const entry = await this.getScheduleById(id);
-    return this.rescheduleClass(
-      id,
-      {
-        date: entry.date,
-        startTime: payload.startTime,
-        endTime: payload.endTime,
-        roomId: entry.roomId,
-        reason: payload.reason,
-      },
-      actor
-    );
+
+    // RBAC & Ownership check: Admin or the assigned Teacher
+    this.assertCanModifyEntry(entry, actor);
+
+    if (entry.status === ScheduleEntryStatus.CANCELLED) {
+      throw new AppError("Cannot update time of a cancelled class slot.", 400, "INVALID_OPERATION");
+    }
+    if (entry.status === ScheduleEntryStatus.HOLIDAY) {
+      throw new AppError(
+        "Cannot update time of a class falling on a declared holiday.",
+        400,
+        "INVALID_OPERATION"
+      );
+    }
+
+    const targetDateStr = normalizeDateString(entry.date);
+    const targetRoomId = entry.roomId;
+    const targetStartTime = payload.startTime;
+    const targetEndTime = payload.endTime;
+
+    return await prisma.$transaction(async (tx) => {
+      const conflictResult = await conflictService.checkConflict(
+        {
+          date: targetDateStr,
+          startTime: targetStartTime,
+          endTime: targetEndTime,
+          roomId: targetRoomId,
+          teacherId: entry.teacherId,
+          batchId: entry.batchId,
+          excludeScheduleEntryId: id,
+        },
+        tx
+      );
+
+      if (conflictResult.hasConflict) {
+        throw new AppError(
+          conflictResult.summaryMessage || "Scheduling conflict detected",
+          409,
+          "CONFLICT_DETECTED",
+          conflictResult
+        );
+      }
+
+      const parsedDate = new Date(targetDateStr);
+      const startMinutes = timeToMinutes(targetStartTime);
+      const endMinutes = timeToMinutes(targetEndTime);
+
+      const startDateTime = new Date(parsedDate);
+      startDateTime.setUTCHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+
+      const endDateTime = new Date(parsedDate);
+      endDateTime.setUTCHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+
+      const updated = await tx.scheduleEntry.update({
+        where: { id },
+        data: {
+          startTime: startDateTime,
+          endTime: endDateTime,
+          status: ScheduleEntryStatus.RESCHEDULED,
+        },
+        include: {
+          course: true,
+          teacher: true,
+          room: true,
+          batch: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: actor.id,
+          action: "UPDATE_CLASS_TIME",
+          entityType: "ScheduleEntry",
+          entityId: id,
+          ipAddress: "127.0.0.1",
+          details: {
+            date: targetDateStr,
+            previousTime: `${formatTime12h(entry.startTime)} - ${formatTime12h(entry.endTime)}`,
+            newTime: `${minutesToTimeString(startMinutes)} - ${minutesToTimeString(endMinutes)}`,
+            reason: payload.reason,
+          },
+        },
+      });
+
+      const students = await tx.user.findMany({
+        where: { batchId: entry.batchId },
+        select: { id: true },
+      });
+
+      if (students.length > 0) {
+        const notifMessage = `Class time for ${entry.course?.name || "course"} on ${targetDateStr} has been updated to ${formatTime12h(targetStartTime)} - ${formatTime12h(targetEndTime)}.`;
+        await tx.notification.createMany({
+          data: students.map((s) => ({
+            userId: s.id,
+            type: NotificationType.CLASS_TIME_UPDATED || "CLASS_TIME_UPDATED",
+            message: notifMessage,
+            relatedEntityType: "ScheduleEntry",
+            relatedEntityId: id,
+          })),
+        });
+      }
+
+      return updated;
+    });
   }
 
   /**
    * Cancel a scheduled class instance (FR-15).
+   *
+   * @param id - Schedule entry ID to cancel
+   * @param payload - Optional reason for cancellation
+   * @param actor - Teacher or Admin cancelling the class
+   * @returns Updated schedule entry with CANCELLED status
+   * @throws {AppError} If already cancelled, holiday, or unauthorized
    */
   async cancelClass(id: string, payload: CancelClassInput = {}, actor: AuthUser) {
     const entry = await this.getScheduleById(id);
@@ -333,6 +516,13 @@ export class ScheduleService {
 
     if (entry.status === ScheduleEntryStatus.CANCELLED) {
       throw new AppError("Class is already cancelled", 400, "ALREADY_CANCELLED");
+    }
+    if (entry.status === ScheduleEntryStatus.HOLIDAY) {
+      throw new AppError(
+        "Cannot cancel a class falling on a declared holiday.",
+        400,
+        "INVALID_OPERATION"
+      );
     }
 
     return await prisma.$transaction(async (tx) => {
@@ -386,6 +576,573 @@ export class ScheduleService {
 
       return updated;
     });
+  }
+
+  /**
+   * Calculates conflict-free suggested slots and available rooms for reassigning a class to another day (FR-19).
+   *
+   * @param id - Schedule entry ID to be rescheduled
+   * @param targetDate - The proposed target date
+   * @returns List of departmental standard slots with availability status and available rooms
+   *
+   * @example
+   * ```ts
+   * const suggestions = await scheduleService.getSuggestedSlots('entry-1', '2026-09-10');
+   * ```
+   */
+  async getSuggestedSlots(id: string, targetDate: string | Date): Promise<SuggestedSlotsResult> {
+    const entry = await this.getScheduleById(id);
+    const dateStr = normalizeDateString(targetDate);
+    const parsedDate = new Date(dateStr);
+
+    const isHoliday = holidayService.isHolidayDate
+      ? await holidayService.isHolidayDate(dateStr, entry.batchId)
+      : false;
+
+    if (isHoliday) {
+      return {
+        date: dateStr,
+        isHoliday: true,
+        holidayReason: "Target date is a declared holiday or off-day.",
+        slots: [],
+      };
+    }
+
+    const STANDARD_SLOTS = [
+      { startTime: "08:30", endTime: "10:00", label: "8:30 AM - 10:00 AM" },
+      { startTime: "10:00", endTime: "11:30", label: "10:00 AM - 11:30 AM" },
+      { startTime: "11:30", endTime: "13:00", label: "11:30 AM - 1:00 PM" },
+      { startTime: "13:30", endTime: "15:00", label: "1:30 PM - 3:00 PM" },
+      { startTime: "15:00", endTime: "16:30", label: "3:00 PM - 4:30 PM" },
+    ];
+
+    const allRooms = await prisma.room.findMany({
+      orderBy: { roomNumber: "asc" },
+      select: { id: true, roomNumber: true, type: true, description: true },
+    });
+
+    const existingEntries = await prisma.scheduleEntry.findMany({
+      where: {
+        date: parsedDate,
+        status: { notIn: [ScheduleEntryStatus.CANCELLED, ScheduleEntryStatus.HOLIDAY] },
+        id: { not: id },
+      },
+      select: {
+        id: true,
+        startTime: true,
+        endTime: true,
+        roomId: true,
+        teacherId: true,
+        batchId: true,
+      },
+    });
+
+    const slots: SuggestedSlot[] = STANDARD_SLOTS.map((slot) => {
+      // 1. Check if teacher has an overlapping class
+      const teacherBusy = existingEntries.some(
+        (e) =>
+          e.teacherId === entry.teacherId &&
+          conflictService.checkOverlap(slot.startTime, slot.endTime, e.startTime, e.endTime)
+      );
+
+      if (teacherBusy) {
+        return {
+          ...slot,
+          isAvailable: false,
+          reason: "Teacher is already scheduled for another class in this time slot",
+          availableRooms: [],
+        };
+      }
+
+      // 2. Check if batch has an overlapping class
+      const batchBusy = existingEntries.some(
+        (e) =>
+          e.batchId === entry.batchId &&
+          conflictService.checkOverlap(slot.startTime, slot.endTime, e.startTime, e.endTime)
+      );
+
+      if (batchBusy) {
+        return {
+          ...slot,
+          isAvailable: false,
+          reason: "Batch already has another class in this time slot",
+          availableRooms: [],
+        };
+      }
+
+      // 3. Find available rooms
+      const availableRooms = allRooms.filter((room) => {
+        const roomOccupied = existingEntries.some(
+          (e) =>
+            e.roomId === room.id &&
+            conflictService.checkOverlap(slot.startTime, slot.endTime, e.startTime, e.endTime)
+        );
+        return !roomOccupied;
+      });
+
+      if (availableRooms.length === 0) {
+        return {
+          ...slot,
+          isAvailable: false,
+          reason: "No departmental rooms are free in this time slot",
+          availableRooms: [],
+        };
+      }
+
+      return {
+        ...slot,
+        isAvailable: true,
+        availableRooms,
+      };
+    });
+
+    return {
+      date: dateStr,
+      isHoliday: false,
+      slots,
+    };
+  }
+
+  /**
+   * Submits a student-initiated class change request (FR-17 cancellation or FR-18 reschedule).
+   *
+   * @param id - Schedule entry ID for which change is requested
+   * @param payload - Request details including reason and optional preferred slot
+   * @param actor - The student or CR user initiating the request
+   * @returns Newly created ClassChangeRequest record
+   * @throws {AppError} If student is not from the class batch, entry is invalid, or duplicate active request exists
+   *
+   * @example
+   * ```ts
+   * const request = await scheduleService.createChangeRequest('entry-1', {
+   *   type: ClassChangeRequestType.CANCEL,
+   *   reason: 'Lab clash'
+   * }, studentUser);
+   * ```
+   */
+  async createChangeRequest(id: string, payload: CreateChangeRequestInput, actor: AuthUser) {
+    const entry = await this.getScheduleById(id);
+
+    // Enforce that student belongs to the batch of the scheduled class
+    if (actor.role === Role.STUDENT || actor.role === Role.CR) {
+      if (!actor.batchId || actor.batchId !== entry.batchId) {
+        throw new AppError(
+          "Students can only submit change requests for classes belonging to their own batch.",
+          403,
+          "FORBIDDEN"
+        );
+      }
+    }
+
+    if (entry.status === ScheduleEntryStatus.CANCELLED) {
+      throw new AppError(
+        "Cannot submit a change request for an already cancelled class.",
+        400,
+        "INVALID_OPERATION"
+      );
+    }
+
+    if (entry.status === ScheduleEntryStatus.HOLIDAY) {
+      throw new AppError(
+        "Cannot submit a change request for a class falling on a declared holiday.",
+        400,
+        "INVALID_OPERATION"
+      );
+    }
+
+    // Check for duplicate pending requests by the same student for the same class and type
+    const existingPending = await prisma.classChangeRequest.findFirst({
+      where: {
+        scheduleEntryId: id,
+        requestedById: actor.id,
+        type: payload.type,
+        status: ClassChangeRequestStatus.PENDING,
+      },
+    });
+
+    if (existingPending) {
+      throw new AppError(
+        `You already have an active pending ${payload.type.toLowerCase()} request for this class. Please await teacher review.`,
+        409,
+        "DUPLICATE_REQUEST"
+      );
+    }
+
+    let preferredDate: Date | null = null;
+    let preferredStartTime: Date | null = null;
+    let preferredEndTime: Date | null = null;
+
+    if (payload.preferredDate) {
+      const dateStr = normalizeDateString(payload.preferredDate);
+      preferredDate = new Date(dateStr);
+
+      if (payload.preferredStartTime) {
+        const startMins = timeToMinutes(payload.preferredStartTime);
+        preferredStartTime = new Date(preferredDate);
+        preferredStartTime.setUTCHours(Math.floor(startMins / 60), startMins % 60, 0, 0);
+      }
+
+      if (payload.preferredEndTime) {
+        const endMins = timeToMinutes(payload.preferredEndTime);
+        preferredEndTime = new Date(preferredDate);
+        preferredEndTime.setUTCHours(Math.floor(endMins / 60), endMins % 60, 0, 0);
+      }
+    }
+
+    const changeRequest = await prisma.classChangeRequest.create({
+      data: {
+        scheduleEntryId: id,
+        type: payload.type,
+        status: ClassChangeRequestStatus.PENDING,
+        reason: payload.reason,
+        preferredDate,
+        preferredStartTime,
+        preferredEndTime,
+        preferredRoomId: payload.preferredRoomId || null,
+        requestedById: actor.id,
+        teacherId: entry.teacherId,
+      },
+      include: {
+        scheduleEntry: {
+          include: {
+            course: true,
+            batch: true,
+            room: true,
+          },
+        },
+        requestedBy: {
+          select: { id: true, name: true, email: true, role: true, universityId: true },
+        },
+        teacher: {
+          select: { id: true, name: true, email: true, teacherUniqueId: true },
+        },
+      },
+    });
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: actor.id,
+        action: "SUBMIT_CLASS_CHANGE_REQUEST",
+        entityType: "ClassChangeRequest",
+        entityId: changeRequest.id,
+        ipAddress: "127.0.0.1",
+        details: {
+          type: payload.type,
+          scheduleEntryId: id,
+          courseName: entry.course?.name,
+          reason: payload.reason,
+        },
+      },
+    });
+
+    // Notify assigned teacher
+    await notificationService.create({
+      userId: entry.teacherId,
+      type: NotificationType.CLASS_CHANGE_REQUEST_SUBMITTED || "CLASS_CHANGE_REQUEST_SUBMITTED",
+      message: `${actor.name || "A student"} submitted a ${payload.type.toLowerCase()} request for ${entry.course?.name || "class"} on ${normalizeDateString(entry.date)}: "${payload.reason}"`,
+      relatedEntityType: "ClassChangeRequest",
+      relatedEntityId: changeRequest.id,
+    });
+
+    return changeRequest;
+  }
+
+  /**
+   * Retrieves class change requests with role-scoped access control (FR-17, FR-18).
+   *
+   * @param filters - Optional filters for request type, status, schedule entry, etc.
+   * @param actor - Authenticated user making the query
+   * @returns List of matching class change requests
+   */
+  async getChangeRequests(filters: GetChangeRequestsFilter = {}, actor: AuthUser) {
+    const where: any = {};
+
+    if (filters.scheduleEntryId) where.scheduleEntryId = filters.scheduleEntryId;
+    if (filters.status) where.status = filters.status;
+    if (filters.type) where.type = filters.type;
+
+    if (actor.role === Role.TEACHER) {
+      // Teachers see requests for their assigned classes
+      where.teacherId = actor.id;
+    } else if (actor.role === Role.STUDENT || actor.role === Role.CR) {
+      // Students and CRs see requests for their batch or submitted by them
+      if (filters.requestedById) {
+        where.requestedById = filters.requestedById;
+      } else {
+        where.scheduleEntry = {
+          batchId: actor.batchId,
+        };
+      }
+    } else if (filters.teacherId) {
+      where.teacherId = filters.teacherId;
+    } else if (filters.requestedById) {
+      where.requestedById = filters.requestedById;
+    }
+
+    if (filters.batchId && actor.role === Role.ADMIN) {
+      where.scheduleEntry = {
+        ...where.scheduleEntry,
+        batchId: filters.batchId,
+      };
+    }
+
+    return await prisma.classChangeRequest.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        scheduleEntry: {
+          include: {
+            course: true,
+            batch: true,
+            room: true,
+            teacher: true,
+          },
+        },
+        requestedBy: {
+          select: { id: true, name: true, email: true, role: true, universityId: true },
+        },
+        teacher: {
+          select: { id: true, name: true, email: true, teacherUniqueId: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Reviews (Approves or Denies) a student class change request (FR-17, FR-18).
+   * If approved:
+   *  - For CANCEL requests: triggers the FR-15 cancellation flow.
+   *  - For RESCHEDULE requests: executes reschedule (as proposed or modified) with 3-way conflict detection.
+   * If denied:
+   *  - Leaves class schedule unchanged, stores denialReason, and notifies the requesting student.
+   *
+   * @param requestId - ID of the ClassChangeRequest to review
+   * @param payload - Review decision (APPROVE or DENY) with optional modifications or denial reason
+   * @param actor - Teacher or Admin reviewing the request
+   * @returns Updated ClassChangeRequest
+   * @throws {AppError} If request not found, already reviewed, or unauthorized
+   */
+  async reviewChangeRequest(requestId: string, payload: ReviewChangeRequestInput, actor: AuthUser) {
+    const request = await prisma.classChangeRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        scheduleEntry: {
+          include: {
+            course: true,
+            batch: true,
+            room: true,
+            teacher: true,
+          },
+        },
+        requestedBy: true,
+      },
+    });
+
+    if (!request) {
+      throw new AppError("Class change request not found.", 404, "NOT_FOUND");
+    }
+
+    if (request.status !== ClassChangeRequestStatus.PENDING) {
+      throw new AppError(
+        `This request has already been reviewed (${request.status}).`,
+        400,
+        "ALREADY_REVIEWED"
+      );
+    }
+
+    // Only assigned teacher or admin can review
+    if (actor.role !== Role.ADMIN && actor.id !== request.teacherId) {
+      throw new AppError(
+        "You do not have permission to review change requests for this class.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    if (payload.action === "DENY") {
+      const updated = await prisma.classChangeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: ClassChangeRequestStatus.DENIED,
+          denialReason: payload.denialReason || null,
+          reviewedAt: new Date(),
+        },
+        include: {
+          scheduleEntry: {
+            include: { course: true, batch: true, room: true },
+          },
+          requestedBy: {
+            select: { id: true, name: true, email: true, role: true },
+          },
+          teacher: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      // Audit log
+      await prisma.auditLog.create({
+        data: {
+          userId: actor.id,
+          action: "REVIEW_CLASS_CHANGE_REQUEST",
+          entityType: "ClassChangeRequest",
+          entityId: requestId,
+          ipAddress: "127.0.0.1",
+          details: {
+            action: "DENY",
+            type: request.type,
+            scheduleEntryId: request.scheduleEntryId,
+            denialReason: payload.denialReason,
+          },
+        },
+      });
+
+      // Notify the requesting student
+      await notificationService.create({
+        userId: request.requestedById,
+        type: NotificationType.CLASS_CHANGE_REQUEST_REVIEWED || "CLASS_CHANGE_REQUEST_REVIEWED",
+        message: `Your ${request.type.toLowerCase()} request for ${request.scheduleEntry.course?.name || "class"} was denied by instructor ${actor.name || ""}.${payload.denialReason ? ` Reason: ${payload.denialReason}` : ""}`,
+        relatedEntityType: "ClassChangeRequest",
+        relatedEntityId: requestId,
+      });
+
+      return updated;
+    }
+
+    // APPROVE flow
+    if (request.type === ClassChangeRequestType.CANCEL) {
+      // Trigger FR-15 cancellation flow
+      await this.cancelClass(
+        request.scheduleEntryId,
+        { reason: `Approved student request: ${request.reason}` },
+        actor
+      );
+
+      const updated = await prisma.classChangeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: ClassChangeRequestStatus.APPROVED,
+          reviewedAt: new Date(),
+        },
+        include: {
+          scheduleEntry: {
+            include: { course: true, batch: true, room: true },
+          },
+          requestedBy: {
+            select: { id: true, name: true, email: true, role: true },
+          },
+          teacher: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: actor.id,
+          action: "REVIEW_CLASS_CHANGE_REQUEST",
+          entityType: "ClassChangeRequest",
+          entityId: requestId,
+          ipAddress: "127.0.0.1",
+          details: {
+            action: "APPROVE",
+            type: "CANCEL",
+            scheduleEntryId: request.scheduleEntryId,
+          },
+        },
+      });
+
+      await notificationService.create({
+        userId: request.requestedById,
+        type: NotificationType.CLASS_CHANGE_REQUEST_REVIEWED || "CLASS_CHANGE_REQUEST_REVIEWED",
+        message: `Your cancellation request for ${request.scheduleEntry.course?.name || "class"} on ${normalizeDateString(request.scheduleEntry.date)} was approved.`,
+        relatedEntityType: "ClassChangeRequest",
+        relatedEntityId: requestId,
+      });
+
+      return updated;
+    }
+
+    if (request.type === ClassChangeRequestType.RESCHEDULE) {
+      // Determine proposed/modified target slot
+      const targetDate =
+        payload.modifiedDate || request.preferredDate || request.scheduleEntry.date;
+      const targetStartTime =
+        payload.modifiedStartTime ||
+        (request.preferredStartTime
+          ? minutesToTimeString(timeToMinutes(request.preferredStartTime))
+          : minutesToTimeString(timeToMinutes(request.scheduleEntry.startTime)));
+      const targetEndTime =
+        payload.modifiedEndTime ||
+        (request.preferredEndTime
+          ? minutesToTimeString(timeToMinutes(request.preferredEndTime))
+          : minutesToTimeString(timeToMinutes(request.scheduleEntry.endTime)));
+      const targetRoomId =
+        payload.modifiedRoomId || request.preferredRoomId || request.scheduleEntry.roomId;
+
+      // Trigger reschedule (FR-19 / FR-16) with 3-way conflict check
+      await this.rescheduleClass(
+        request.scheduleEntryId,
+        {
+          date: targetDate,
+          startTime: targetStartTime,
+          endTime: targetEndTime,
+          roomId: targetRoomId,
+          reason: `Approved student reschedule request: ${request.reason}`,
+        },
+        actor
+      );
+
+      const updated = await prisma.classChangeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: ClassChangeRequestStatus.APPROVED,
+          reviewedAt: new Date(),
+        },
+        include: {
+          scheduleEntry: {
+            include: { course: true, batch: true, room: true },
+          },
+          requestedBy: {
+            select: { id: true, name: true, email: true, role: true },
+          },
+          teacher: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: actor.id,
+          action: "REVIEW_CLASS_CHANGE_REQUEST",
+          entityType: "ClassChangeRequest",
+          entityId: requestId,
+          ipAddress: "127.0.0.1",
+          details: {
+            action: "APPROVE",
+            type: "RESCHEDULE",
+            scheduleEntryId: request.scheduleEntryId,
+            targetDate: normalizeDateString(targetDate),
+            targetStartTime,
+            targetEndTime,
+          },
+        },
+      });
+
+      await notificationService.create({
+        userId: request.requestedById,
+        type: NotificationType.CLASS_CHANGE_REQUEST_REVIEWED || "CLASS_CHANGE_REQUEST_REVIEWED",
+        message: `Your reschedule request for ${request.scheduleEntry.course?.name || "class"} has been approved and updated.`,
+        relatedEntityType: "ClassChangeRequest",
+        relatedEntityId: requestId,
+      });
+
+      return updated;
+    }
+
+    throw new AppError("Invalid request type", 400, "BAD_REQUEST");
   }
 
   /**
@@ -499,7 +1256,7 @@ export class ScheduleService {
 
     const rooms = await prisma.room.findMany({
       orderBy: { roomNumber: "asc" },
-      select: { id: true, roomNumber: true, type: true, description: true }
+      select: { id: true, roomNumber: true, type: true, description: true },
     });
 
     const entries = await prisma.scheduleEntry.findMany({
@@ -511,7 +1268,7 @@ export class ScheduleService {
         course: { select: { name: true, code: true } },
         teacher: { select: { name: true } },
         batch: { select: { name: true } },
-        room: { select: { id: true } }
+        room: { select: { id: true } },
       },
     });
 
@@ -530,7 +1287,7 @@ export class ScheduleService {
       const roomEntries = entries.filter((e) => e.roomId === room.id);
 
       for (const d of dates) {
-        const dateEntries = roomEntries.filter(e => normalizeDateString(e.date) === d);
+        const dateEntries = roomEntries.filter((e) => normalizeDateString(e.date) === d);
 
         grid[room.id][d] = STANDARD_SLOTS.map((slot) => {
           const bookedEntry = dateEntries.find((e) =>
@@ -845,13 +1602,21 @@ export class ScheduleService {
     actor: AuthUser
   ) {
     if (actor.role !== Role.ADMIN && actor.role !== Role.TEACHER && actor.role !== Role.CR) {
-      throw new AppError("You do not have permission to create schedule entries.", 403, "FORBIDDEN");
+      throw new AppError(
+        "You do not have permission to create schedule entries.",
+        403,
+        "FORBIDDEN"
+      );
     }
 
     let targetBatchId = input.batchId;
     if (actor.role === Role.CR) {
       if (!actor.batchId) {
-        throw new AppError("Class Representative does not have an assigned batch.", 400, "VALIDATION_ERROR");
+        throw new AppError(
+          "Class Representative does not have an assigned batch.",
+          400,
+          "VALIDATION_ERROR"
+        );
       }
       targetBatchId = actor.batchId;
     }

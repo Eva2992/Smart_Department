@@ -84,6 +84,17 @@ enum StudentStatus {
   GRADUATED
 }
 
+enum ClassChangeRequestType {
+  CANCEL
+  RESCHEDULE
+}
+
+enum ClassChangeRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
 // ==========================================
 // IDENTITY & ACCESS MANAGEMENT
 // ==========================================
@@ -125,6 +136,8 @@ model User {
   notifications      Notification[]
   auditLogs          AuditLog[]
   assignmentSubmissions AssignmentSubmission[] @relation("StudentAssignmentSubmissions")
+  classChangeRequestsMade     ClassChangeRequest[] @relation("ClassChangeRequestedBy")
+  classChangeRequestsReceived ClassChangeRequest[] @relation("ClassChangeTeacher")
 
   @@index([batchId])
   @@index([role])
@@ -254,6 +267,7 @@ model ScheduleEntry {
   updatedAt   DateTime            @updatedAt
 
   ctMarks CTMark[]
+  changeRequests ClassChangeRequest[]
 
   @@index([roomId, date])
   @@index([teacherId, date])
@@ -419,4 +433,29 @@ model AuditLog {
 
   @@index([userId])
   @@index([entityType, entityId])
+}
+
+model ClassChangeRequest {
+  id                 String                   @id @default(uuid())
+  scheduleEntryId    String
+  scheduleEntry      ScheduleEntry            @relation(fields: [scheduleEntryId], references: [id], onDelete: Cascade)
+  type               ClassChangeRequestType
+  status             ClassChangeRequestStatus @default(PENDING)
+  reason             String
+  preferredDate      DateTime?                @db.Date
+  preferredStartTime DateTime?
+  preferredEndTime   DateTime?
+  preferredRoomId    String?
+  denialReason       String?
+  requestedById      String
+  requestedBy        User                     @relation("ClassChangeRequestedBy", fields: [requestedById], references: [id])
+  teacherId          String
+  teacher            User                     @relation("ClassChangeTeacher", fields: [teacherId], references: [id])
+  reviewedAt         DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([scheduleEntryId, status])
+  @@index([teacherId, status])
+  @@index([requestedById, status])
 }

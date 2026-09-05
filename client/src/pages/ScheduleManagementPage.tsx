@@ -1,9 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { type ScheduleEntry, type Holiday, getSchedules, getRooms, getHolidays } from "../api/scheduleApi";
+import {
+  type ScheduleEntry,
+  type Holiday,
+  getSchedules,
+  getRooms,
+  getHolidays,
+} from "../api/scheduleApi";
 import { academicApi } from "../api/academic";
 import { ScheduleGrid } from "../components/ScheduleGrid";
 import { RescheduleModal } from "../components/RescheduleModal";
 import { CancelModal } from "../components/CancelModal";
+import { StudentChangeRequestModal } from "../components/StudentChangeRequestModal";
+import { TeacherChangeRequestsPanel } from "../components/TeacherChangeRequestsPanel";
 import { HolidayManager } from "../components/HolidayManager";
 import { HolidayBanner } from "../components/HolidayBanner";
 import { RoomMatrix } from "../components/RoomMatrix";
@@ -14,16 +22,16 @@ import { ManageCoursesModal } from "../components/academic/ManageCoursesModal";
 import { useAuth } from "../context/useAuth.js";
 
 interface ScheduleManagementPageProps {
-  defaultTab?: "timetable" | "rooms" | "holidays" | "conflicts";
+  defaultTab?: "timetable" | "rooms" | "holidays" | "conflicts" | "requests";
 }
 
 export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleManagementPageProps) {
   const { user } = useAuth();
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const [activeTab, setActiveTab] = useState<"timetable" | "rooms" | "holidays" | "conflicts">(
-    defaultTab
-  );
+  const [activeTab, setActiveTab] = useState<
+    "timetable" | "rooms" | "holidays" | "conflicts" | "requests"
+  >(defaultTab);
 
   const [schedules, setSchedules] = useState<ScheduleEntry[]>([]);
   const [rooms, setRooms] = useState<Array<{ id: string; roomNumber: string; type: string }>>([
@@ -47,14 +55,20 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
   // Modals state
   const [selectedForReschedule, setSelectedForReschedule] = useState<ScheduleEntry | null>(null);
   const [selectedForCancel, setSelectedForCancel] = useState<ScheduleEntry | null>(null);
+  const [selectedForStudentRequest, setSelectedForStudentRequest] = useState<ScheduleEntry | null>(
+    null
+  );
   const [activeHoliday, setActiveHoliday] = useState<Holiday | null>(null);
   const [isMakeupModalOpen, setIsMakeupModalOpen] = useState(false);
   const [isManageCoursesOpen, setIsManageCoursesOpen] = useState(false);
 
   useEffect(() => {
-    academicApi.getBatches().then((data) => {
-      setBatches(data.map((b) => ({ id: b.id, name: `${b.name} Batch` })));
-    }).catch(console.error);
+    academicApi
+      .getBatches()
+      .then((data) => {
+        setBatches(data.map((b) => ({ id: b.id, name: `${b.name} Batch` })));
+      })
+      .catch(console.error);
   }, []);
 
   const adjustDate = (days: number) => {
@@ -194,6 +208,17 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
           <span>★ Holidays &amp; Off-Days</span>
         </button>
 
+        <button
+          onClick={() => setActiveTab("requests")}
+          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeTab === "requests"
+              ? "bg-[#DC143C] text-white shadow-xs"
+              : "bg-white text-[#6B7280] hover:text-[#1F2937] hover:bg-gray-50 border border-gray-200"
+          }`}
+        >
+          <span>📩 Change Requests</span>
+        </button>
+
         {userRole !== "STUDENT" && (
           <button
             onClick={() => setActiveTab("conflicts")}
@@ -290,7 +315,9 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
                 </div>
               </div>
 
-              {(batchFilter !== (user?.batchId || "") || statusFilter || dateFilter !== todayStr) && (
+              {(batchFilter !== (user?.batchId || "") ||
+                statusFilter ||
+                dateFilter !== todayStr) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -307,9 +334,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
           </div>
 
           {/* Active Holiday Banner on Selected Date */}
-          {activeHoliday && (
-            <HolidayBanner holiday={activeHoliday} />
-          )}
+          {activeHoliday && <HolidayBanner holiday={activeHoliday} />}
 
           {/* Schedule Grid */}
           <ScheduleGrid
@@ -319,14 +344,19 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
             currentUserId={userId}
             onOpenReschedule={(entry) => setSelectedForReschedule(entry)}
             onOpenCancel={(entry) => setSelectedForCancel(entry)}
+            onOpenStudentRequest={(entry) => setSelectedForStudentRequest(entry)}
           />
         </div>
+      )}
+
+      {activeTab === "requests" && (
+        <TeacherChangeRequestsPanel rooms={rooms} onRequestReviewed={fetchScheduleData} />
       )}
 
       {activeTab === "rooms" && (
         <div className="space-y-6">
           <RoomMatrix />
-          {(user?.isChairman || user?.role === 'ADMIN' || user?.role === 'CR') && (
+          {(user?.isChairman || user?.role === "ADMIN" || user?.role === "CR") && (
             <SeminarBookingForm onSuccess={fetchScheduleData} />
           )}
         </div>
@@ -338,7 +368,7 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
 
       {activeTab === "conflicts" && userRole !== "STUDENT" && <ConflictTester rooms={rooms} />}
 
-      {/* Reschedule Modal */}
+      {/* Reschedule Modal (FR-16, FR-19) */}
       <RescheduleModal
         isOpen={Boolean(selectedForReschedule)}
         onClose={() => setSelectedForReschedule(null)}
@@ -347,11 +377,20 @@ export function ScheduleManagementPage({ defaultTab = "timetable" }: ScheduleMan
         onSuccess={fetchScheduleData}
       />
 
-      {/* Cancel Modal */}
+      {/* Cancel Modal (FR-15) */}
       <CancelModal
         isOpen={Boolean(selectedForCancel)}
         onClose={() => setSelectedForCancel(null)}
         entry={selectedForCancel}
+        onSuccess={fetchScheduleData}
+      />
+
+      {/* Student/CR Change Request Modal (FR-17, FR-18) */}
+      <StudentChangeRequestModal
+        isOpen={Boolean(selectedForStudentRequest)}
+        onClose={() => setSelectedForStudentRequest(null)}
+        entry={selectedForStudentRequest}
+        rooms={rooms}
         onSuccess={fetchScheduleData}
       />
 
