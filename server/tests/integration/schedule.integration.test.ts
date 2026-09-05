@@ -22,6 +22,7 @@ vi.mock("../../src/lib/prisma.js", () => ({
       delete: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
     room: {
       findMany: vi.fn().mockResolvedValue([
@@ -30,7 +31,15 @@ vi.mock("../../src/lib/prisma.js", () => ({
       ]),
     },
     notification: {
+      create: vi.fn().mockResolvedValue({ id: "notif-1" }),
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    classChangeRequest: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
     },
     auditLog: {
       create: vi.fn().mockResolvedValue({ id: "audit-1" }),
@@ -166,35 +175,29 @@ describe("Schedule & Holiday API Integration Tests", () => {
     });
 
     it("should reject student request with 403", async () => {
-      const res = await request(app)
-        .post("/api/v1/schedules/seminar")
-        .set(studentHeaders)
-        .send({
-          title: "AI Workshop",
-          date: "2026-09-05",
-          startTime: "10:00",
-          endTime: "11:30",
-          roomId: "r-202",
-          teacherId: "student-1",
-          batchId: "batch-52",
-        });
+      const res = await request(app).post("/api/v1/schedules/seminar").set(studentHeaders).send({
+        title: "AI Workshop",
+        date: "2026-09-05",
+        startTime: "10:00",
+        endTime: "11:30",
+        roomId: "r-202",
+        teacherId: "student-1",
+        batchId: "batch-52",
+      });
 
       expect(res.status).toBe(403);
     });
 
     it("should reject non-chairman teacher request with 403", async () => {
-      const res = await request(app)
-        .post("/api/v1/schedules/seminar")
-        .set(teacherHeaders)
-        .send({
-          title: "AI Workshop",
-          date: "2026-09-05",
-          startTime: "10:00",
-          endTime: "11:30",
-          roomId: "r-202",
-          teacherId: "teacher-1",
-          batchId: "batch-52",
-        });
+      const res = await request(app).post("/api/v1/schedules/seminar").set(teacherHeaders).send({
+        title: "AI Workshop",
+        date: "2026-09-05",
+        startTime: "10:00",
+        endTime: "11:30",
+        roomId: "r-202",
+        teacherId: "teacher-1",
+        batchId: "batch-52",
+      });
 
       expect(res.status).toBe(403);
     });
@@ -215,18 +218,15 @@ describe("Schedule & Holiday API Integration Tests", () => {
         room: { id: "r-202", roomNumber: "R-202" },
       });
 
-      const res = await request(app)
-        .post("/api/v1/schedules/seminar")
-        .set(chairmanHeaders)
-        .send({
-          title: "AI Workshop",
-          date: "2026-09-05",
-          startTime: "10:00",
-          endTime: "11:30",
-          roomId: "r-202",
-          teacherId: "teacher-chair",
-          batchId: "batch-52",
-        });
+      const res = await request(app).post("/api/v1/schedules/seminar").set(chairmanHeaders).send({
+        title: "AI Workshop",
+        date: "2026-09-05",
+        startTime: "10:00",
+        endTime: "11:30",
+        roomId: "r-202",
+        teacherId: "teacher-chair",
+        batchId: "batch-52",
+      });
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
@@ -395,6 +395,123 @@ describe("Schedule & Holiday API Integration Tests", () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.restoredClassesCount).toBe(1);
+    });
+  });
+
+  describe("Section 3.1.5: Class Update & Reschedule Management API", () => {
+    it("PATCH /api/v1/schedule-entries/:id/time should update same-day time (FR-16)", async () => {
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+      (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
+      (prisma.scheduleEntry.update as any).mockResolvedValue({
+        ...sampleEntry,
+        status: ScheduleEntryStatus.RESCHEDULED,
+      });
+
+      const res = await request(app)
+        .patch("/api/v1/schedule-entries/entry-101/time")
+        .set(teacherHeaders)
+        .send({
+          startTime: "11:30",
+          endTime: "13:00",
+          reason: "Faculty meeting rescheduled",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain("time updated");
+    });
+
+    it("GET /api/v1/schedule-entries/:id/suggested-slots should return suggested slots (FR-19)", async () => {
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+      (prisma.scheduleEntry.findMany as any).mockResolvedValue([]);
+      (prisma.holiday.findMany as any).mockResolvedValue([]);
+
+      const res = await request(app)
+        .get("/api/v1/schedule-entries/entry-101/suggested-slots?date=2026-09-02")
+        .set(teacherHeaders);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.slots).toBeDefined();
+      expect(res.body.data.slots.length).toBeGreaterThan(0);
+    });
+
+    it("POST /api/v1/schedule-entries/:id/requests should submit a change request (FR-17, FR-18)", async () => {
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+      (prisma.classChangeRequest.findFirst as any).mockResolvedValue(null);
+      (prisma.classChangeRequest.create as any).mockResolvedValue({
+        id: "req-101",
+        scheduleEntryId: "entry-101",
+        type: "CANCEL",
+        status: "PENDING",
+        reason: "Need extra prep time",
+        requestedById: "student-1",
+        teacherId: "teacher-1",
+      });
+
+      const res = await request(app)
+        .post("/api/v1/schedule-entries/entry-101/requests")
+        .set(studentHeaders)
+        .send({
+          type: "CANCEL",
+          reason: "Need extra prep time",
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe("req-101");
+    });
+
+    it("GET /api/v1/schedule-entries/change-requests should fetch requests list", async () => {
+      (prisma.classChangeRequest.findMany as any).mockResolvedValue([
+        {
+          id: "req-101",
+          type: "CANCEL",
+          status: "PENDING",
+          scheduleEntry: sampleEntry,
+        },
+      ]);
+
+      const res = await request(app)
+        .get("/api/v1/schedule-entries/change-requests")
+        .set(teacherHeaders);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(1);
+    });
+
+    it("PATCH /api/v1/schedule-entries/change-requests/:requestId should review request", async () => {
+      (prisma.classChangeRequest.findUnique as any).mockResolvedValue({
+        id: "req-101",
+        type: "CANCEL",
+        status: "PENDING",
+        scheduleEntryId: "entry-101",
+        requestedById: "student-1",
+        teacherId: "teacher-1",
+        reason: "Exam clash",
+        scheduleEntry: sampleEntry,
+      });
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+      (prisma.scheduleEntry.update as any).mockResolvedValue({
+        ...sampleEntry,
+        status: ScheduleEntryStatus.CANCELLED,
+      });
+      (prisma.classChangeRequest.update as any).mockResolvedValue({
+        id: "req-101",
+        status: "APPROVED",
+      });
+
+      const res = await request(app)
+        .patch("/api/v1/schedule-entries/change-requests/req-101")
+        .set(teacherHeaders)
+        .send({
+          action: "APPROVE",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.status).toBe("APPROVED");
     });
   });
 });

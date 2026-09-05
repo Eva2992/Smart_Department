@@ -306,3 +306,134 @@ export async function createSeminar(data: CreateSeminarInput): Promise<ScheduleE
   const res = await api.post("/schedules/seminar", data);
   return res.data.data;
 }
+
+// ==========================================
+// Section 3.1.5: Class Update & Reschedule
+// ==========================================
+
+export interface ClassChangeRequest {
+  id: string;
+  scheduleEntryId: string;
+  type: "CANCEL" | "RESCHEDULE";
+  status: "PENDING" | "APPROVED" | "DENIED";
+  reason: string;
+  preferredDate?: string | null;
+  preferredStartTime?: string | null;
+  preferredEndTime?: string | null;
+  preferredRoomId?: string | null;
+  denialReason?: string | null;
+  requestedById: string;
+  teacherId: string;
+  reviewedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  scheduleEntry?: ScheduleEntry;
+  requestedBy?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    universityId?: string;
+  };
+  teacher?: {
+    id: string;
+    name: string;
+    email: string;
+    teacherUniqueId?: string;
+  };
+}
+
+export interface SuggestedSlot {
+  startTime: string;
+  endTime: string;
+  label: string;
+  isAvailable: boolean;
+  reason?: string;
+  availableRooms: Array<{
+    id: string;
+    roomNumber: string;
+    type: string;
+    description?: string | null;
+  }>;
+}
+
+export interface SuggestedSlotsResult {
+  date: string;
+  isHoliday: boolean;
+  holidayReason?: string;
+  slots: SuggestedSlot[];
+}
+
+export interface CreateChangeRequestInput {
+  type: "CANCEL" | "RESCHEDULE";
+  reason: string;
+  preferredDate?: string;
+  preferredStartTime?: string;
+  preferredEndTime?: string;
+  preferredRoomId?: string;
+}
+
+export interface ReviewChangeRequestInput {
+  action: "APPROVE" | "DENY";
+  denialReason?: string;
+  modifiedDate?: string;
+  modifiedStartTime?: string;
+  modifiedEndTime?: string;
+  modifiedRoomId?: string;
+}
+
+/**
+ * Change class time on same day with 3-way conflict detection (FR-16).
+ */
+export async function updateClassTime(
+  id: string,
+  data: { startTime: string; endTime: string; reason?: string }
+): Promise<ScheduleEntry> {
+  const res = await api.patch(`/schedules/${id}/time`, data);
+  return res.data.data;
+}
+
+/**
+ * Fetch conflict-free suggested slots and available rooms for reassignment to another day (FR-19).
+ */
+export async function getSuggestedSlots(id: string, date: string): Promise<SuggestedSlotsResult> {
+  const res = await api.get(`/schedules/${id}/suggested-slots`, { params: { date } });
+  return res.data.data;
+}
+
+/**
+ * Submit student/CR-initiated change request (FR-17, FR-18).
+ */
+export async function submitChangeRequest(
+  id: string,
+  data: CreateChangeRequestInput
+): Promise<ClassChangeRequest> {
+  const res = await api.post(`/schedules/${id}/requests`, data);
+  return res.data.data;
+}
+
+/**
+ * Fetch class change requests (FR-17, FR-18).
+ */
+export async function getChangeRequests(params?: {
+  scheduleEntryId?: string;
+  status?: "PENDING" | "APPROVED" | "DENIED";
+  type?: "CANCEL" | "RESCHEDULE";
+  teacherId?: string;
+  requestedById?: string;
+  batchId?: string;
+}): Promise<ClassChangeRequest[]> {
+  const res = await api.get("/schedules/change-requests", { params });
+  return res.data.data;
+}
+
+/**
+ * Review (Approve or Deny) a class change request (FR-17, FR-18).
+ */
+export async function reviewChangeRequest(
+  requestId: string,
+  data: ReviewChangeRequestInput
+): Promise<ClassChangeRequest> {
+  const res = await api.patch(`/schedules/change-requests/${requestId}`, data);
+  return res.data.data;
+}

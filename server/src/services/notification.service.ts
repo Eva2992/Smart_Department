@@ -7,6 +7,9 @@ import { AppError } from "../middleware/errorHandler.js";
 export const NotificationType = {
   CLASS_CANCELLED: "CLASS_CANCELLED",
   CLASS_RESCHEDULED: "CLASS_RESCHEDULED",
+  CLASS_TIME_UPDATED: "CLASS_TIME_UPDATED",
+  CLASS_CHANGE_REQUEST_SUBMITTED: "CLASS_CHANGE_REQUEST_SUBMITTED",
+  CLASS_CHANGE_REQUEST_REVIEWED: "CLASS_CHANGE_REQUEST_REVIEWED",
   CT_SCHEDULED: "CT_SCHEDULED",
   CT_MARKS_UPLOADED: "CT_MARKS_UPLOADED",
   ASSIGNMENT_CREATED: "ASSIGNMENT_CREATED",
@@ -73,12 +76,13 @@ export class NotificationService {
     relatedEntityType?: string,
     relatedEntityId?: string
   ) {
-    const students = (prisma.user?.findMany
-      ? await prisma.user.findMany({
-          where: { batchId },
-          select: { id: true },
-        })
-      : []) || [];
+    const students =
+      (prisma.user?.findMany
+        ? await prisma.user.findMany({
+            where: { batchId },
+            select: { id: true },
+          })
+        : []) || [];
 
     if (students.length === 0) return { count: 0 };
 
@@ -106,12 +110,13 @@ export class NotificationService {
     relatedEntityType?: string,
     relatedEntityId?: string
   ) {
-    const users = (prisma.user?.findMany
-      ? await prisma.user.findMany({
-          where: { isVerified: true },
-          select: { id: true },
-        })
-      : []) || [];
+    const users =
+      (prisma.user?.findMany
+        ? await prisma.user.findMany({
+            where: { isVerified: true },
+            select: { id: true },
+          })
+        : []) || [];
 
     if (users.length === 0) return { count: 0 };
 
@@ -139,12 +144,13 @@ export class NotificationService {
     relatedEntityType?: string,
     relatedEntityId?: string
   ) {
-    const admins = (prisma.user?.findMany
-      ? await prisma.user.findMany({
-          where: { role: "ADMIN", isVerified: true },
-          select: { id: true },
-        })
-      : []) || [];
+    const admins =
+      (prisma.user?.findMany
+        ? await prisma.user.findMany({
+            where: { role: "ADMIN", isVerified: true },
+            select: { id: true },
+          })
+        : []) || [];
 
     if (admins.length === 0) return { count: 0 };
 
@@ -218,11 +224,7 @@ export class NotificationService {
     }
 
     if (notification.userId !== userId) {
-      throw new AppError(
-        "You can only mark your own notifications as read",
-        403,
-        "FORBIDDEN"
-      );
+      throw new AppError("You can only mark your own notifications as read", 403, "FORBIDDEN");
     }
 
     return prisma.notification.update({

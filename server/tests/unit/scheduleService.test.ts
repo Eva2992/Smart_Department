@@ -146,6 +146,75 @@ describe("scheduleService", () => {
     });
   });
 
+  describe("updateClassTime", () => {
+    it("should reject student or unauthorized actor from updating class time", async () => {
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+
+      await expect(
+        scheduleService.updateClassTime(
+          "entry-1",
+          { startTime: "10:00", endTime: "11:30" },
+          studentActor as any
+        )
+      ).rejects.toThrow("do not have permission");
+    });
+
+    it("should block update with 409 error if conflictService detects overlap", async () => {
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+      vi.spyOn(conflictService, "checkConflict").mockResolvedValueOnce({
+        hasConflict: true,
+        conflicts: [
+          {
+            type: "BATCH",
+            message: "Batch 52 is occupied",
+            conflictingEntry: {} as any,
+          },
+        ],
+        summaryMessage: "Batch conflict detected",
+      });
+
+      await expect(
+        scheduleService.updateClassTime(
+          "entry-1",
+          { startTime: "10:00", endTime: "11:30" },
+          teacherActor as any
+        )
+      ).rejects.toThrow("Batch conflict detected");
+    });
+
+    it("should update class time on same day and log UPDATE_CLASS_TIME audit", async () => {
+      (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);
+      vi.spyOn(conflictService, "checkConflict").mockResolvedValueOnce({
+        hasConflict: false,
+        conflicts: [],
+      });
+
+      const updatedEntry = {
+        ...sampleEntry,
+        status: ScheduleEntryStatus.RESCHEDULED,
+      };
+      (prisma.scheduleEntry.update as any).mockResolvedValue(updatedEntry);
+
+      const result = await scheduleService.updateClassTime(
+        "entry-1",
+        { startTime: "10:00", endTime: "11:30", reason: "Departmental meeting delayed" },
+        teacherActor as any
+      );
+
+      expect(prisma.scheduleEntry.update).toHaveBeenCalled();
+      expect(prisma.auditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: teacherActor.id,
+            action: "UPDATE_CLASS_TIME",
+          }),
+        })
+      );
+      expect(prisma.notification.createMany).toHaveBeenCalled();
+      expect(result.status).toBe(ScheduleEntryStatus.RESCHEDULED);
+    });
+  });
+
   describe("cancelClass", () => {
     it("should reject cancellation if actor is not the teacher or admin", async () => {
       (prisma.scheduleEntry.findUnique as any).mockResolvedValue(sampleEntry);

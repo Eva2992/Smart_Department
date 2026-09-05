@@ -57,6 +57,28 @@ const cancelClassSchema = z.object({
   reason: z.string().optional(),
 });
 
+const createChangeRequestSchema = z.object({
+  type: z.enum(["CANCEL", "RESCHEDULE"]),
+  reason: z.string().min(1, "Reason is required"),
+  preferredDate: z.string().optional(),
+  preferredStartTime: z.string().optional(),
+  preferredEndTime: z.string().optional(),
+  preferredRoomId: z.string().optional(),
+});
+
+const reviewChangeRequestSchema = z.object({
+  action: z.enum(["APPROVE", "DENY"]),
+  denialReason: z.string().optional(),
+  modifiedDate: z.string().optional(),
+  modifiedStartTime: z.string().optional(),
+  modifiedEndTime: z.string().optional(),
+  modifiedRoomId: z.string().optional(),
+});
+
+const suggestedSlotsQuerySchema = z.object({
+  date: z.string().min(1, "Target date is required"),
+});
+
 export class ScheduleController {
   async getSchedule(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -193,6 +215,85 @@ export class ScheduleController {
       const body = createScheduleSchema.parse(req.body);
       const data = await scheduleService.createScheduleEntry(body as any, req.user);
       sendCreated(res, data, "Class session scheduled successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Retrieves suggested conflict-free slots and rooms for reassigning a class to a specific date (FR-19).
+   */
+  async getSuggestedSlots(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { date } = suggestedSlotsQuerySchema.parse(req.query);
+      const data = await scheduleService.getSuggestedSlots(req.params.id as string, date);
+      sendSuccess(res, data, "Suggested slots retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Submits a student/CR initiated class change request (FR-17, FR-18).
+   */
+  async submitChangeRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const body = createChangeRequestSchema.parse(req.body);
+      const data = await scheduleService.createChangeRequest(
+        req.params.id as string,
+        body as any,
+        req.user
+      );
+      sendCreated(res, data, "Class change request submitted successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Retrieves class change requests with role-scoped filtering (FR-17, FR-18).
+   */
+  async getChangeRequests(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const { scheduleEntryId, status, type, teacherId, requestedById, batchId } = req.query;
+      const data = await scheduleService.getChangeRequests(
+        {
+          scheduleEntryId: scheduleEntryId as string,
+          status: status as any,
+          type: type as any,
+          teacherId: teacherId as string,
+          requestedById: requestedById as string,
+          batchId: batchId as string,
+        },
+        req.user
+      );
+      sendSuccess(res, data, "Class change requests retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Reviews (Approves or Denies) a class change request (FR-17, FR-18).
+   */
+  async reviewChangeRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new AppError("Authentication required", 401, "UNAUTHORIZED");
+      }
+      const body = reviewChangeRequestSchema.parse(req.body);
+      const data = await scheduleService.reviewChangeRequest(
+        req.params.requestId as string,
+        body,
+        req.user
+      );
+      sendSuccess(res, data, `Class change request ${body.action.toLowerCase()}d successfully`);
     } catch (err) {
       next(err);
     }
