@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { auditService } from "./audit.service.js";
 import { Role, ResourceType } from "@prisma/client";
+import { notificationService, NotificationType } from "./notification.service.js";
 import type {
   CourseMarkItem,
   ParsedStudentResult,
@@ -298,6 +299,15 @@ export class ResultService {
 
       return { count: records.length, resourceCreated };
     });
+
+    // FR-31: Notify batch students about published results
+    await notificationService.createBulkForBatch(
+      payload.batchId,
+      NotificationType.RESULT_PUBLISHED,
+      `Semester final results published for ${batch.name} — ${semester.name}`,
+      "Result",
+      payload.batchId
+    );
 
     await auditService.logAction({
       userId: uploader.id,

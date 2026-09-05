@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth.js";
+import { NotificationBell } from "./NotificationBell.js";
 import { ChangePasswordModal } from "./ChangePasswordModal.js";
 
 export function Navbar() {
@@ -116,6 +117,8 @@ export function Navbar() {
                       Batch &amp; Semesters
                     </Link>
                   )}
+
+                  <NotificationBell />
 
                   {/* Top-Right Circular Avatar Dropdown */}
                   <div className="relative ml-2" ref={dropdownRef}>

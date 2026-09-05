@@ -3,6 +3,7 @@ import { HolidayScope, ScheduleEntryStatus, Role } from "@prisma/client";
 import { AppError } from "../middleware/errorHandler.js";
 import { AuthUser } from "../middleware/auth.js";
 import { normalizeDateString } from "../utils/timeUtils.js";
+import { notificationService, NotificationType } from "./notification.service.js";
 
 export interface DeclareHolidayInput {
   date: string | Date;
@@ -53,7 +54,7 @@ export class HolidayService {
       );
     }
 
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Create Holiday record
       const holiday = await tx.holiday.create({
         data: {
@@ -117,6 +118,28 @@ export class HolidayService {
         message: `Holiday "${input.reason}" declared for ${normalizeDateString(holidayDate)}. ${affectedEntries.length} class(es) marked as Holiday.`,
       };
     });
+
+    // FR-31: Notify users about the declared holiday (outside transaction for perf)
+    const dateLabel = normalizeDateString(input.date);
+    const notifMessage = `Holiday declared on ${dateLabel}: ${input.reason}`;
+    if (scope === HolidayScope.ALL) {
+      await notificationService.createBulkForAll(
+        NotificationType.HOLIDAY_DECLARED,
+        notifMessage,
+        "Holiday",
+        result.holiday.id
+      );
+    } else if (input.batchId) {
+      await notificationService.createBulkForBatch(
+        input.batchId,
+        NotificationType.HOLIDAY_DECLARED,
+        notifMessage,
+        "Holiday",
+        result.holiday.id
+      );
+    }
+
+    return result;
   }
 
   /**
