@@ -3,6 +3,8 @@ import { z } from "zod";
 /**
  * Zod validation schema for user account registration (FR-01, AN-01, AN-02, ADR-0006).
  *
+ * Validates registration payloads for incoming user registration requests.
+ *
  * Enforces:
  * - Minimum 2-character display name.
  * - Standard institutional email address format.
@@ -44,7 +46,7 @@ export const registerSchema = z
 /**
  * Zod validation schema for user authentication credentials (FR-03).
  *
- * Validates that an institutional email address and non-empty password are provided.
+ * Validates login request bodies, ensuring an institutional email address and non-empty password string are provided.
  *
  * @example
  * ```ts
@@ -62,7 +64,7 @@ export const loginSchema = z.object({
 /**
  * Zod validation schema for token refresh requests (NFR-08).
  *
- * Requires a non-empty refresh token string.
+ * Validates token rotation payloads, requiring a non-empty raw JWT refresh token string.
  *
  * @example
  * ```ts
@@ -78,8 +80,8 @@ export const refreshTokenSchema = z.object({
 /**
  * Zod validation schema for password updates by authenticated users (FR-04).
  *
- * Requires current password, a new password with at least 8 characters,
- * and a matching confirmation password.
+ * Validates password change requests. Requires current password, a new password
+ * of at least 8 characters, and an exact match with the confirmation password field.
  *
  * @example
  * ```ts
@@ -104,7 +106,7 @@ export const changePasswordSchema = z
 /**
  * Zod validation schema for requesting a password reset email (FR-05).
  *
- * Validates that an institutional email address is supplied.
+ * Validates self-service password reset requests, ensuring a syntactically valid institutional email address.
  *
  * @example
  * ```ts
@@ -118,10 +120,10 @@ export const forgotPasswordSchema = z.object({
 });
 
 /**
- * Zod validation schema for completing password reset via token (FR-05).
+ * Zod validation schema for completing password reset via single-use token (FR-05).
  *
- * Validates the presence of the single-use reset token, a new password of at least 8 characters,
- * and matching confirmation.
+ * Validates password reset redemption requests. Requires the single-use reset token string,
+ * a new password satisfying the 8-character minimum policy, and an exact match with confirmation password.
  *
  * @example
  * ```ts
