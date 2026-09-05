@@ -512,24 +512,30 @@ export class AuthService {
   /**
    * Changes the password for an authenticated user and revokes all active sessions (FR-04, NFR-08).
    *
-   * Validates the current password, computes a new bcrypt hash (cost factor 10),
-   * revokes all outstanding refresh tokens to force re-authentication across all client devices,
-   * and records an audit log entry.
+   * Security Invariants & Cryptographic Standards:
+   * 1. **Current Password Verification**: Performs constant-time comparison via `bcrypt.compare`
+   *    against the stored `passwordHash` of the {@link User} entity.
+   * 2. **Salting & Hashing**: Computes a new hash using bcrypt with a cost factor of 10 salt rounds (NFR-06).
+   * 3. **Global Session Invalidation (NFR-08)**: Calls `revokeAllUserTokens` to mark all
+   *    outstanding {@link RefreshToken} database records as `revoked: true`, invalidating all active
+   *    sessions and forcing immediate re-authentication across all user devices.
+   * 4. **Audit Trail**: Records an immutable audit log entry via `auditService.logAction` with the action `"PASSWORD_CHANGE"`.
    *
    * @param userId - Unique database identifier of the authenticated user.
-   * @param currentPassword - The user's current password for verification.
-   * @param newPassword - The new password meeting complexity criteria (minimum 8 characters).
-   * @returns An object with `success: true` and a confirmation message.
-   * @throws {AppError} 404 `USER_NOT_FOUND` if the user record does not exist.
+   * @param currentPassword - The user's existing plaintext password for identity verification.
+   * @param newPassword - The new plaintext password meeting complexity criteria (minimum 8 characters).
+   * @returns A promise resolving to an object containing `success: true` and a confirmation instruction message.
+   * @throws {AppError} 404 `USER_NOT_FOUND` if the user record does not exist in the database.
    * @throws {AppError} 401 `INVALID_CURRENT_PASSWORD` if current password verification fails.
    *
    * @example
    * ```ts
    * const result = await authService.changePassword(
    *   "usr_101",
-   *   "currentSecret123",
+   *   "oldSecret123",
    *   "newSecurePassword456"
    * );
+   * console.log(result.message);
    * ```
    */
   public async changePassword(
@@ -579,16 +585,24 @@ export class AuthService {
   /**
    * Initiates the self-service password reset flow for an unauthenticated user (FR-05, Step 1).
    *
-   * Generates a cryptographically secure, single-use token (1-hour expiry), saves it
-   * to the user record, and dispatches a password reset email via SendGrid.
+   * Security Invariants & Cryptographic Standards:
+   * 1. **Token Generation**: Uses {@link generateResetPasswordToken} to generate 32 bytes (256 bits)
+   *    of cryptographically secure pseudo-random entropy formatted as a 64-character hexadecimal string.
+   * 2. **Token Expiry**: Sets a strict 1-hour expiration timestamp (`Date.now() + 60 * 60 * 1000` ms)
+   *    saved to `User.resetPasswordToken` and `User.resetPasswordTokenExpiry`.
+   * 3. **Zero-Friction / Production Dispatch (ADR-0005)**: Delegates email transmission to
+   *    {@link emailService.sendPasswordResetEmail}, which logs to the console in development, captures in
+   *    memory during automated Vitest suites, and dispatches via SendGrid SMTP in production.
+   * 4. **Reset Completion Seam**: The generated token is later redeemed by the user via {@link authService.resetPassword}.
    *
    * @param email - The institutional email address associated with the account.
-   * @returns An object with `success: true` and a delivery confirmation message.
-   * @throws {AppError} 404 `USER_NOT_FOUND` if no account is registered with the given email.
+   * @returns A promise resolving to an object containing `success: true` and a confirmation dispatch message.
+   * @throws {AppError} 404 `USER_NOT_FOUND` if no account is registered with the provided email address.
    *
    * @example
    * ```ts
-   * await authService.forgotPassword("student@juniv.edu");
+   * const response = await authService.forgotPassword("student@juniv.edu");
+   * console.log(response.message);
    * ```
    */
   public async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
@@ -624,20 +638,31 @@ export class AuthService {
   }
 
   /**
-   * Resets user password using a valid, non-expired single-use token (FR-05, Step 2).
+   * Resets a user's password using a valid, non-expired single-use token (FR-05, Step 2, NFR-08).
    *
-   * Verifies the token existence and expiration window, computes a new bcrypt hash (cost factor 10),
-   * clears the token to prevent reuse, and revokes all active sessions to force re-authentication (NFR-08).
+   * Security Invariants & Cryptographic Standards:
+   * 1. **Token Validation**: Matches the single-use token against `User.resetPasswordToken` and verifies
+   *    that the current timestamp has not exceeded `User.resetPasswordTokenExpiry` (1-hour lifetime).
+   * 2. **Salting & Hashing**: Computes a new bcrypt hash with a cost factor of 10 salt rounds (NFR-06).
+   * 3. **Single-Use Enforcement**: Atomically clears `resetPasswordToken` and `resetPasswordTokenExpiry` to
+   *    `null` in the user record, preventing replay attacks or subsequent token reuse.
+   * 4. **Global Session Invalidation (NFR-08)**: Calls `revokeAllUserTokens` to mark all active
+   *    {@link RefreshToken} records as `revoked: true`, invalidating concurrent sessions across all devices.
+   * 5. **Audit Trail**: Logs an immutable audit event via `auditService.logAction` with action `"PASSWORD_RESET"`.
    *
-   * @param token - Single-use reset token string from the reset email link.
-   * @param newPassword - New password meeting the minimum 8-character policy.
-   * @returns An object with `success: true` and confirmation message.
-   * @throws {AppError} 400 `INVALID_RESET_TOKEN` if token cannot be found.
+   * @param token - The cryptographically secure 64-character hexadecimal reset token from the reset email link.
+   * @param newPassword - The new plaintext password meeting complexity criteria (minimum 8 characters).
+   * @returns A promise resolving to an object with `success: true` and a confirmation message.
+   * @throws {AppError} 400 `INVALID_RESET_TOKEN` if the token cannot be located in the database.
    * @throws {AppError} 400 `TOKEN_EXPIRED` if the reset token has elapsed its 1-hour lifespan.
    *
    * @example
    * ```ts
-   * await authService.resetPassword("token_abc123", "freshPassword789");
+   * const result = await authService.resetPassword(
+   *   "9f83ab2c4e1234567890abcdef1234567890abcdef1234567890abcdef123456",
+   *   "freshSecurePassword789"
+   * );
+   * console.log(result.message);
    * ```
    */
   public async resetPassword(
@@ -691,10 +716,22 @@ export class AuthService {
   }
 
   /**
-   * Revokes all active (non-revoked) refresh tokens for a specified user in the database.
-   * Enforces global session invalidation across all user devices (NFR-08).
+   * Revokes all active (non-revoked) refresh tokens for a specified user in the database (NFR-08).
    *
-   * @param userId - Unique database identifier of the target user.
+   * Enforces global session invalidation across all user devices by setting `revoked: true` on every
+   * {@link RefreshToken} record where `userId === userId` and `revoked === false`.
+   * Invoked internally during password change ({@link AuthService.changePassword}) and password reset
+   * ({@link AuthService.resetPassword}) workflows to mitigate token theft and session hijacking.
+   *
+   * @param userId - Unique database identifier of the target user whose active sessions are to be revoked.
+   * @returns A promise that resolves to `void` once all active refresh tokens have been marked revoked.
+   * @throws {Error} Thrown if database query execution fails.
+   *
+   * @example
+   * ```ts
+   * // Internally executed within changePassword or resetPassword
+   * await this.revokeAllUserTokens(userId);
+   * ```
    */
   private async revokeAllUserTokens(userId: string): Promise<void> {
     await prisma.refreshToken.updateMany({

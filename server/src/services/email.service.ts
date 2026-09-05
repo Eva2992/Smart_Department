@@ -1,19 +1,66 @@
 import sgMail from "@sendgrid/mail";
 import { env } from "../config/env.js";
 
+/**
+ * Represents a structured record of an email dispatched by {@link EmailService}.
+ *
+ * Captures email delivery metadata and rendered message payloads for development inspection,
+ * auditing, and automated testing assertions without requiring real outbound SMTP connections.
+ */
 export interface DispatchedEmail {
+  /** The recipient's institutional email address. */
   to: string;
+  /** The subject line header of the email message. */
   subject: string;
+  /** The rendered plain-text fallback version of the email message body. */
   body: string;
+  /** The raw cryptographic token string embedded within the action URL and message body. */
   token: string;
+  /** The complete, clickable action URL pointing to the client frontend (e.g. email verification or password reset). */
   link: string;
+  /** Timestamp recording when the dispatch operation was executed. */
   dispatchedAt: Date;
+  /**
+   * The transport mechanism utilized for dispatch:
+   * - `"sendgrid"`: Real outbound delivery via the SendGrid API.
+   * - `"console"`: Local development fallback printing formatted email contents to stdout.
+   * - `"test"`: In-memory capture for Vitest integration tests without external I/O.
+   */
   mode: "sendgrid" | "console" | "test";
 }
 
+/**
+ * Transactional Email Dispatch and Notification Service (FR-02, FR-05, ADR-0005).
+ *
+ * Implements an adapter pattern providing zero-friction email transport across development,
+ * testing, and production environments:
+ * 1. **Testing Mode (`NODE_ENV === "test"`)**: Captures outbound message payloads in memory
+ *    via {@link getLastDispatchedEmail} without performing external HTTP network requests, enabling fast,
+ *    deterministic integration tests.
+ * 2. **Production Mode (`SENDGRID_API_KEY` configured)**: Dispatches branded HTML and plain-text emails
+ *    using the `@sendgrid/mail` SMTP API gateway.
+ * 3. **Development Console Fallback (Unset API key in development)**: Emits formatted email summaries
+ *    with active links and tokens directly to the server terminal console (`stdout`).
+ *
+ * Email templates adhere to the department design identity, featuring the official JU CSE Crimson branding
+ * (`#DC143C`) and security notices emphasizing token expiration windows and confidential credentials handling.
+ *
+ * @example
+ * ```ts
+ * const result = await emailService.sendPasswordResetEmail(
+ *   "student@juniv.edu",
+ *   "e4a8b2c1d3f567890abcdef123456789"
+ * );
+ * console.log(`Dispatched via: ${result.mode}, Link: ${result.resetLink}`);
+ * ```
+ */
 export class EmailService {
   private lastDispatchedEmail: DispatchedEmail | null = null;
 
+  /**
+   * Initializes the email service instance and sets up the SendGrid API client
+   * if `env.SENDGRID_API_KEY` is present.
+   */
   constructor() {
     if (env.SENDGRID_API_KEY) {
       sgMail.setApiKey(env.SENDGRID_API_KEY);
@@ -21,24 +68,65 @@ export class EmailService {
   }
 
   /**
-   * Retrieves the last dispatched email (useful for automated testing and dev inspection).
+   * Retrieves the most recently dispatched email record from in-memory storage.
+   *
+   * Primarily utilized in automated integration tests and local debugging to assert
+   * that correct token parameters and recipient headers were constructed during auth workflows.
+   *
+   * @returns The last {@link DispatchedEmail} recorded, or `null` if no emails have been sent or after clearance.
+   *
+   * @example
+   * ```ts
+   * const sent = emailService.getLastDispatchedEmail();
+   * expect(sent?.to).toBe("user@juniv.edu");
+   * expect(sent?.token).toBeDefined();
+   * ```
    */
   getLastDispatchedEmail(): DispatchedEmail | null {
     return this.lastDispatchedEmail;
   }
 
   /**
-   * Clears the dispatched email log.
+   * Clears the in-memory record of the last dispatched email.
+   *
+   * Call between test cases to ensure test isolation.
+   *
+   * @example
+   * ```ts
+   * emailService.clearLastDispatchedEmail();
+   * expect(emailService.getLastDispatchedEmail()).toBeNull();
+   * ```
    */
   clearLastDispatchedEmail(): void {
     this.lastDispatchedEmail = null;
   }
 
   /**
-   * Sends an account email verification link.
-   * Uses SendGrid when SENDGRID_API_KEY is configured.
-   * In test environment, records the dispatch without outbound network requests.
-   * If SENDGRID_API_KEY is unset in development, falls back to console logging.
+   * Sends an account email verification link to complete student or faculty registration (FR-01, FR-02).
+   *
+   * Generates a 24-hour expiring activation link pointing to `${CLIENT_URL}/verify-email`.
+   * Renders a responsive HTML message using JU CSE brand colors (`#DC143C`) alongside a plain-text alternative.
+   *
+   * Routing behavior:
+   * - In `test` environment: stores dispatch details in memory without outbound network calls.
+   * - In production with `SENDGRID_API_KEY`: dispatches via SendGrid API.
+   * - In development without API key: logs the verification link and token to the terminal.
+   *
+   * @param to - The recipient's institutional email address.
+   * @param token - The 24-hour cryptographically secure random activation token.
+   * @param name - The recipient's display name for personalizing the greeting (defaults to `"User"`).
+   * @returns An object containing the delivery boolean flag, the active transport `mode`, and the constructed `verificationLink`.
+   * @throws {Error} Thrown if SendGrid API delivery fails in production.
+   *
+   * @example
+   * ```ts
+   * const dispatch = await emailService.sendVerificationEmail(
+   *   "student@juniv.edu",
+   *   "token_abc123",
+   *   "Sumon Paul"
+   * );
+   * console.log(`Verification URL: ${dispatch.verificationLink}`);
+   * ```
    */
   async sendVerificationEmail(
     to: string,
@@ -150,7 +238,35 @@ export class EmailService {
   }
 
   /**
-   * Sends a password reset email using SendGrid.
+   * Dispatches a self-service password reset email containing a time-limited reset link (FR-05, NFR-08).
+   *
+   * Formats a branded HTML email adhering to the JU CSE departmental color scheme (`#DC143C`)
+   * and plain-text alternative. Embeds an actionable link pointing to `${CLIENT_URL}/reset-password?token=${token}`.
+   *
+   * Security Invariants & Lifetimes:
+   * - Reset tokens are cryptographically random 32-byte hexadecimal strings generated for single-use verification.
+   * - Token lifetime is strictly limited to 1 hour (`60 * 60 * 1000` ms) from generation time.
+   * - The email body displays prominent security notices discouraging credential sharing.
+   * - Consumed or expired tokens cannot be reused; a successful reset revokes all concurrent user sessions (NFR-08).
+   *
+   * Transport Adapters (ADR-0005):
+   * 1. **Testing (`NODE_ENV === "test"`)**: Captures delivery metadata in {@link getLastDispatchedEmail} without network activity.
+   * 2. **Production (`env.SENDGRID_API_KEY`)**: Delivers email through SendGrid API (`@sendgrid/mail`).
+   * 3. **Development Console Fallback**: Logs destination address, token, and clickable reset URL to stdout.
+   *
+   * @param to - The recipient's institutional email address.
+   * @param token - The cryptographically secure 1-hour single-use reset token.
+   * @returns A promise resolving to an object containing delivery status (`delivered: true`), the transport `mode` (`"sendgrid" | "console" | "test"`), and the full `resetLink`.
+   * @throws {Error} Thrown if outbound delivery via SendGrid API fails in production.
+   *
+   * @example
+   * ```ts
+   * const dispatch = await emailService.sendPasswordResetEmail(
+   *   "student@juniv.edu",
+   *   "9f83ab2c4e..."
+   * );
+   * console.log(`Reset email sent via ${dispatch.mode}. Reset Link: ${dispatch.resetLink}`);
+   * ```
    */
   async sendPasswordResetEmail(
     to: string,
@@ -260,4 +376,7 @@ export class EmailService {
   }
 }
 
+/**
+ * Singleton instance of {@link EmailService} exported for system-wide transactional email operations.
+ */
 export const emailService = new EmailService();
