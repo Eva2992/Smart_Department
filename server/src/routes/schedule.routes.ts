@@ -54,9 +54,39 @@ scheduleRouter.get("/class-count", authenticate, (req, res, next) => {
   scheduleController.getClassCounts(req, res, next);
 });
 
+// Class change requests (FR-17, FR-18)
+scheduleRouter.get("/change-requests", authenticate, (req, res, next) => {
+  scheduleController.getChangeRequests(req, res, next);
+});
+
+scheduleRouter.patch(
+  "/change-requests/:requestId",
+  authenticate,
+  authorize(Role.TEACHER, Role.ADMIN),
+  (req, res, next) => {
+    scheduleController.reviewChangeRequest(req, res, next);
+  }
+);
+
 // Get single schedule entry
 scheduleRouter.get("/:id", optionalAuthenticate, (req, res, next) => {
   scheduleController.getScheduleById(req, res, next);
+});
+
+// Student/CR submit class change request (FR-17, FR-18)
+scheduleRouter.post(
+  "/:id/requests",
+  scheduleWriteLimiter,
+  authenticate,
+  authorize(Role.STUDENT, Role.CR),
+  (req, res, next) => {
+    scheduleController.submitChangeRequest(req, res, next);
+  }
+);
+
+// Get suggested slots for class reassignment to another day (FR-19)
+scheduleRouter.get("/:id/suggested-slots", optionalAuthenticate, (req, res, next) => {
+  scheduleController.getSuggestedSlots(req, res, next);
 });
 
 // Reschedule a class (Teacher of class, Admin, or CR)

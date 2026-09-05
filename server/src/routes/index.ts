@@ -20,6 +20,7 @@ const apiV1Router = Router();
 
 apiV1Router.use("/health", healthRouter);
 apiV1Router.use("/schedules", scheduleRouter);
+apiV1Router.use("/schedule-entries", scheduleRouter); // Alias for Section 3.1.5 SRS path compatibility
 apiV1Router.use("/rooms", roomRouter);
 apiV1Router.use("/holidays", holidayRouter);
 apiV1Router.use("/admin/holidays", holidayRouter); // Alias for SRS path compatibility
