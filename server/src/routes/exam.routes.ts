@@ -1,12 +1,19 @@
 /**
- * Exam Router — FR-22: Semester Final Exam Routine Management
+ * Exam Router — FR-22: Semester Final Exam Routine Management.
  *
- * Routes:
- *  POST   /api/v1/exams/routine          — Admin bulk-create exam entries
- *  GET    /api/v1/exams/routine          — Authenticated: list exam schedule
- *  GET    /api/v1/exams/routine/:id      — Authenticated: single exam entry
- *  PATCH  /api/v1/exams/routine/:id      — Admin update exam entry
- *  DELETE /api/v1/exams/routine/:id      — Admin cancel exam entry
+ * Defines Express routes for exam schedule operations:
+ *
+ * | Method | Path              | Auth  | Description                                   |
+ * |--------|-------------------|-------|-----------------------------------------------|
+ * | GET    | `/routine`        | Auth  | List exam schedule with filters & pagination. |
+ * | GET    | `/routine/:id`    | Auth  | Retrieve a single exam entry by ID.           |
+ * | POST   | `/routine`        | Admin | Bulk-create exam routine entries.              |
+ * | PATCH  | `/routine/:id`    | Admin | Update an existing exam entry.                |
+ * | DELETE | `/routine/:id`    | Admin | Cancel (soft-delete) an exam entry.           |
+ *
+ * @see {@link ExamController} for endpoint handler implementations.
+ * @see {@link examService} for business logic.
+ * @module routes/exam
  */
 
 import { Router } from "express";

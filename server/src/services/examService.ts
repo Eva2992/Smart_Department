@@ -1,12 +1,21 @@
 /**
- * Exam Service — FR-22 Semester Final Exam Routine Management
+ * Exam Service — FR-22 Semester Final Exam Routine Management.
+ *
+ * Provides the business logic layer for managing semester final examination
+ * schedule entries. All exam entries are stored as `ScheduleEntry` rows with
+ * `type = EXAM` and undergo 3-way conflict detection (Room, Teacher, Batch)
+ * via {@link conflictService} before persistence.
  *
  * Implements:
- *  - Bulk creation of EXAM ScheduleEntry rows
- *  - Per-entry 3-way conflict detection (Room, Teacher, Batch)
- *  - Paginated listing with date-range / batch filtering
- *  - Individual exam entry update (with conflict re-check)
- *  - Soft-cancel via status CANCELLED
+ * - Bulk creation of EXAM ScheduleEntry rows with per-entry conflict checking.
+ * - Paginated listing with date-range, batch, and semester filtering.
+ * - Individual exam entry update with conflict re-check using the
+ *   Self-Exclusion Rule (`excludeScheduleEntryId`) to prevent false self-conflicts.
+ * - Soft-cancel via status `CANCELLED`.
+ *
+ * @see {@link ExamEntryItem} for the client-facing DTO structure.
+ * @see {@link conflictService} for the 3-way conflict detection engine.
+ * @module services/examService
  */
 
 import { prisma } from "../lib/prisma.js";
@@ -26,7 +35,13 @@ import { ScheduleEntryType, ScheduleEntryStatus } from "@prisma/client";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Shapes a raw Prisma ScheduleEntry into the client-facing ExamEntryItem DTO.
+ * Shapes a raw Prisma ScheduleEntry into the client-facing {@link ExamEntryItem} DTO.
+ *
+ * Joins related entity names (course, batch, teacher, room) and normalizes
+ * date/time fields to ISO string format for JSON serialization.
+ *
+ * @param raw - Raw Prisma ScheduleEntry with optional joined relations.
+ * @returns Normalized {@link ExamEntryItem} DTO ready for API response.
  */
 function toExamDTO(raw: {
   id: string;
@@ -70,6 +85,10 @@ function toExamDTO(raw: {
   };
 }
 
+/**
+ * Prisma `include` clause for joining related entity names on ScheduleEntry queries.
+ * @internal
+ */
 const EXAM_INCLUDE = {
   course: { select: { name: true, code: true } },
   batch: { select: { name: true } },
@@ -80,13 +99,39 @@ const EXAM_INCLUDE = {
 // ─── Service Functions ─────────────────────────────────────────────────────────
 
 /**
- * Bulk-creates exam ScheduleEntry rows.
- * Each entry is individually conflict-checked before insertion.
- * On any conflict the entire operation is aborted with a descriptive error.
+ * Bulk-creates exam ScheduleEntry rows within a single database transaction.
  *
- * @param input - Bulk create payload
- * @param adminId - The Admin user ID performing the action
- * @returns Array of created ExamEntryItem DTOs
+ * Each entry is individually conflict-checked via {@link conflictService.checkConflict}
+ * before insertion. If any entry produces a conflict, the entire transaction is
+ * rolled back and an error is thrown with a descriptive message identifying the
+ * conflicting exam.
+ *
+ * @param input - Bulk create payload containing an array of {@link CreateExamEntryInput} entries.
+ * @param adminId - The Admin user UUID performing the action (used as default `teacherId`
+ *   when not specified per entry, and recorded as `createdById`).
+ * @returns Array of created {@link ExamEntryItem} DTOs.
+ * @throws {AppError} `VALIDATION_ERROR` (400) if no entries are provided.
+ * @throws {AppError} `EXAM_CONFLICT` (409) if any entry conflicts with an existing
+ *   schedule entry on room, teacher, or batch dimensions.
+ *
+ * @example
+ * ```ts
+ * const exams = await createExamRoutine(
+ *   {
+ *     entries: [
+ *       {
+ *         batchId: "batch-uuid",
+ *         courseName: "Software Engineering",
+ *         roomId: "room-uuid",
+ *         date: "2026-12-15",
+ *         startTime: "09:00",
+ *         endTime: "12:00",
+ *       },
+ *     ],
+ *   },
+ *   "admin-uuid"
+ * );
+ * ```
  */
 export async function createExamRoutine(
   input: BulkCreateExamInput,
@@ -149,10 +194,28 @@ export async function createExamRoutine(
 }
 
 /**
- * Returns a paginated list of EXAM schedule entries, optionally filtered.
+ * Returns a paginated list of EXAM schedule entries, optionally filtered
+ * by batch, semester, and date range.
  *
- * @param filter - Query filters (batchId, semesterId, date range, pagination)
- * @returns Paginated list of ExamEntryItem DTOs
+ * Results are ordered by date ascending, then start time ascending.
+ * When `semesterId` is provided without `batchId`, the service resolves
+ * all batches whose `currentSemesterId` matches.
+ *
+ * @param filter - Query filters including `batchId`, `semesterId`, date range, and pagination.
+ * @returns Paginated response containing {@link ExamEntryItem} DTOs and pagination metadata.
+ *
+ * @example
+ * ```ts
+ * const schedule = await getExamSchedule({
+ *   batchId: "batch-uuid",
+ *   startDate: "2026-12-01",
+ *   endDate: "2026-12-31",
+ *   page: 1,
+ *   limit: 50,
+ * });
+ * // schedule.exams — array of ExamEntryItem DTOs
+ * // schedule.pagination — { total, page, limit, totalPages }
+ * ```
  */
 export async function getExamSchedule(
   filter: ExamQueryFilter
@@ -208,10 +271,17 @@ export async function getExamSchedule(
 }
 
 /**
- * Fetches a single exam entry by its ID.
+ * Fetches a single exam entry by its ScheduleEntry UUID.
  *
- * @param id - ScheduleEntry UUID
- * @returns ExamEntryItem DTO
+ * @param id - ScheduleEntry UUID to retrieve.
+ * @returns The matching {@link ExamEntryItem} DTO.
+ * @throws {AppError} `EXAM_NOT_FOUND` (404) if no EXAM-type entry exists with the given ID.
+ *
+ * @example
+ * ```ts
+ * const exam = await getExamEntryById("entry-uuid");
+ * // exam.courseName, exam.date, exam.roomNumber, etc.
+ * ```
  */
 export async function getExamEntryById(id: string): Promise<ExamEntryItem> {
   const raw = await prisma.scheduleEntry.findUnique({
@@ -227,11 +297,30 @@ export async function getExamEntryById(id: string): Promise<ExamEntryItem> {
 }
 
 /**
- * Updates an existing exam entry. Re-runs conflict detection before persisting.
+ * Updates an existing exam entry with partial field changes.
  *
- * @param id - ScheduleEntry UUID to update
- * @param updates - Fields to change
- * @returns Updated ExamEntryItem DTO
+ * Re-runs 3-way conflict detection before persisting, using the Self-Exclusion Rule
+ * (`excludeScheduleEntryId = id`) to prevent the entry from conflicting with itself
+ * when only non-time fields change.
+ *
+ * The batch assignment is immutable on update — only room, teacher, date, time,
+ * course, and topic fields can be modified.
+ *
+ * @param id - ScheduleEntry UUID to update.
+ * @param updates - Partial update fields from {@link UpdateExamEntryInput}.
+ * @returns Updated {@link ExamEntryItem} DTO.
+ * @throws {AppError} `EXAM_NOT_FOUND` (404) if no EXAM-type entry exists with the given ID.
+ * @throws {AppError} `EXAM_CONFLICT` (409) if the updated values conflict with another
+ *   schedule entry.
+ *
+ * @example
+ * ```ts
+ * const updated = await updateExamEntry("entry-uuid", {
+ *   roomId: "new-room-uuid",
+ *   startTime: "10:00",
+ *   endTime: "13:00",
+ * });
+ * ```
  */
 export async function updateExamEntry(
   id: string,
@@ -320,10 +409,20 @@ export async function updateExamEntry(
 }
 
 /**
- * Cancels (soft-deletes) an exam entry by setting status to CANCELLED.
+ * Cancels (soft-deletes) an exam entry by transitioning its status to `CANCELLED`.
  *
- * @param id - ScheduleEntry UUID to cancel
- * @returns Updated ExamEntryItem DTO with CANCELLED status
+ * The entry remains in the database for audit trail purposes but is excluded
+ * from active schedule views.
+ *
+ * @param id - ScheduleEntry UUID to cancel.
+ * @returns Updated {@link ExamEntryItem} DTO with `status = "CANCELLED"`.
+ * @throws {AppError} `EXAM_NOT_FOUND` (404) if no EXAM-type entry exists with the given ID.
+ *
+ * @example
+ * ```ts
+ * const cancelled = await cancelExamEntry("entry-uuid");
+ * // cancelled.status === "CANCELLED"
+ * ```
  */
 export async function cancelExamEntry(id: string): Promise<ExamEntryItem> {
   const existing = await prisma.scheduleEntry.findUnique({ where: { id } });
@@ -342,8 +441,16 @@ export async function cancelExamEntry(id: string): Promise<ExamEntryItem> {
 }
 
 /**
- * Converts various time-string formats to "HH:mm".
- * Handles "HH:mm", "HH:mm:ss", and ISO datetime strings.
+ * Converts various time-string formats to `"HH:mm"` for ISO datetime construction.
+ *
+ * Handles three input formats:
+ * - `"HH:mm"` — returned as-is.
+ * - `"HH:mm:ss"` — truncated to `"HH:mm"`.
+ * - ISO datetime string (contains `"T"`) — extracts the time portion.
+ *
+ * @param value - Time value as string or Date object.
+ * @returns Time string in `"HH:mm"` format.
+ * @internal
  */
 function _toHHmm(value: string | Date): string {
   const s = typeof value === "string" ? value : value.toISOString();
