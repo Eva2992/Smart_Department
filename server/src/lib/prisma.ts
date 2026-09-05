@@ -1,6 +1,11 @@
+import net from "node:net";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { env } from "../config/env.js";
+
+if (typeof net.setDefaultAutoSelectFamily === "function") {
+  net.setDefaultAutoSelectFamily(false);
+}
 
 /**
  * PostgreSQL connection string retrieved from application runtime configuration.
