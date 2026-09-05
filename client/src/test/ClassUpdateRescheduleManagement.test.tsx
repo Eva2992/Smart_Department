@@ -52,6 +52,25 @@ describe("Class Update & Reschedule Management Frontend Component Tests", () => 
     { id: "r-102", roomNumber: "R-102", type: "CLASSROOM" },
   ];
 
+  const sampleRequest: scheduleApi.ClassChangeRequest = {
+    id: "req-1",
+    scheduleEntryId: "entry-1",
+    type: "CANCEL",
+    status: "PENDING",
+    reason: "Course clash",
+    requestedById: "student-1",
+    teacherId: "teacher-1",
+    createdAt: "2026-09-01T10:00:00.000Z",
+    updatedAt: "2026-09-01T10:00:00.000Z",
+    scheduleEntry: sampleEntry,
+    requestedBy: {
+      id: "student-1",
+      name: "Student One",
+      email: "student@juniv.edu",
+      role: "STUDENT",
+    },
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -143,7 +162,7 @@ describe("Class Update & Reschedule Management Frontend Component Tests", () => 
 
   describe("StudentChangeRequestModal - FR-17 & FR-18", () => {
     it("should submit student cancellation request (FR-17)", async () => {
-      vi.mocked(scheduleApi.submitChangeRequest).mockResolvedValue({} as any);
+      vi.mocked(scheduleApi.submitChangeRequest).mockResolvedValue(sampleRequest);
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -175,7 +194,7 @@ describe("Class Update & Reschedule Management Frontend Component Tests", () => 
     });
 
     it("should switch to reschedule and submit with preferred slot (FR-18)", async () => {
-      vi.mocked(scheduleApi.submitChangeRequest).mockResolvedValue({} as any);
+      vi.mocked(scheduleApi.submitChangeRequest).mockResolvedValue(sampleRequest);
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -212,25 +231,6 @@ describe("Class Update & Reschedule Management Frontend Component Tests", () => 
   });
 
   describe("TeacherChangeRequestsPanel - FR-17 & FR-18 Review", () => {
-    const sampleRequest: scheduleApi.ClassChangeRequest = {
-      id: "req-1",
-      scheduleEntryId: "entry-1",
-      type: "CANCEL",
-      status: "PENDING",
-      reason: "Course clash",
-      requestedById: "student-1",
-      teacherId: "teacher-1",
-      createdAt: "2026-09-01T10:00:00.000Z",
-      updatedAt: "2026-09-01T10:00:00.000Z",
-      scheduleEntry: sampleEntry,
-      requestedBy: {
-        id: "student-1",
-        name: "Student One",
-        email: "student@juniv.edu",
-        role: "STUDENT",
-      },
-    };
-
     it("should render change requests list and allow approving cancellation", async () => {
       vi.mocked(scheduleApi.getChangeRequests).mockResolvedValue([sampleRequest]);
       vi.mocked(scheduleApi.reviewChangeRequest).mockResolvedValue({
