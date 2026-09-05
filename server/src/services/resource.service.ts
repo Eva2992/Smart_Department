@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
+import { auditService } from "./audit.service.js";
 import type {
   UploadResourceInput,
   ResourceQueryFilter,
@@ -98,6 +99,14 @@ export async function uploadResource(
         },
       },
     },
+  });
+
+  await auditService.logAction({
+    userId: uploaderId,
+    action: "RESOURCE_UPLOAD",
+    entityType: "RESOURCE",
+    entityId: created.id,
+    details: { title: created.title, type: created.type },
   });
 
   return created as unknown as ResourceItem;

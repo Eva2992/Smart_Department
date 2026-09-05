@@ -20,8 +20,8 @@ export function ResultsPage() {
             Semester Final Results Portal
           </h1>
           <p className="text-xs sm:text-sm text-gray-300 font-['Inter'] mt-1 max-w-2xl">
-            Official semester results published by Department Class Representatives and Administration.
-            Search by student roll number, program, batch, or semester.
+            Official semester results published by Department Class Representatives and
+            Administration. Search by student roll number, program, batch, or semester.
           </p>
         </div>
       </div>

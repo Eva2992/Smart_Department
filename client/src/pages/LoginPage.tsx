@@ -2,10 +2,10 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth.js";
 import { Alert } from "../components/Alert.js";
-import { getErrorMessage, getErrorCode } from "../utils/errors.js";
+import { getErrorMessage } from "../utils/errors.js";
 
 export function LoginPage() {
-  const { login, resendVerification } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,39 +16,20 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isUnverified, setIsUnverified] = useState(false);
-  const [resendStatus, setResendStatus] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsUnverified(false);
-    setResendStatus(null);
     setIsLoading(true);
 
     try {
       await login({ email, password });
       navigate(from, { replace: true });
     } catch (err: unknown) {
-      const code = getErrorCode(err);
-      const message = getErrorMessage(err, "Invalid email or password");
-
+      const message = getErrorMessage(err, "The email or password you entered is incorrect.");
       setError(message);
-      if (code === "EMAIL_NOT_VERIFIED" || message.toLowerCase().includes("verify your email")) {
-        setIsUnverified(true);
-      }
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    if (!email) return;
-    try {
-      const res = await resendVerification(email);
-      setResendStatus(res.message);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to resend verification email."));
     }
   };
 
@@ -58,54 +39,18 @@ export function LoginPage() {
         <div className="bg-[#FFFFFF] p-8 sm:p-10 rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#DC143C] text-white font-black text-xl flex items-center justify-center mx-auto shadow-xs mb-3 font-[Poppins]">
-              JU
-            </div>
+            <img
+              src="/smart-department-icon.svg"
+              alt="Smart Department"
+              className="w-14 h-14 object-contain mx-auto mb-3"
+            />
             <h1 className="text-2xl font-bold text-[#1F2937] tracking-tight font-[Poppins]">
               Welcome Back
             </h1>
             <p className="text-xs text-[#6B7280] mt-1.5">
-              Sign in to your CSE Smart Schedular account
+              Sign in to your CSE Smart Department account
             </p>
           </div>
-
-          {error && (
-            <div className="mb-5">
-              <Alert type="error" message={error} onClose={() => setError(null)} />
-            </div>
-          )}
-
-          {resendStatus && (
-            <div className="mb-5">
-              <Alert type="success" message={resendStatus} onClose={() => setResendStatus(null)} />
-            </div>
-          )}
-
-          {/* Unverified account helper */}
-          {isUnverified && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-              <p className="font-semibold mb-1.5 font-[Poppins]">Account Not Verified Yet</p>
-              <p className="mb-3 text-amber-800">
-                Please verify your email address to unlock account access. You can resend the
-                activation token or enter it manually.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  className="px-3 py-1.5 bg-[#DA532C] hover:bg-[#B01030] text-white font-medium rounded-lg transition-colors cursor-pointer"
-                >
-                  Resend Activation Email
-                </button>
-                <Link
-                  to="/verify-email"
-                  className="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 font-medium rounded-lg transition-colors"
-                >
-                  Enter Token
-                </Link>
-              </div>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -151,10 +96,17 @@ export function LoginPage() {
               />
             </div>
 
+            {/* Error Message: Placed EXACTLY above the submit button */}
+            {error && (
+              <div className="pt-2">
+                <Alert type="error" message={error} onClose={() => setError(null)} />
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-4 py-3 px-4 bg-[#DC143C] hover:bg-[#B01030] text-white font-semibold text-sm rounded-xl shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer font-[Poppins]"
+              className="w-full mt-2 py-3 px-4 bg-[#DC143C] hover:bg-[#B01030] text-white font-semibold text-sm rounded-xl shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer font-[Poppins]"
             >
               {isLoading ? (
                 <>
@@ -172,12 +124,6 @@ export function LoginPage() {
               Don't have an account?{" "}
               <Link to="/register" className="text-[#DC143C] hover:text-[#B01030] font-semibold">
                 Register here
-              </Link>
-            </div>
-            <div>
-              Need to activate email?{" "}
-              <Link to="/verify-email" className="text-[#DC143C] hover:text-[#B01030] font-medium">
-                Verify Email Screen
               </Link>
             </div>
           </div>

@@ -1,7 +1,7 @@
 {
-  "name": "smart-schedular",
+  "name": "smart-department",
   "version": "1.0.0",
-  "description": "Smart Scheduler - Academic Management & Routine Scheduling System",
+  "description": "Smart Department - Academic Operations Platform",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,10 +13,13 @@
     "lint": "npm run lint --prefix client",
     "format:check": "npx prettier --check .",
     "format": "npx prettier --write .",
-    "validate": "npm run lint && npm run typecheck && npm run test && npm run build && npm run format:check",
+    "build:docs": "npm run build:docs --prefix server",
+    "docs": "npm run docs --prefix server",
+    "validate": "npm run lint && npm run typecheck && npm run test && npm run build && npm run build:docs && npm run format:check",
     "prisma:validate": "npm run prisma:validate --prefix server",
     "prisma:generate": "npm run prisma:generate --prefix server",
     "prisma:migrate": "npm run prisma:migrate --prefix server",
+    "prisma:push": "npm run prisma:push --prefix server",
     "prisma:seed": "npm run prisma:seed --prefix server"
   },
   "keywords": [
@@ -30,5 +33,8 @@
   "license": "ISC",
   "devDependencies": {
     "prettier": "^3.9.6"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6"
   }
 }

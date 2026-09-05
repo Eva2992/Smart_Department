@@ -1,5 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { Batch, CourseInput } from "../../types/academic.js";
+
+interface CourseFormRow {
+  name: string;
+  code: string;
+  creditHours: number;
+  teacherId: string;
+}
 
 interface TeacherOption {
   id: string;
@@ -30,35 +37,55 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
   selectedBatch,
   teachers = [],
 }) => {
-  const [name, setName] = useState("");
-  // Default batch ID from selectedBatch or first batch
-  const defaultBatchId = selectedBatch?.id || (batches[0]?.id ?? "");
-  const [batchId, setBatchId] = useState(defaultBatchId);
+  const initialBatchId = selectedBatch?.id || batches[0]?.id || "";
+  const [name, setName] = useState(selectedBatch?.name ? `${selectedBatch.name} - 1st Semester` : "");
+  const [batchId, setBatchId] = useState(initialBatchId);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [courses, setCourses] = useState<CourseInput[]>([
+  const [courses, setCourses] = useState<CourseFormRow[]>([
     { name: "", code: "", creditHours: 3.0, teacherId: "" },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (initialBatchId) {
+      setBatchId(initialBatchId);
+    }
+  }, [initialBatchId]);
+
   if (!isOpen) return null;
 
   const handleAddCourse = () => {
-    setCourses([...courses, { name: "", code: "", creditHours: 3.0, teacherId: "" }]);
+    setCourses((prev) => [
+      ...prev,
+      {
+        tempId: `temp-${Date.now()}-${Math.random()}`,
+        name: "",
+        code: "",
+        creditHours: 3.0,
+        teacherId: teachers[0]?.id || "",
+      },
+    ]);
   };
 
   const handleRemoveCourse = (index: number) => {
-    setCourses(courses.filter((_, i) => i !== index));
+    setCourses((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleCourseChange = (index: number, field: keyof CourseInput, value: string | number) => {
-    const updated = [...courses];
-    updated[index] = {
-      ...updated[index],
-      [field]: field === "creditHours" ? Number(value) : value,
-    };
-    setCourses(updated);
+  const handleCourseChange = (
+    index: number,
+    field: keyof CourseInput,
+    value: string | number
+  ) => {
+    setCourses((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        [field]: field === "creditHours" ? Number(value) : value,
+      };
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,7 +93,7 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
     setError(null);
 
     if (!name.trim()) {
-      setError("Semester name is required (e.g., '3rd Year 1st Semester')");
+      setError("Semester name is required");
       return;
     }
 
@@ -85,7 +112,7 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
       return;
     }
 
-    // Validate course rows
+    // Validate course rows only if courses are added
     for (let i = 0; i < courses.length; i++) {
       const c = courses[i];
       if (!c.name.trim() || !c.code.trim()) {
@@ -109,7 +136,12 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
         batchId,
         startDate,
         endDate,
-        courses,
+        courses: courses.map(({ name, code, creditHours, teacherId }) => ({
+          name,
+          code,
+          creditHours,
+          teacherId,
+        })),
       });
       onClose();
     } catch (err: unknown) {
@@ -132,11 +164,10 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4"
     >
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Modal Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-[#FFFBFA]">
           <div>
             <span className="text-xs font-bold text-[#DC143C] uppercase tracking-wider">
-              Academic Catalog (FR-06)
+              Academic Management
             </span>
             <h2 className="text-lg sm:text-xl font-extrabold text-[#1F2937]">
               Create New Semester
@@ -161,22 +192,6 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
 
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {error && (
-            <div
-              role="alert"
-              className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2"
-            >
-              <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label
@@ -348,6 +363,23 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Error Message placed immediately above submit button */}
+          {error && (
+            <div
+              role="alert"
+              className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-[#E11D48] flex items-center gap-2"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">

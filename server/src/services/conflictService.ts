@@ -67,6 +67,15 @@ export interface ExistingScheduleEntryItem {
 
 /**
  * Pure in-memory conflict evaluation given a proposed slot and a list of existing schedule records.
+ *
+ * @param existingEntries - The list of existing schedule entries to check against
+ * @param input - The proposed time slot details
+ * @returns Conflict detection results
+ *
+ * @example
+ * ```ts
+ * const result = evaluateInMemConflicts(entries, input);
+ * ```
  */
 export function evaluateInMemConflicts(
   existingEntries: ExistingScheduleEntryItem[],
@@ -188,6 +197,15 @@ export function evaluateInMemConflicts(
 export class ConflictService {
   /**
    * Checks database for any 3-way scheduling conflict (Room, Teacher, Batch).
+   *
+   * @param input - The schedule entry constraints to check
+   * @param txClient - The Prisma client or transaction to use
+   * @returns A conflict result indicating any detected conflicts
+   *
+   * @example
+   * ```ts
+   * const conflict = await conflictService.checkConflict(input);
+   * ```
    */
   async checkConflict(
     input: CheckConflictInput,
@@ -228,6 +246,17 @@ export class ConflictService {
 
   /**
    * Helper to check pure interval overlap.
+   *
+   * @param startA - Start time of first interval
+   * @param endA - End time of first interval
+   * @param startB - Start time of second interval
+   * @param endB - End time of second interval
+   * @returns True if intervals overlap
+   *
+   * @example
+   * ```ts
+   * const overlap = conflictService.checkOverlap('10:00', '11:00', '10:30', '11:30');
+   * ```
    */
   checkOverlap(
     startA: string | Date,

@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import { assignmentApi } from "../../api/assessments.js";
 import { Alert } from "../Alert.js";
+import { AuthContext } from "../../context/authContextDef.js";
+import { AssignmentSubmissionModal } from "./AssignmentSubmissionModal.js";
 import type { Assignment } from "../../types/assessments.js";
 
 // ── Type-safe error message extractor ────────────────────────────────────────
@@ -80,16 +82,21 @@ export function AssignmentsPanel() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // TODO: replace hardcoded IDs with values from the auth context once wired up
-  const teacherId = "teacher-1";
-  const batchId = "batch-1";
+  // Submissions modal state (FR-21, ADR-0005)
+  const [submissionTarget, setSubmissionTarget] = useState<Assignment | null>(null);
+
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user ?? { id: "teacher-1", role: "TEACHER", batchId: "batch-1" };
+  const isTeacher = user?.role === "TEACHER" || user?.role === "ADMIN";
+  const teacherId = user?.id || "teacher-1";
+  const batchId = user?.batchId || "batch-1";
   const courseId = "course-1";
 
   const loadAssignments = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // batchId is required by the server validator — must always be passed
+      // Pass batchId or undefined
       const res = await assignmentApi.list(batchId);
       setAssignments(res.data || []);
     } catch (err: unknown) {
@@ -123,19 +130,21 @@ export function AssignmentsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-2xl font-semibold text-text">Assignments</h2>
-          <p className="text-sm text-text-muted mt-1">Manage course assignments and deadlines.</p>
+          <p className="text-sm text-text-muted mt-1">
+            Manage course assignments and student submissions.
+          </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="bg-primary text-surface px-4 py-2 rounded-lg font-medium shadow-soft hover:bg-primary-dark transition-colors"
-        >
-          + Create Assignment
-        </button>
+        {isTeacher && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="bg-primary text-surface px-4 py-2 rounded-lg font-medium shadow-soft hover:bg-primary-dark transition-colors"
+          >
+            + Create Assignment
+          </button>
+        )}
       </div>
 
-      {error && (
-        <Alert type="error" message={error} onClose={() => setError(null)} />
-      )}
+      {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
 
       {loading ? (
         <div className="text-text-muted animate-pulse">Loading assignments...</div>
@@ -167,24 +176,53 @@ export function AssignmentsPanel() {
                   {assignment.description}
                 </p>
 
-                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3 mt-auto">
-                  <button
-                    onClick={() => setEditTarget(assignment)}
-                    className="text-sm font-medium text-text-muted hover:text-primary transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(assignment.id)}
-                    className="text-sm font-medium text-error hover:text-error/80 transition-colors"
-                  >
-                    Delete
-                  </button>
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-2 mt-auto">
+                  {isTeacher ? (
+                    <>
+                      <button
+                        onClick={() => setSubmissionTarget(assignment)}
+                        className="text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                      >
+                        Submissions
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditTarget(assignment)}
+                          className="text-sm font-medium text-text-muted hover:text-primary transition-colors cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(assignment.id)}
+                          className="text-sm font-medium text-error hover:text-error/80 transition-colors cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setSubmissionTarget(assignment)}
+                      className="w-full py-2 text-xs font-bold text-white bg-[#DC143C] hover:bg-[#B01030] rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      Submit Solution
+                    </button>
+                  )}
                 </div>
               </div>
             ))
           )}
         </div>
+      )}
+
+      {/* SUBMISSIONS MODAL (FR-21, ADR-0005) */}
+      {submissionTarget && (
+        <AssignmentSubmissionModal
+          assignment={submissionTarget}
+          isTeacherOrAdmin={isTeacher}
+          onClose={() => setSubmissionTarget(null)}
+          onSubmitted={loadAssignments}
+        />
       )}
 
       {/* DELETE CONFIRMATION */}
@@ -241,7 +279,15 @@ interface FormProps {
   onSuccess: () => void;
 }
 
-function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, onClose, onSuccess }: FormProps) {
+function AssignmentFormModal({
+  mode,
+  assignment,
+  teacherId,
+  batchId,
+  courseId,
+  onClose,
+  onSuccess,
+}: FormProps) {
   const [title, setTitle] = useState(assignment?.title || "");
   const [description, setDescription] = useState(assignment?.description || "");
   // Only pre-fill dueDate in edit mode; leave blank in create mode so the
@@ -274,9 +320,7 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           description,
           // Fix #7: only send dueDate if the user actually changed it.
           // Sending the old dueDate on a past-due assignment would cause a 400.
-          ...(dueDateChanged && dueDate
-            ? { dueDate: new Date(dueDate).toISOString() }
-            : {}),
+          ...(dueDateChanged && dueDate ? { dueDate: new Date(dueDate).toISOString() } : {}),
         });
       }
       onSuccess();
@@ -294,19 +338,13 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
           <h3 className="font-heading text-lg font-semibold text-text">
             {mode === "create" ? "Create Assignment" : "Edit Assignment"}
           </h3>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="text-text-muted hover:text-text"
-          >
+          <button onClick={onClose} aria-label="Close" className="text-text-muted hover:text-text">
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <Alert type="error" message={error} onClose={() => setError(null)} />
-          )}
+          {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
 
           <div>
             <label className="block text-sm font-medium text-text mb-1">Title</label>
@@ -336,7 +374,9 @@ function AssignmentFormModal({ mode, assignment, teacherId, batchId, courseId, o
             <label className="block text-sm font-medium text-text mb-1">
               Due Date &amp; Time
               {mode === "edit" && !dueDateChanged && (
-                <span className="text-text-muted font-normal ml-2 text-xs">(leave unchanged to keep current)</span>
+                <span className="text-text-muted font-normal ml-2 text-xs">
+                  (leave unchanged to keep current)
+                </span>
               )}
             </label>
             <input

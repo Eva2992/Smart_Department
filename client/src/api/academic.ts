@@ -9,12 +9,16 @@ import type {
   CreateSemesterPayload,
   PromoteBatchPayload,
   OverrideSemesterPayload,
+  Course,
   Program,
   BatchStatus,
   SemesterStatus,
   PromotionStatus,
   StudentStatus,
   Role,
+  PreloadedStudent,
+  PreloadedTeacher,
+  AuditLogEntry,
 } from "../types/academic.js";
 
 export const academicApi = {
@@ -47,6 +51,21 @@ export const academicApi = {
 
   createSemester: async (data: CreateSemesterPayload) => {
     const res = await apiClient.post<ApiResponse<Semester>>("/admin/semesters", data);
+    return res.data.data;
+  },
+
+  addCourseToSemester: async (
+    semesterId: string,
+    data: { name: string; code: string; creditHours: number; teacherId: string }
+  ) => {
+    const res = await apiClient.post<ApiResponse<Course>>(`/semesters/${semesterId}/courses`, data);
+    return res.data.data;
+  },
+
+  deleteCourse: async (semesterId: string, courseId: string) => {
+    const res = await apiClient.delete<ApiResponse<unknown>>(
+      `/semesters/${semesterId}/courses/${courseId}`
+    );
     return res.data.data;
   },
 
@@ -114,5 +133,91 @@ export const academicApi = {
       reason,
     });
     return res.data.data;
+  },
+
+  // Role Management (AN-10, C-05)
+  updateUserRole: async (userId: string, role: "STUDENT" | "CR") => {
+    const res = await apiClient.patch<ApiResponse<StudentSummary>>(`/admin/users/${userId}/role`, {
+      role,
+    });
+    return res.data.data;
+  },
+
+  // Preloaded Rosters (AN-01, AN-02)
+  importPreloadedStudents: async (students: Partial<PreloadedStudent>[]) => {
+    const res = await apiClient.post<ApiResponse<{ createdCount: number }>>(
+      "/admin/preloaded-students",
+      { students }
+    );
+    return res.data.data;
+  },
+
+  getPreloadedStudents: async (params?: {
+    batchId?: string;
+    program?: Program;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const res = await apiClient.get<
+      ApiResponse<{
+        students: PreloadedStudent[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >("/admin/preloaded-students", { params });
+    return res.data.data;
+  },
+
+  importPreloadedTeachers: async (teachers: Partial<PreloadedTeacher>[]) => {
+    const res = await apiClient.post<ApiResponse<{ createdCount: number }>>(
+      "/admin/preloaded-teachers",
+      { teachers }
+    );
+    return res.data.data;
+  },
+
+  getPreloadedTeachers: async (params?: { search?: string; page?: number; limit?: number }) => {
+    const res = await apiClient.get<
+      ApiResponse<{
+        teachers: PreloadedTeacher[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >("/admin/preloaded-teachers", { params });
+    return res.data.data;
+  },
+
+  // Audit Logs (NFR-12, R-02, R-06)
+  getAuditLogs: async (params?: {
+    action?: string;
+    userId?: string;
+    entityType?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const res = await apiClient.get<
+      ApiResponse<{
+        logs: AuditLogEntry[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >("/admin/audit-logs", { params });
+    return res.data.data;
+  },
+
+  getTeachers: async () => {
+    const res = await apiClient.get<
+      ApiResponse<Array<{ id: string; name: string; email: string }>>
+    >("/semesters/teachers/list");
+    return res.data.data ?? [];
   },
 };

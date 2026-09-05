@@ -9,7 +9,7 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ message: string; resetToken?: string } | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
 
     try {
       const res = await forgotPassword(email);
-      setSuccess({ message: res.message, resetToken: res.resetToken });
+      setSuccess(res.message);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to send reset link"));
     } finally {
@@ -32,9 +32,11 @@ export function ForgotPasswordPage() {
       <div className="max-w-md w-full">
         <div className="bg-[#FFFFFF] p-8 sm:p-10 rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#DC143C] text-white font-black text-xl flex items-center justify-center mx-auto shadow-xs mb-3 font-[Poppins]">
-              JU
-            </div>
+            <img
+              src="/smart-department-icon.svg"
+              alt="Smart Department"
+              className="w-14 h-14 object-contain mx-auto mb-3"
+            />
             <h1 className="text-2xl font-bold text-[#1F2937] tracking-tight font-[Poppins]">
               Forgot Password
             </h1>
@@ -43,21 +45,9 @@ export function ForgotPasswordPage() {
             </p>
           </div>
 
-          {error && (
-            <div className="mb-5">
-              <Alert type="error" message={error} onClose={() => setError(null)} />
-            </div>
-          )}
-
           {success && (
             <div className="mb-5">
-              <Alert type="success" message={success.message} onClose={() => setSuccess(null)} />
-              {success.resetToken && (
-                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs break-all">
-                  <span className="font-semibold text-gray-700">Dev token:</span>{" "}
-                  {success.resetToken}
-                </div>
-              )}
+              <Alert type="success" message={success} onClose={() => setSuccess(null)} />
             </div>
           )}
 
@@ -75,6 +65,13 @@ export function ForgotPasswordPage() {
                 className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm text-[#1F2937] focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] transition-colors"
               />
             </div>
+
+            {/* Error Message: Placed EXACTLY above submit button */}
+            {error && (
+              <div className="pt-2">
+                <Alert type="error" message={error} onClose={() => setError(null)} />
+              </div>
+            )}
 
             <button
               type="submit"

@@ -4,6 +4,8 @@ import { BatchCard } from "../components/academic/BatchCard.js";
 import { SemesterModal } from "../components/academic/SemesterModal.js";
 import { PromotionWizard } from "../components/academic/PromotionWizard.js";
 import { StudentOverrideModal } from "../components/academic/StudentOverrideModal.js";
+import { PreloadedManagement } from "../components/academic/PreloadedManagement.js";
+import { AuditLogsViewer } from "../components/academic/AuditLogsViewer.js";
 import type {
   Batch,
   PromotionRequest,
@@ -15,7 +17,9 @@ import type {
 } from "../types/academic.js";
 
 export const AdminBatchManagementPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"batches" | "promotions" | "students">("batches");
+  const [activeTab, setActiveTab] = useState<
+    "batches" | "promotions" | "students" | "preloaded" | "auditLogs"
+  >("batches");
   const [batches, setBatches] = useState<Batch[]>([]);
   const [promotionRequests, setPromotionRequests] = useState<PromotionRequest[]>([]);
   const [students, setStudents] = useState<StudentSummary[]>([]);
@@ -44,6 +48,7 @@ export const AdminBatchManagementPage: React.FC = () => {
   const [isNewBatchModalOpen, setIsNewBatchModalOpen] = useState(false);
   const [newBatchName, setNewBatchName] = useState("");
   const [newBatchProgram, setNewBatchProgram] = useState<Program>("HONOURS");
+  const [batchModalError, setBatchModalError] = useState<string | null>(null);
 
   // Refresh data on filter/page change
   useEffect(() => {
@@ -116,6 +121,7 @@ export const AdminBatchManagementPage: React.FC = () => {
     e.preventDefault();
     if (!newBatchName.trim()) return;
 
+    setBatchModalError(null);
     try {
       await academicApi.createBatch({
         name: newBatchName.trim(),
@@ -130,7 +136,7 @@ export const AdminBatchManagementPage: React.FC = () => {
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : "Failed to create batch";
-      setFeedback({ type: "error", message: msg || "Failed to create batch" });
+      setBatchModalError(msg || "Failed to create batch");
     }
   };
 
@@ -191,6 +197,31 @@ export const AdminBatchManagementPage: React.FC = () => {
     reloadData();
   };
 
+  // Handle Toggle CR Role (AN-10, C-05)
+  const handleToggleCR = async (student: StudentSummary) => {
+    try {
+      const nextRole = student.role === "CR" ? "STUDENT" : "CR";
+      await academicApi.updateUserRole(student.id, nextRole);
+      setFeedback({
+        type: "success",
+        message: `Successfully updated ${student.name}'s role to ${nextRole} (enforcing single active CR per batch)`,
+      });
+      reloadData();
+    } catch (err: unknown) {
+      const msg =
+        err !== null &&
+        typeof err === "object" &&
+        "response" in err &&
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (err as { response?: { data?: { message?: string } } }).response!.data!.message!
+          : "Failed to update user role";
+      setFeedback({
+        type: "error",
+        message: msg,
+      });
+    }
+  };
+
   const pendingRequestsCount = promotionRequests.filter((r) => r.status === "PENDING").length;
 
   return (
@@ -204,7 +235,7 @@ export const AdminBatchManagementPage: React.FC = () => {
                 <span className="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md bg-rose-100 text-[#DC143C]">
                   Department Administration
                 </span>
-                <span className="text-xs text-gray-500">• JU CSE Smart Schedular</span>
+                <span className="text-xs text-gray-500">• JU CSE Smart Department</span>
               </div>
               <h1 className="text-2xl font-extrabold text-[#1F2937] tracking-tight mt-1">
                 Batch & Semester Lifecycle Manager
@@ -215,17 +246,17 @@ export const AdminBatchManagementPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsNewBatchModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border border-gray-300 hover:border-[#DC143C] text-gray-700 hover:text-[#DC143C] transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 4v16m8-8H4"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                Create Batch
+                New Batch
               </button>
 
               <button
@@ -250,11 +281,11 @@ export const AdminBatchManagementPage: React.FC = () => {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 mt-6 border-b border-gray-100 -mb-5">
+          <div className="flex items-center gap-2 mt-6 border-b border-gray-100 -mb-5 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab("batches")}
-              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 ${
+              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 shrink-0 ${
                 activeTab === "batches"
                   ? "border-[#DC143C] text-[#DC143C]"
                   : "border-transparent text-gray-500 hover:text-gray-900"
@@ -266,7 +297,7 @@ export const AdminBatchManagementPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab("promotions")}
-              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 flex items-center gap-1.5 ${
+              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 flex items-center gap-1.5 shrink-0 ${
                 activeTab === "promotions"
                   ? "border-[#DC143C] text-[#DC143C]"
                   : "border-transparent text-gray-500 hover:text-gray-900"
@@ -283,13 +314,37 @@ export const AdminBatchManagementPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab("students")}
-              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 ${
+              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 shrink-0 ${
                 activeTab === "students"
                   ? "border-[#DC143C] text-[#DC143C]"
                   : "border-transparent text-gray-500 hover:text-gray-900"
               }`}
             >
-              Student Roster & Overrides (FR-09)
+              Student Roster &amp; Overrides
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("preloaded")}
+              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 shrink-0 ${
+                activeTab === "preloaded"
+                  ? "border-[#DC143C] text-[#DC143C]"
+                  : "border-transparent text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Preloaded Rosters
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("auditLogs")}
+              className={`pb-3 px-3 text-xs font-bold tracking-wide transition-all border-b-2 shrink-0 ${
+                activeTab === "auditLogs"
+                  ? "border-[#DC143C] text-[#DC143C]"
+                  : "border-transparent text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Audit Logs
             </button>
           </div>
         </div>
@@ -403,7 +458,7 @@ export const AdminBatchManagementPage: React.FC = () => {
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-extrabold text-[#1F2937]">
-                  Class Representative Promotion Requests (FR-07, FR-08)
+                  Class Representative Promotion Requests
                 </h2>
                 <p className="text-xs text-gray-500">
                   Review and process semester progression requests submitted by batch
@@ -498,7 +553,7 @@ export const AdminBatchManagementPage: React.FC = () => {
             <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-[#1F2937]">
-                  Student Roster & Semester Overrides (FR-09)
+                  Student Roster &amp; Semester Overrides
                 </h2>
                 <p className="text-xs text-gray-500">
                   Search students to manually update academic standing, reassign batches, or appoint
@@ -595,16 +650,29 @@ export const AdminBatchManagementPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedStudentForOverride(st);
-                              setIsOverrideModalOpen(true);
-                            }}
-                            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors"
-                          >
-                            Override Status...
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCR(st)}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                                st.role === "CR"
+                                  ? "bg-amber-100 hover:bg-amber-200 text-amber-800"
+                                  : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700"
+                              }`}
+                            >
+                              {st.role === "CR" ? "Demote CR" : "Promote CR"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedStudentForOverride(st);
+                                setIsOverrideModalOpen(true);
+                              }}
+                              className="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors cursor-pointer"
+                            >
+                              Override Status...
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -642,6 +710,12 @@ export const AdminBatchManagementPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {/* Preloaded Rosters Tab */}
+        {activeTab === "preloaded" && <PreloadedManagement batches={batches} />}
+
+        {/* Audit Logs Tab */}
+        {activeTab === "auditLogs" && <AuditLogsViewer />}
       </div>
 
       {/* New Batch Modal */}
@@ -691,17 +765,27 @@ export const AdminBatchManagementPage: React.FC = () => {
                 </select>
               </div>
 
+              {/* Error message placed immediately above submit button */}
+              {batchModalError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#E11D48] text-xs font-semibold">
+                  ✕ {batchModalError}
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setIsNewBatchModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700"
+                  onClick={() => {
+                    setIsNewBatchModalOpen(false);
+                    setBatchModalError(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 text-gray-700 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#DC143C] hover:bg-[#B01030] text-white"
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[#DC143C] hover:bg-[#B01030] text-white cursor-pointer"
                 >
                   Create Batch
                 </button>

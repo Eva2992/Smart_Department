@@ -79,9 +79,7 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
       if (!universityId) continue;
 
       const courseMarks = defaultCourses.map((c) => {
-        const cIdx = headers.findIndex((h) =>
-          h.includes(c.code.toLowerCase().replace(/\s+/g, ""))
-        );
+        const cIdx = headers.findIndex((h) => h.includes(c.code.toLowerCase().replace(/\s+/g, "")));
 
         let marks: number | undefined;
         let letterGrade = "A";
@@ -212,8 +210,8 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
             Upload Semester Final Results
           </h2>
           <p className="text-xs text-gray-500 font-['Inter'] mt-1">
-            Upload semester grade sheets as CSV. Tabular records will parse automatically into student
-            dashboards and the raw document will be archived in the Resource center.
+            Upload semester grade sheets as CSV. Tabular records will parse automatically into
+            student dashboards and the raw document will be archived in the Resource center.
           </p>
         </div>
 
@@ -222,26 +220,35 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
           onClick={handleDownloadSample}
           className="inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-gray-200 text-xs font-semibold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-2xs"
         >
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          <svg
+            className="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
           </svg>
           Download CSV Template
         </button>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
-          <svg className="w-4 h-4 text-rose-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          {error}
-        </div>
-      )}
-
       {successMsg && (
         <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
-          <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          <svg
+            className="w-4 h-4 text-emerald-600 shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clipRule="evenodd"
+            />
           </svg>
           {successMsg}
         </div>
@@ -251,7 +258,10 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
         {/* Batch & Semester Inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor={batchIdInputId} className="block text-xs font-semibold text-gray-700 mb-1">
+            <label
+              htmlFor={batchIdInputId}
+              className="block text-xs font-semibold text-gray-700 mb-1"
+            >
               Batch Identifier / ID <span className="text-[#DC143C]">*</span>
             </label>
             <input
@@ -266,7 +276,10 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
           </div>
 
           <div>
-            <label htmlFor={semesterIdInputId} className="block text-xs font-semibold text-gray-700 mb-1">
+            <label
+              htmlFor={semesterIdInputId}
+              className="block text-xs font-semibold text-gray-700 mb-1"
+            >
               Semester Identifier / ID <span className="text-[#DC143C]">*</span>
             </label>
             <input
@@ -295,8 +308,18 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
               className="hidden"
             />
             <label htmlFor={fileInputId} className="cursor-pointer flex flex-col items-center">
-              <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <svg
+                className="w-8 h-8 text-gray-400 mb-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
               </svg>
               <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
                 {fileName ? `Selected: ${fileName}` : "Click to select CSV grade sheet"}
@@ -352,6 +375,20 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
           </div>
         )}
 
+        {/* Error message placed immediately above submit button */}
+        {error && (
+          <div className="mb-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+            <svg className="w-4 h-4 text-rose-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {error}
+          </div>
+        )}
+
         {/* Submit CTA */}
         <div className="flex justify-end pt-4">
           <button
@@ -361,8 +398,19 @@ export function ResultUploadForm({ onSuccess }: ResultUploadFormProps) {
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
                 Publishing Results...

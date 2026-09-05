@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { semesterService } from "../services/semester.service.js";
-import { createSemesterSchema, updateSemesterSchema } from "../validators/academic.validator.js";
+import { createSemesterSchema, updateSemesterSchema, courseAssignmentSchema } from "../validators/academic.validator.js";
 import { sendCreated, sendSuccess } from "../utils/response.js";
 import type { SemesterStatus } from "@prisma/client";
 
@@ -31,6 +31,25 @@ export class SemesterController {
     const validated = updateSemesterSchema.parse(req.body);
     const updated = await semesterService.updateSemester(id, validated);
     return sendSuccess(res, updated, "Semester updated successfully");
+  }
+
+  async addCourse(req: Request, res: Response) {
+    const semesterId = req.params.id as string;
+    const validated = courseAssignmentSchema.parse(req.body);
+    const course = await semesterService.addCourse(semesterId, validated, req.user as any);
+    return sendCreated(res, course, "Course added to semester successfully");
+  }
+
+  async deleteCourse(req: Request, res: Response) {
+    const semesterId = req.params.id as string;
+    const courseId = req.params.courseId as string;
+    const result = await semesterService.deleteCourse(semesterId, courseId, req.user as any);
+    return sendSuccess(res, result, result.message);
+  }
+
+  async getTeachers(_req: Request, res: Response) {
+    const teachers = await semesterService.getTeachers();
+    return sendSuccess(res, teachers);
   }
 }
 

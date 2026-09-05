@@ -1,6 +1,6 @@
-# Smart_Schedular
+# Smart Department
 
-Smart Scheduler is an Academic Management and Routine Scheduling System designed for departmental course management, routine scheduling, batch coordination, and academic tracking.
+Smart Department is a comprehensive Academic Operations Platform designed for departmental course management, routine scheduling, batch coordination, academic tracking, continuous assessments, and resource/results distribution for the Department of Computer Science and Engineering (CSE) at Jahangirnagar University (JU).
 
 ---
 
@@ -34,8 +34,53 @@ From the repository root, you can run:
 | `npm run test`            | Run test suites across `server` and `client`            |
 | `npm run lint`            | Run ESLint on the frontend codebase                     |
 | `npm run prisma:generate` | Generate Prisma client and types                        |
-| `npm run prisma:migrate`  | Run Prisma database migrations                          |
+| `npm run prisma:migrate`  | Deploy committed migrations to the database             |
+| `npm run prisma:push`     | Sync Prisma schema directly with DB (rapid prototyping) |
 | `npm run prisma:seed`     | Seed initial database records                           |
+
+---
+
+## 🗄️ Database Setup (Neon PostgreSQL - No Docker Required)
+
+This project connects to serverless PostgreSQL on [Neon](https://neon.tech) without requiring Docker.
+
+### 1. Configure Environment Variables
+
+Copy `.env.example` in `server/` to `server/.env`:
+
+```bash
+cp server/.env.example server/.env
+```
+
+In your Neon project dashboard:
+
+- **Pooled Connection (`DATABASE_URL`)**: Check the **Connection pooling** toggle. This endpoint includes `-pooler` in the host and is used by Express at runtime.
+- **Direct Connection (`DIRECT_URL`)**: Uncheck the **Connection pooling** toggle. This connects directly without PgBouncer and is used by Prisma CLI for migrations.
+
+Example `server/.env`:
+
+```env
+DATABASE_URL="postgresql://user:password@ep-xxxx-pooler.region.aws.neon.tech/smart_department?sslmode=require"
+DIRECT_URL="postgresql://user:password@ep-xxxx.region.aws.neon.tech/smart_department?sslmode=require"
+```
+
+### 2. Initialize Database & Seed
+
+Run from project root:
+
+```bash
+# Apply schema migrations to your database
+npm run prisma:migrate
+
+# Seed rooms, batches, initial users, and demo schedules
+npm run prisma:seed
+```
+
+Alternatively, during rapid local feature development you can run:
+
+```bash
+npm run prisma:push
+```
 
 ---
 

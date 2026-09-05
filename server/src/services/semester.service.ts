@@ -241,6 +241,124 @@ export class SemesterService {
       },
     });
   }
+
+  /**
+   * Add a course to an existing semester (CR or Admin).
+   */
+  async addCourse(
+    semesterId: string,
+    courseData: { name: string; code: string; creditHours: number; teacherId: string },
+    actor: { id: string; role: string; batchId?: string }
+  ) {
+    const semester = await prisma.semester.findUnique({
+      where: { id: semesterId },
+      include: { batch: true },
+    });
+
+    if (!semester) {
+      throw new AppError("Semester not found", 404, "NOT_FOUND");
+    }
+
+    if (actor.role === "CR") {
+      if (semester.batchId !== actor.batchId) {
+        throw new AppError(
+          "Class Representatives can only add courses to their own batch's semester.",
+          403,
+          "FORBIDDEN"
+        );
+      }
+    } else if (actor.role !== "ADMIN") {
+      throw new AppError(
+        "Only administrators and Class Representatives can add courses.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    // Verify teacher exists
+    const teacher = await prisma.user.findFirst({
+      where: { id: courseData.teacherId, role: { in: ["TEACHER", "ADMIN"] } },
+    });
+    if (!teacher) {
+      throw new AppError(
+        "Assigned teacher is invalid or does not have faculty privileges",
+        400,
+        "INVALID_TEACHER"
+      );
+    }
+
+    return prisma.course.create({
+      data: {
+        name: courseData.name,
+        code: courseData.code,
+        creditHours: courseData.creditHours,
+        teacherId: courseData.teacherId,
+        semesterId,
+      },
+      include: {
+        teacher: { select: { id: true, name: true, email: true, teacherUniqueId: true } },
+      },
+    });
+  }
+
+  /**
+   * Delete a course from a semester (CR or Admin).
+   */
+  async deleteCourse(
+    semesterId: string,
+    courseId: string,
+    actor: { id: string; role: string; batchId?: string }
+  ) {
+    const semester = await prisma.semester.findUnique({
+      where: { id: semesterId },
+    });
+
+    if (!semester) {
+      throw new AppError("Semester not found", 404, "NOT_FOUND");
+    }
+
+    if (actor.role === "CR") {
+      if (semester.batchId !== actor.batchId) {
+        throw new AppError(
+          "Class Representatives can only manage courses for their own batch.",
+          403,
+          "FORBIDDEN"
+        );
+      }
+    } else if (actor.role !== "ADMIN") {
+      throw new AppError(
+        "Only administrators and Class Representatives can manage courses.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, semesterId },
+    });
+
+    if (!course) {
+      throw new AppError("Course not found in this semester", 404, "NOT_FOUND");
+    }
+
+    await prisma.course.delete({
+      where: { id: courseId },
+    });
+
+    return { success: true, message: "Course removed successfully" };
+  }
+
+  /**
+   * Get all faculty teachers for course assignment.
+   */
+  async getTeachers(): Promise<Array<{ id: string; name: string; email: string }>> {
+    const teachers = await prisma.user.findMany({
+      where: { role: { in: ["TEACHER", "ADMIN"] } },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    });
+    return teachers;
+  }
 }
 
 export const semesterService = new SemesterService();

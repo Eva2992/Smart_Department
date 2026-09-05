@@ -5,6 +5,7 @@ import { ChangePasswordModal } from "../components/ChangePasswordModal.js";
 import { StudentDashboard } from "../components/dashboard/StudentDashboard.js";
 import { TeacherDashboard } from "../components/dashboard/TeacherDashboard.js";
 import { AdminDashboard } from "../components/dashboard/AdminDashboard.js";
+import { UpcomingHolidaysWidget } from "../components/UpcomingHolidaysWidget.js";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -65,6 +66,9 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Upcoming Holidays & Off-Days Widget */}
+      <UpcomingHolidaysWidget batchId={user.batchId || undefined} />
 
       {/* Role-Specific Dashboard Content */}
       {isStudentOrCr && <StudentDashboard />}

@@ -46,7 +46,7 @@ So: **`@prisma/adapter-pg`**, backed by `pg`, connecting to Neon's pooled endpoi
 
 ```
 DATABASE_URL="postgresql://user:pass@ep-xxxx-pooler.region.aws.neon.tech/smartdept?sslmode=require"   # app runtime (pooled)
-DIRECT_URL="postgresql://user:pass@ep-xxxx.region.aws.neon.tech/smartdept?sslmode=require"             # prisma migrate (direct)
+<!-- DIRECT_URL="postgresql://user:pass@ep-xxxx.region.aws.neon.tech/smartdept?sslmode=require"             # prisma migrate (direct) -->
 ```
 
 The pooled connection (`-pooler` in the hostname, backed by PgBouncer) is what the running app uses. `prisma migrate` needs the direct connection since schema changes don't play well through a pooler. This is also why the conflict-detection engine (§7) drops to raw `pg` queries in places — Prisma's client is great for CRUD, but the room/teacher/batch overlap check benefits from a hand-tuned indexed query and `SELECT ... FOR UPDATE` row locking, which is easiest to reason about with direct SQL.
@@ -734,7 +734,7 @@ TSDoc comments on services, controllers, and shared types generate a static refe
 | Variable                                | Purpose                                          |
 | --------------------------------------- | ------------------------------------------------ |
 | `DATABASE_URL`                          | Neon pooled connection string (app runtime)      |
-| `DIRECT_URL`                            | Neon direct connection string (`prisma migrate`) |
+<!-- | `DIRECT_URL`                            | Neon direct connection string (`prisma migrate`) | -->
 | `JWT_SECRET` / `JWT_REFRESH_SECRET`     | ≥256-bit signing secrets                         |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Verification & notification emails               |
 | `PORT`                                  | Server port                                      |

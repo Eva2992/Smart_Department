@@ -1,6 +1,36 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["src/server.ts"],
-  "out": "docs",
-  "name": "Smart Department Server API Documentation"
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "name": "Smart Department Backend API",
+  "readme": "none",
+  "exclude": ["**/*.test.ts", "**/node_modules/**", "**/generated/**"],
+  "tsconfig": "tsconfig.json",
+  "plugin": [],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "includeVersion": true,
+  "validation": {
+    "invalidLink": true
+  },
+  "externalSymbolLinkMappings": {
+    ".prisma": {
+      "Role": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedStudent": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedTeacher": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "User": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "RefreshToken": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference"
+    },
+    "@prisma/client": {
+      "Role": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedStudent": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "PreloadedTeacher": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "User": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference",
+      "RefreshToken": "https://www.prisma.io/docs/reference/api-reference/prisma-client-reference"
+    }
+  },
+  "navigationLinks": {
+    "Smart Department": "https://github.com/Eva2992/Smart_Department"
+  }
 }

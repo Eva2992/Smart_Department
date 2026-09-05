@@ -1,4 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 import {
   PrismaClient,
   RoomType,
@@ -118,16 +119,21 @@ export async function seed() {
   });
 
   // 4. Seed Users (Admin, Teachers, CR, Student)
-  const passwordHash = "$2a$10$SampleHashedPasswordForSeed123456789"; // demo hash
+  const adminPasswordHash = await bcrypt.hash("Admin1234", 10);
+  const teacherPasswordHash = await bcrypt.hash("Teacher1234", 10);
+  const studentPasswordHash = await bcrypt.hash("Student1234", 10);
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@juniv.edu" },
-    update: {},
+    where: { email: "nirobmondal202@gmail.com" },
+    update: {
+      passwordHash: adminPasswordHash,
+      isVerified: true,
+    },
     create: {
-      id: "user-admin-1",
+      id: "user-admin-2",
       name: "Department Office Admin",
-      email: "admin@juniv.edu",
-      passwordHash,
+      email: "nirobmondal202@gmail.com",
+      passwordHash: adminPasswordHash,
       role: Role.ADMIN,
       isVerified: true,
     },
@@ -135,13 +141,16 @@ export async function seed() {
 
   const teacherAnup = await prisma.user.upsert({
     where: { email: "anup.cse@juniv.edu" },
-    update: {},
+    update: {
+      passwordHash: teacherPasswordHash,
+      isVerified: true,
+    },
     create: {
       id: "teacher-anup-1",
       name: "Dr. Anup Kumar",
       email: "anup.cse@juniv.edu",
       teacherUniqueId: "JU-CSE-T01",
-      passwordHash,
+      passwordHash: teacherPasswordHash,
       role: Role.TEACHER,
       isVerified: true,
     },
@@ -149,13 +158,16 @@ export async function seed() {
 
   const teacherFarhana = await prisma.user.upsert({
     where: { email: "farhana.cse@juniv.edu" },
-    update: {},
+    update: {
+      passwordHash: teacherPasswordHash,
+      isVerified: true,
+    },
     create: {
       id: "teacher-farhana-2",
       name: "Dr. Farhana",
       email: "farhana.cse@juniv.edu",
       teacherUniqueId: "JU-CSE-T02",
-      passwordHash,
+      passwordHash: teacherPasswordHash,
       role: Role.TEACHER,
       isVerified: true,
     },
@@ -163,13 +175,16 @@ export async function seed() {
 
   const studentCR = await prisma.user.upsert({
     where: { email: "cr.52@juniv.edu" },
-    update: {},
+    update: {
+      passwordHash: studentPasswordHash,
+      isVerified: true,
+    },
     create: {
       id: "user-cr-52",
       name: "Rahim Ahmed (CR)",
       email: "cr.52@juniv.edu",
       universityId: "20220104052",
-      passwordHash,
+      passwordHash: studentPasswordHash,
       role: Role.CR,
       batchId: batch52.id,
       program: Program.HONOURS,
@@ -179,13 +194,16 @@ export async function seed() {
 
   const studentUser = await prisma.user.upsert({
     where: { email: "student.52@juniv.edu" },
-    update: {},
+    update: {
+      passwordHash: studentPasswordHash,
+      isVerified: true,
+    },
     create: {
       id: "user-student-52",
       name: "Tanvir Hasan",
       email: "student.52@juniv.edu",
       universityId: "20220104053",
-      passwordHash,
+      passwordHash: studentPasswordHash,
       role: Role.STUDENT,
       batchId: batch52.id,
       program: Program.HONOURS,
@@ -193,7 +211,67 @@ export async function seed() {
     },
   });
 
-  console.log("✅ Seeded Users (Admin, Teachers, CR, Student).");
+  // Preloaded student roster (official department records)
+  await prisma.preloadedStudent.upsert({
+    where: { universityId: "20220654955" },
+    update: {},
+    create: {
+      universityId: "20220654955",
+      name: "Tahmid Hasan",
+      email: "student.52@juniv.edu",
+      batchId: batch52.id,
+      program: Program.HONOURS,
+    },
+  });
+
+  await prisma.preloadedStudent.upsert({
+    where: { universityId: "20220104052" },
+    update: {},
+    create: {
+      universityId: "20220104052",
+      name: "Rahim Ahmed",
+      email: "cr.52@juniv.edu",
+      batchId: batch52.id,
+      program: Program.HONOURS,
+    },
+  });
+
+  // Preloaded teacher roster (official department records)
+  await prisma.preloadedTeacher.upsert({
+    where: { uniqueId: "JU-CSE-T01" },
+    update: {
+      email: "anup.cse@juniv.edu",
+      name: "Dr. Anup Kumar",
+      designation: "Professor",
+      isChairman: true,
+    },
+    create: {
+      uniqueId: "JU-CSE-T01",
+      name: "Dr. Anup Kumar",
+      email: "anup.cse@juniv.edu",
+      designation: "Professor",
+      isChairman: true,
+    },
+  });
+
+  await prisma.preloadedTeacher.upsert({
+    where: { uniqueId: "JU-CSE-T02" },
+    update: {
+      email: "farhana.cse@juniv.edu",
+      name: "Dr. Farhana",
+      designation: "Associate Professor",
+      isChairman: false,
+    },
+    create: {
+      uniqueId: "JU-CSE-T02",
+      name: "Dr. Farhana",
+      email: "farhana.cse@juniv.edu",
+      designation: "Associate Professor",
+      isChairman: false,
+    },
+  });
+
+  console.log("✅ Seeded Users (Admin, Teachers, CR, Student) and Preloaded Rosters.");
 
   // 5. Seed Courses
   const courseSE = await prisma.course.upsert({

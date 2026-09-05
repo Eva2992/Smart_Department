@@ -62,41 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (
-    data: RegisterPayload
-  ): Promise<{ verificationToken?: string; message?: string }> => {
-    const res = await apiClient.post<ApiResponse<{ user: User; verificationToken: string }>>(
-      "/auth/register",
-      data
-    );
+  const register = async (data: RegisterPayload): Promise<void> => {
+    const res = await apiClient.post<
+      ApiResponse<{ user: User; accessToken: string; refreshToken: string }>
+    >("/auth/register", data);
 
-    return {
-      verificationToken: res.data.data?.verificationToken,
-      message: res.data.message,
-    };
-  };
-
-  const verifyEmail = async (token: string): Promise<{ success: boolean; message: string }> => {
-    const res = await apiClient.post<ApiResponse<User>>("/auth/verify-email", {
-      token,
-    });
-    return {
-      success: res.data.success,
-      message: res.data.message || "Email verified successfully",
-    };
-  };
-
-  const resendVerification = async (
-    email: string
-  ): Promise<{ success: boolean; message: string }> => {
-    const res = await apiClient.post<ApiResponse<{ verificationToken?: string }>>(
-      "/auth/resend-verification",
-      { email }
-    );
-    return {
-      success: res.data.success,
-      message: res.data.message || "Verification email sent",
-    };
+    if (res.data.success && res.data.data) {
+      const { user: registeredUser, accessToken, refreshToken } = res.data.data;
+      setUser(registeredUser);
+      setTokens({ accessToken, refreshToken });
+      localStorage.setItem("user", JSON.stringify(registeredUser));
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+    }
   };
 
   const changePassword = async (
@@ -160,8 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user && !!tokens,
     login,
     register,
-    verifyEmail,
-    resendVerification,
     logout,
     changePassword,
     forgotPassword,

@@ -89,28 +89,20 @@ describe("CTPanel Component", () => {
   it("renders the CT heading and Schedule CT button", async () => {
     mockGetSchedules.mockResolvedValue([]);
     render(<CTPanel />);
-    await waitFor(() =>
-      expect(screen.getByText(/class tests \(ct\)/i)).toBeInTheDocument()
-    );
-    expect(
-      screen.getByRole("button", { name: /\+ schedule ct/i })
-    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/class tests \(ct\)/i)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /\+ schedule ct/i })).toBeInTheDocument();
   });
 
   it("shows empty state message when no CTs exist", async () => {
     mockGetSchedules.mockResolvedValue([]);
     render(<CTPanel />);
-    await waitFor(() =>
-      expect(screen.getByText(/no cts scheduled/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText(/no cts scheduled/i)).toBeInTheDocument());
   });
 
   it("renders a CT card with topic, course code and room", async () => {
     mockGetSchedules.mockResolvedValue([mockCT]);
     render(<CTPanel />);
-    await waitFor(() =>
-      expect(screen.getByText("Midterm Revision")).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText("Midterm Revision")).toBeInTheDocument());
     expect(screen.getByText("CSE301")).toBeInTheDocument();
     expect(screen.getByText(/R-101/i)).toBeInTheDocument();
   });
@@ -119,9 +111,7 @@ describe("CTPanel Component", () => {
     mockGetSchedules.mockResolvedValue([mockClassSlot]);
     render(<CTPanel />);
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /\+ schedule ct/i })
-      ).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /\+ schedule ct/i })).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole("button", { name: /\+ schedule ct/i }));
     expect(screen.getByRole("heading", { name: /^schedule ct$/i })).toBeInTheDocument();
@@ -134,9 +124,7 @@ describe("CTPanel Component", () => {
       expect(screen.getByRole("button", { name: /cancel ct/i })).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole("button", { name: /cancel ct/i }));
-    expect(
-      screen.getByText(/are you sure you want to cancel this ct/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/are you sure you want to cancel this ct/i)).toBeInTheDocument();
   });
 
   it("closes the cancel dialog when 'Keep CT' is clicked", async () => {
@@ -147,16 +135,12 @@ describe("CTPanel Component", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /cancel ct/i }));
     fireEvent.click(screen.getByRole("button", { name: /keep ct/i }));
-    expect(
-      screen.queryByText(/are you sure you want to cancel this ct/i)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/are you sure you want to cancel this ct/i)).not.toBeInTheDocument();
   });
 
   it("calls ctApi.cancel and reloads data on confirm", async () => {
     vi.mocked(ctApi.cancel).mockResolvedValue(cancelOkResponse);
-    mockGetSchedules
-      .mockResolvedValueOnce([mockCT])
-      .mockResolvedValueOnce([]);
+    mockGetSchedules.mockResolvedValueOnce([mockCT]).mockResolvedValueOnce([]);
 
     render(<CTPanel />);
     await waitFor(() =>
@@ -177,8 +161,6 @@ describe("CTPanel Component", () => {
     });
     mockGetSchedules.mockRejectedValue(apiError);
     render(<CTPanel />);
-    await waitFor(() =>
-      expect(screen.getByText("Server error")).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText("Server error")).toBeInTheDocument());
   });
 });

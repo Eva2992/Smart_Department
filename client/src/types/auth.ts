@@ -25,6 +25,7 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
+  warnings?: string[];
   error?: {
     code?: string;
     details?: unknown;
@@ -35,6 +36,7 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+  confirmPassword?: string;
   role: Role;
   universityId?: string;
   teacherUniqueId?: string;
@@ -69,13 +71,13 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (credentials: LoginPayload) => Promise<void>;
-  register: (data: RegisterPayload) => Promise<{ verificationToken?: string; message?: string }>;
-  verifyEmail: (token: string) => Promise<{ success: boolean; message: string }>;
-  resendVerification: (email: string) => Promise<{ success: boolean; message: string }>;
+  register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (data: ChangePasswordPayload) => Promise<{ success: boolean; message: string }>;
   forgotPassword: (
     email: string
   ) => Promise<{ success: boolean; message: string; resetToken?: string }>;
   resetPassword: (data: ResetPasswordPayload) => Promise<{ success: boolean; message: string }>;
+  verifyEmail?: (token: string) => Promise<{ success: boolean; message: string }>;
+  resendVerification?: (email: string) => Promise<{ success: boolean; message: string }>;
 }

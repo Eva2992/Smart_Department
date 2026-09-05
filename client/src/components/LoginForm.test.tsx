@@ -80,30 +80,22 @@ describe("LoginForm (React Testing Library Component Seam)", () => {
     });
   });
 
-  it("displays alert and resend button if email is unverified", async () => {
-    const loginMock = vi.fn().mockRejectedValue({
-      response: {
-        data: {
-          message: "Please verify your email before logging in",
-          error: { code: "EMAIL_NOT_VERIFIED" },
-        },
-      },
-    });
+  it("displays user-friendly error message above submit button on login failure", async () => {
+    const loginMock = vi.fn().mockRejectedValue(new Error("The email or password you entered is incorrect."));
 
     renderLoginPage({ login: loginMock });
 
     fireEvent.change(screen.getByPlaceholderText("name@juniv.edu"), {
-      target: { value: "unverified@juniv.edu" },
+      target: { value: "wrong@juniv.edu" },
     });
     fireEvent.change(screen.getByPlaceholderText("Enter your password"), {
-      target: { value: "Password123!" },
+      target: { value: "WrongPass123" },
     });
 
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Account Not Verified Yet/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Resend Activation Email/i })).toBeInTheDocument();
+      expect(screen.getByText(/The email or password you entered is incorrect/i)).toBeInTheDocument();
     });
   });
 });

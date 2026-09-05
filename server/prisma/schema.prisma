@@ -1,4 +1,4 @@
-// Prisma Schema for Smart_Schedular (JU CSE Academic Management System)
+// Prisma Schema for Smart Department (JU CSE Academic Operations Platform)
 
 generator client {
   provider = "prisma-client-js"
@@ -124,6 +124,7 @@ model User {
   reviewedPromotions PromotionRequest[] @relation("PromotionReviewedBy")
   notifications      Notification[]
   auditLogs          AuditLog[]
+  assignmentSubmissions AssignmentSubmission[] @relation("StudentAssignmentSubmissions")
 
   @@index([batchId])
   @@index([role])
@@ -301,7 +302,29 @@ model Assignment {
   dueDate     DateTime
   createdAt   DateTime @default(now())
 
+  submissions AssignmentSubmission[]
+
   @@index([batchId])
+}
+
+model AssignmentSubmission {
+  id             String     @id @default(uuid())
+  assignmentId   String
+  assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        User       @relation("StudentAssignmentSubmissions", fields: [studentId], references: [id])
+  submissionType String     // "URL" | "FILE" | "BOTH"
+  submissionUrl  String?
+  fileUrl        String?
+  fileName       String?
+  fileSizeBytes  Int?
+  notes          String?
+  submittedAt    DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
 }
 
 // ==========================================
