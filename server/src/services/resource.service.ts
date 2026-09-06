@@ -1,3 +1,23 @@
+/**
+ * Resource Service — Study Material & Result Archive Management.
+ *
+ * Provides the business logic layer for uploading, listing, downloading,
+ * and deleting study resources (lecture slides, notes, question banks)
+ * and archived semester result grade sheets.
+ *
+ * Implements:
+ * - **FR-23**: Study Resource Repository with file validation (size ≤ 50 MB,
+ *   supported formats: PDF, DOCX, PPTX, XLSX, PNG, JPG).
+ * - **ADR-0004 §3**: Dual-Hybrid Result Storage — raw result documents are
+ *   archived in this {@link Resource} repository alongside study materials
+ *   for unified full-batch download.
+ * - **FR-31**: Notification dispatch after resource upload (non-blocking).
+ *
+ * @see {@link ResourceItem} for the client-facing DTO structure.
+ * @see {@link ResultService.publishResult} for result-side dual-hybrid integration.
+ * @module services/resource
+ */
+
 import path from "node:path";
 import fs from "node:fs/promises";
 import { prisma } from "../lib/prisma.js";
@@ -13,8 +33,18 @@ import type {
 import { ResourceType, Role } from "@prisma/client";
 import { notificationService, NotificationType } from "./notification.service.js";
 
+/**
+ * Maximum allowed file size for resource uploads (50 MB).
+ *
+ * Enforced during file validation per SRS FR-23.
+ */
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
+/**
+ * Set of allowed file extensions for resource uploads.
+ *
+ * Supported formats: PDF, DOCX, PPTX, XLSX, PNG, JPG/JPEG.
+ */
 export const ALLOWED_EXTENSIONS = new Set([
   ".pdf",
   ".docx",
@@ -25,6 +55,11 @@ export const ALLOWED_EXTENSIONS = new Set([
   ".jpeg",
 ]);
 
+/**
+ * Set of allowed MIME types for resource uploads.
+ *
+ * Mirrors {@link ALLOWED_EXTENSIONS} for dual validation (extension + MIME).
+ */
 export const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -34,16 +69,51 @@ export const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
 ]);
 
+/**
+ * Metadata for an uploaded file as provided by multer middleware.
+ *
+ * Used by {@link validateResourceFile} and {@link uploadResource}
+ * to process the physical file alongside its metadata.
+ */
 export interface UploadedFileInfo {
+  /** Generated filename on disk (from multer). */
   filename: string;
+
+  /** Full disk path to the uploaded file. */
   path: string;
+
+  /** File size in bytes. */
   size: number;
+
+  /** MIME type detected by multer. */
   mimetype: string;
+
+  /** Original filename from the client upload. */
   originalname: string;
 }
 
 /**
- * Validates file size and format against SRS FR-23 constraints.
+ * Validates a file against SRS FR-23 size and format constraints.
+ *
+ * Checks both file size (≤ 50 MB) and format (extension or MIME type must
+ * match the allowed sets). Either a valid extension or a valid MIME type
+ * is sufficient to pass format validation.
+ *
+ * @param file - Uploaded file metadata from multer.
+ * @throws {AppError} `FILE_TOO_LARGE` (400) if file exceeds {@link MAX_FILE_SIZE_BYTES}.
+ * @throws {AppError} `INVALID_FILE_TYPE` (400) if neither extension nor MIME type is supported.
+ *
+ * @example
+ * ```ts
+ * validateResourceFile({
+ *   filename: "abc123.pdf",
+ *   path: "/uploads/resources/abc123.pdf",
+ *   size: 1024 * 1024, // 1 MB
+ *   mimetype: "application/pdf",
+ *   originalname: "lecture_notes.pdf",
+ * });
+ * // No error thrown — file is valid.
+ * ```
  */
 export function validateResourceFile(file: UploadedFileInfo): void {
   if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -68,7 +138,27 @@ export function validateResourceFile(file: UploadedFileInfo): void {
 }
 
 /**
- * Uploads a study resource, creates database record, and links to uploader.
+ * Uploads a study resource: validates the file, creates a database record,
+ * and logs an audit trail entry.
+ *
+ * The file URL is constructed from the multer-generated filename and stored
+ * as a relative path under `/uploads/resources/`.
+ *
+ * @param metadata - Validated resource metadata (title, course, semester, year, type).
+ * @param file - Uploaded file info from multer middleware.
+ * @param uploaderId - UUID of the authenticated user performing the upload.
+ * @returns Created {@link ResourceItem} DTO with uploader profile.
+ * @throws {AppError} `FILE_TOO_LARGE` (400) if file exceeds 50 MB.
+ * @throws {AppError} `INVALID_FILE_TYPE` (400) if file format is unsupported.
+ *
+ * @example
+ * ```ts
+ * const resource = await uploadResource(
+ *   { title: "AI Lecture 3", courseName: "CSE 401", semesterLabel: "4Y1S", year: 2026, type: "SLIDE" },
+ *   { filename: "abc.pdf", path: "/uploads/resources/abc.pdf", size: 2048, mimetype: "application/pdf", originalname: "lecture3.pdf" },
+ *   "user-uuid"
+ * );
+ * ```
  */
 export async function uploadResource(
   metadata: UploadResourceInput,
@@ -113,8 +203,20 @@ export async function uploadResource(
 }
 
 /**
- * FR-31: Notify students of the relevant semester about a new resource upload.
- * Called after uploadResource succeeds.
+ * Dispatches batch-wide notifications for a newly uploaded resource (FR-31).
+ *
+ * Resolves all active semesters matching the resource's `semesterLabel`,
+ * then sends a notification to every student in the corresponding batches.
+ * Called asynchronously after {@link uploadResource} succeeds; notification
+ * failures do not propagate to the upload response.
+ *
+ * @param resource - The newly created {@link ResourceItem} to notify about.
+ *
+ * @example
+ * ```ts
+ * await notifyResourceUpload(createdResource);
+ * // Students in matching batches receive "New resource uploaded: ..." notification.
+ * ```
  */
 export async function notifyResourceUpload(resource: ResourceItem) {
   // Find users in batches whose current semester matches the resource's semesterLabel
@@ -141,6 +243,26 @@ export async function notifyResourceUpload(resource: ResourceItem) {
 
 /**
  * Lists resources with pagination and multi-facet filtering.
+ *
+ * Supports filtering by year, semester label, course name, resource type,
+ * and free-text search across title, course name, and semester label.
+ * Results are ordered by creation date descending (newest first).
+ *
+ * @param filter - Query parameters from {@link ResourceQueryFilter}.
+ * @returns Paginated response with {@link ResourceItem} array and pagination metadata.
+ *
+ * @example
+ * ```ts
+ * const data = await listResources({
+ *   year: 2026,
+ *   type: "SLIDE",
+ *   search: "Software Engineering",
+ *   page: 1,
+ *   limit: 20,
+ * });
+ * // data.resources — array of ResourceItem DTOs
+ * // data.pagination — { total, page, limit, totalPages }
+ * ```
  */
 export async function listResources(
   filter: ResourceQueryFilter
@@ -212,7 +334,17 @@ export async function listResources(
 }
 
 /**
- * Fetches a single resource by its unique identifier.
+ * Fetches a single resource by its unique UUID.
+ *
+ * @param id - Resource UUID.
+ * @returns The matching {@link ResourceItem} DTO with uploader profile.
+ * @throws {AppError} `RESOURCE_NOT_FOUND` (404) if no resource exists with the given ID.
+ *
+ * @example
+ * ```ts
+ * const resource = await getResourceById("resource-uuid");
+ * // resource.title, resource.fileUrl, resource.downloadCount, etc.
+ * ```
  */
 export async function getResourceById(id: string): Promise<ResourceItem> {
   const resource = await prisma.resource.findUnique({
@@ -236,7 +368,19 @@ export async function getResourceById(id: string): Promise<ResourceItem> {
 }
 
 /**
- * Atomically increments the download counter for a resource.
+ * Atomically increments the download counter for a resource and returns the updated record.
+ *
+ * Uses Prisma's `increment` operator for atomic, race-condition-safe counting.
+ *
+ * @param id - Resource UUID to increment.
+ * @returns Updated {@link ResourceItem} DTO with the new `downloadCount`.
+ * @throws {AppError} `RESOURCE_NOT_FOUND` (404) if no resource exists with the given ID.
+ *
+ * @example
+ * ```ts
+ * const updated = await incrementDownloadCount("resource-uuid");
+ * // updated.downloadCount === previousCount + 1
+ * ```
  */
 export async function incrementDownloadCount(id: string): Promise<ResourceItem> {
   const existing = await prisma.resource.findUnique({ where: { id } });
@@ -264,8 +408,23 @@ export async function incrementDownloadCount(id: string): Promise<ResourceItem> 
 }
 
 /**
- * Deletes a resource from database and storage.
- * Enforces CR owner or Admin permission.
+ * Deletes a resource from the database and removes the physical file from disk.
+ *
+ * Enforces ownership-based access control: only the original uploader (CR) or
+ * an Admin may delete a resource. Physical file deletion is best-effort — if
+ * the file does not exist on disk, the error is silently ignored.
+ *
+ * @param id - Resource UUID to delete.
+ * @param userId - UUID of the authenticated user requesting deletion.
+ * @param userRole - Role string of the requesting user (for Admin bypass).
+ * @throws {AppError} `RESOURCE_NOT_FOUND` (404) if no resource exists with the given ID.
+ * @throws {AppError} `FORBIDDEN` (403) if the user is neither the uploader nor an Admin.
+ *
+ * @example
+ * ```ts
+ * await deleteResource("resource-uuid", "user-uuid", "CR");
+ * // Resource deleted from database and file removed from /uploads/resources/
+ * ```
  */
 export async function deleteResource(id: string, userId: string, userRole: string): Promise<void> {
   const resource = await prisma.resource.findUnique({ where: { id } });
@@ -300,7 +459,21 @@ export async function deleteResource(id: string, userId: string, userRole: strin
 }
 
 /**
- * Builds the hierarchical category navigation tree (Year → Semester → Course → Types).
+ * Builds the hierarchical category navigation tree for the resource browser.
+ *
+ * Aggregates all resources into a Year → Semester → Course → Types structure,
+ * including resource counts per course. Used by the frontend to render
+ * drill-down navigation for browsing study materials.
+ *
+ * @returns Array of {@link ResourceHierarchyItem} nodes ordered by year descending.
+ *
+ * @example
+ * ```ts
+ * const tree = await getHierarchy();
+ * // tree[0].year = 2026
+ * // tree[0].semesters[0].semesterLabel = "4th Year 1st Semester"
+ * // tree[0].semesters[0].courses[0] = { courseName: "SE", types: ["SLIDE","NOTE"], count: 5 }
+ * ```
  */
 export async function getHierarchy(): Promise<ResourceHierarchyItem[]> {
   const resources = await prisma.resource.findMany({

@@ -1,3 +1,22 @@
+/**
+ * Resource Router — FR-23: Study Resource Repository.
+ *
+ * Defines Express routes for study resource and result archive operations:
+ *
+ * | Method | Path              | Auth      | Description                                    |
+ * |--------|-------------------|-----------|------------------------------------------------|
+ * | GET    | `/hierarchy`      | Public    | Category navigation tree (Year→Semester→Course).|
+ * | GET    | `/`               | Public    | List and search resources with pagination.     |
+ * | GET    | `/:id/download`   | Public    | Download resource file & increment counter.    |
+ * | GET    | `/:id`            | Public    | Get single resource metadata.                  |
+ * | POST   | `/`               | CR, Admin | Upload a new study resource (multipart).       |
+ * | DELETE | `/:id`            | CR, Admin | Delete a resource (owner or Admin).            |
+ *
+ * @see {@link ResourceController} for endpoint handler implementations.
+ * @see {@link resourceService} for business logic.
+ * @module routes/resource
+ */
+
 import { Router } from "express";
 import { resourceController } from "../controllers/resource.controller.js";
 import { authenticate, authorize } from "../middleware/auth.js";

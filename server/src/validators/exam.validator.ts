@@ -1,11 +1,26 @@
 /**
  * Zod validation schemas for Exam Routine endpoints.
- * FR-22: Semester Final Exam Routine Generation
+ *
+ * Enforces input constraints for FR-22: Semester Final Exam Routine Generation,
+ * including date format validation, time constraints, and pagination limits.
+ *
+ * @see {@link ExamController} for endpoint handlers consuming these schemas.
+ * @see {@link CreateExamEntryInput} for the corresponding domain type.
+ * @module validators/exam
  */
 
 import { z } from "zod";
 
-/** Single exam entry input schema */
+/**
+ * Zod schema validating a single exam entry input for creation.
+ *
+ * Enforces:
+ * - `batchId`, `roomId`: non-empty UUID strings.
+ * - `courseName`: 2–200 characters.
+ * - `date`: ISO 8601 date format (`YYYY-MM-DD`).
+ * - `startTime`, `endTime`: non-empty time strings.
+ * - `courseId`, `teacherId`, `topic`: optional fields.
+ */
 export const createExamEntrySchema = z.object({
   batchId: z.string().trim().min(1, "Batch ID is required"),
   courseId: z.string().trim().min(1).optional(),
@@ -25,7 +40,14 @@ export const createExamEntrySchema = z.object({
   topic: z.string().trim().max(500, "Topic cannot exceed 500 characters").optional(),
 });
 
-/** Bulk create payload — one or many exam entries */
+/**
+ * Zod schema for bulk exam routine creation payload.
+ *
+ * Wraps an array of {@link createExamEntrySchema} entries (1–100) with an
+ * optional `semesterId` for validation context.
+ *
+ * @see {@link ExamController.createExamRoutine} for the consuming endpoint.
+ */
 export const bulkCreateExamSchema = z.object({
   semesterId: z.string().trim().min(1).optional(),
   entries: z
@@ -34,7 +56,14 @@ export const bulkCreateExamSchema = z.object({
     .max(100, "Cannot create more than 100 exam entries at once"),
 });
 
-/** PATCH payload — all fields optional */
+/**
+ * Zod schema for partial exam entry update payload.
+ *
+ * All fields are optional. Includes a refinement ensuring at least one field
+ * is provided to prevent empty PATCH requests.
+ *
+ * @see {@link ExamController.updateExamEntry} for the consuming endpoint.
+ */
 export const updateExamEntrySchema = z
   .object({
     courseId: z.string().trim().min(1).optional(),
@@ -59,7 +88,13 @@ export const updateExamEntrySchema = z
     message: "At least one field must be provided for update",
   });
 
-/** Query filter schema for GET exam list */
+/**
+ * Zod schema for exam schedule listing query parameters.
+ *
+ * Supports optional filtering by `batchId`, `semesterId`, and date range
+ * (`startDate`/`endDate` in `YYYY-MM-DD` format) with pagination defaults
+ * (page=1, limit=50, max=100).
+ */
 export const examQuerySchema = z.object({
   batchId: z.string().trim().min(1).optional(),
   semesterId: z.string().trim().min(1).optional(),
@@ -77,7 +112,11 @@ export const examQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
-/** ID param schema */
+/**
+ * Zod schema for the exam entry `id` path parameter.
+ *
+ * Validates that a non-empty ScheduleEntry UUID is provided.
+ */
 export const examIdParamSchema = z.object({
   id: z.string().trim().min(1, "Exam entry ID is required"),
 });
